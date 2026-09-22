@@ -1,0 +1,24 @@
+{
+  "name": "ci-unidade2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plataforma Didática de Escrituração Contábil — Unidade II (Operações com Mercadorias e Operações Financeiras) — CI - Contabilidade Intermediária, CEDUP Hermann Hering",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && firebase deploy --only hosting"
+  },
+  "dependencies": {
+    "firebase": "^10.13.0",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^4.4.168",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^5.4.0"
+  }
+}

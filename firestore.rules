@@ -1,0 +1,174 @@
+rules_version = '2';
+
+// Regras de segurança — CI Unidade II
+// Espelha a tabela "Regras de segurança" do documento de modelo de dados.
+// Princípio central: o aluno nunca escreve nota, prazo ou status de aprovação —
+// só o professor. O papel (aluno/professor/admin) vem de users/{uid} e NUNCA
+// é definido pelo próprio cliente (veja a nota no final sobre criação de users/{uid}).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function meu() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function papel() {
+      return signedIn() ? meu().papel : null;
+    }
+    function souAdmin() {
+      return papel() == 'admin';
+    }
+    function souProfessor() {
+      return papel() == 'professor';
+    }
+    function souAluno() {
+      return papel() == 'aluno';
+    }
+    function turma(turmaId) {
+      return get(/databases/$(database)/documents/turmas/$(turmaId)).data;
+    }
+    function souProfessorDaTurma(turmaId) {
+      return souProfessor() && turma(turmaId).professorId == request.auth.uid;
+    }
+    function souEsteAlunoNestaTurma(turmaId, matricula) {
+      return souAluno() && meu().turmaId == turmaId && meu().matricula == matricula;
+    }
+    function estouNaTurmaDoAluno(turmaId) {
+      return souAluno() && meu().turmaId == turmaId;
+    }
+
+    // ---------- users ----------
+    // Criação e o campo "papel" nunca vêm do cliente — só de uma Cloud Function
+    // (trigger de criação de conta), que decide o papel a partir de um cadastro
+    // prévio (professor/admin) ou da confirmação de matrícula (aluno).
+    match /users/{uid} {
+      allow read: if signedIn() && (
+        request.auth.uid == uid ||
+        souAdmin() ||
+        (souProfessor() && resource.data.turmaId != null && souProfessorDaTurma(resource.data.turmaId))
+      );
+      allow create: if false; // só Cloud Function (Admin SDK ignora as regras)
+      allow update: if signedIn() && request.auth.uid == uid
+        && resource.data.matriculaConfirmada == false
+        && request.resource.data.papel == resource.data.papel // não muda o próprio papel
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['matricula', 'turmaId', 'matriculaConfirmada']);
+      allow delete: if false;
+    }
+
+    // ---------- turmas ----------
+    match /turmas/{turmaId} {
+      allow read: if signedIn() && (
+        souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId)
+      );
+      allow create: if souAdmin() || (souProfessor() && request.resource.data.professorId == request.auth.uid);
+      allow update: if souAdmin() || souProfessorDaTurma(turmaId);
+      allow delete: if souAdmin();
+
+      // ---------- turmas/{turmaId}/alunos ----------
+      match /alunos/{matricula} {
+        allow read: if signedIn() && (
+          souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+        );
+        // O aluno só pode vincular seu uid uma vez (primeiro login); nunca toca em
+        // nota, desconto ou prazo.
+        allow update: if souProfessorDaTurma(turmaId)
+          || (
+            souEsteAlunoNestaTurma(turmaId, matricula)
+            && resource.data.uid == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'dataEntrega'])
+          );
+        allow create: if souAdmin() || souProfessorDaTurma(turmaId);
+        allow delete: if souAdmin() || souProfessorDaTurma(turmaId);
+
+        // ---------- lançamentos ----------
+        // Nota: Débito = Crédito não é validado aqui — a linguagem de Security
+        // Rules não tem soma/redução de listas (não existe .filter/.map/.sum
+        // sobre arrays). Essa conferência deve ficar num Cloud Function trigger
+        // (onCreate/onUpdate de lancamentos), que já é o lugar certo para negar
+        // ou reverter um documento inconsistente — as regras abaixo só cobrem
+        // quem pode escrever o quê, não a aritmética do lançamento.
+        match /lancamentos/{id} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow create: if souEsteAlunoNestaTurma(turmaId, matricula)
+            && request.resource.data.status in ['rascunho', 'enviado'];
+          allow update: if
+            // aluno só edita o próprio lançamento enquanto não foi aprovado
+            (souEsteAlunoNestaTurma(turmaId, matricula)
+              && resource.data.status != 'aprovado'
+              && request.resource.data.status in ['rascunho', 'enviado'])
+            // professor só muda status e observação de correção
+            || (souProfessorDaTurma(turmaId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao']));
+          allow delete: if souEsteAlunoNestaTurma(turmaId, matricula) && resource.data.status == 'rascunho';
+        }
+
+        // ---------- digitações de NF-e ----------
+        match /digitacoesNFe/{id} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+        }
+
+        // ---------- classificações contábeis ----------
+        match /classificacoes/{id} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+        }
+
+        // ---------- análises fiscais ----------
+        // Subcoleção adicionada durante a portagem (não estava no desenho
+        // original) — a tela de Análise Fiscal do protótipo tinha campos
+        // sem estado nenhum por trás; ao portar para componente real,
+        // ganhou persistência de verdade. Atualize o documento de modelo
+        // de dados se quiserem manter os dois em sincronia.
+        match /analisesFiscais/{id} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+        }
+      }
+    }
+
+    // ---------- professores autorizados (usada só pela Cloud Function
+    // criarPerfilNoPrimeiroLogin via Admin SDK, que ignora estas regras;
+    // aqui só bloqueamos acesso direto do cliente) ----------
+    match /professoresAutorizados/{email} {
+      allow read, write: if souAdmin();
+    }
+
+    // ---------- plano de contas (institucional, compartilhado) ----------
+    match /planoContas/{codigo} {
+      allow read: if signedIn();
+      allow create: if souAdmin() || souProfessor();
+      allow update: if souAdmin() || souProfessor();
+      allow delete: if false; // conta já usada em lançamento não pode sumir
+    }
+
+    // ---------- catálogo de documentos fiscais ----------
+    match /documentosFiscais/{id} {
+      // Aluno só lê um documento se ele estiver liberado para a turma dele —
+      // verificação cruzada com turmas/{turmaId}.documentosIds.
+      allow read: if signedIn() && (
+        souAdmin() || souProfessor() ||
+        (souAluno() && meu().turmaId != null
+          && id in turma(meu().turmaId).documentosIds)
+      );
+      allow write: if souAdmin() || souProfessor();
+    }
+
+    // A conferência de Débito = Crédito fica no Cloud Function trigger de
+    // lancamentos (veja o comentário acima, na regra de lancamentos) — não
+    // dá para somar arrays dentro de uma Security Rule.
+  }
+}

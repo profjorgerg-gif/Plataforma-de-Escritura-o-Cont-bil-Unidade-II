@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Escrituração Contábil — Unidade II</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --paper:#F6F2E9;
+    --paper-deep:#EFE9DA;
+    --line:#D9CFBB;
+    --line-strong:#C3B79E;
+    --ink:#1E2A38;
+    --ink-soft:#5B6672;
+    --ink-faint:#8B8477;
+    --green:#1F5C4A;
+    --green-dark:#163F33;
+    --green-pale:#E4EEE9;
+    --blue:#2B4C7E;
+    --blue-pale:#E7ECF3;
+    --red:#8C2F2F;
+    --red-pale:#F3E7E5;
+    --amber:#9C6B1F;
+    --amber-pale:#F3ECDD;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .mono{font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums;}
+  #root{min-height:100vh;}
+
+  .app{display:flex; min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{
+    width:236px; flex-shrink:0;
+    background:var(--green-dark);
+    color:#EDE7D8;
+    display:flex; flex-direction:column;
+    border-right:1px solid var(--line-strong);
+  }
+  .sidebar-head{
+    padding:22px 20px 16px 20px;
+    border-bottom:1px solid rgba(237,231,216,0.18);
+  }
+  .sidebar-head .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px; letter-spacing:0.06em;
+    color:#B7C9C0; text-transform:none;
+  }
+  .sidebar-head h1{
+    font-size:19px; margin:4px 0 0 0; font-weight:600; line-height:1.25;
+  }
+  .nav-group{padding:14px 0;}
+  .nav-group-label{
+    padding:6px 20px; font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px; color:#8FA79C; letter-spacing:0.04em;
+  }
+  .nav-item{
+    display:flex; align-items:baseline; gap:10px;
+    padding:8px 20px; cursor:pointer;
+    color:#D9D2C2; font-size:14.5px;
+    border-left:2px solid transparent;
+  }
+  .nav-item .num{font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7C9A8D; width:16px; flex-shrink:0;}
+  .nav-item:hover{background:rgba(237,231,216,0.06);}
+  .nav-item.active{
+    background:rgba(237,231,216,0.1);
+    border-left:2px solid #C9A24A;
+    color:#FBF8EF; font-weight:600;
+  }
+  .nav-item.active .num{color:#C9A24A;}
+  .sidebar-foot{
+    margin-top:auto; padding:16px 20px; border-top:1px solid rgba(237,231,216,0.18);
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8FA79C;
+  }
+
+  /* Main */
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 32px; border-bottom:1px solid var(--line-strong);
+    background:var(--paper-deep);
+  }
+  .topbar .empresa{font-size:14px; color:var(--ink-soft);}
+  .topbar .empresa b{color:var(--ink);}
+  .role-switch{display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft);}
+  .role-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+    padding:5px 11px; border:1px solid var(--line-strong); background:var(--paper);
+    color:var(--ink-soft); cursor:pointer;
+  }
+  .role-btn.active{background:var(--green); border-color:var(--green); color:#fff;}
+
+  .content{padding:30px 36px 60px 36px; max-width:1080px;}
+  .screen-eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-faint); margin-bottom:6px;}
+  h2.screen-title{font-size:24px; margin:0 0 4px 0; font-weight:600;}
+  .screen-sub{color:var(--ink-soft); font-size:14px; margin:0 0 26px 0; max-width:640px;}
+
+  .panel{background:#fff; border:1px solid var(--line-strong); margin-bottom:22px;}
+  .panel-head{
+    padding:12px 18px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--paper-deep);
+  }
+  .panel-head h3{margin:0; font-size:15px; font-weight:600;}
+  .panel-body{padding:16px 18px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-weight:500;
+    font-size:10.5px; letter-spacing:0.03em; color:var(--ink-faint);
+    padding:0 10px 8px 10px; border-bottom:1px solid var(--line-strong);
+  }
+  td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.num, th.num{text-align:right; font-family:'IBM Plex Mono', monospace;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:var(--green-pale);}
+
+  .status{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    padding:2px 8px; border:1px solid; letter-spacing:0.02em;
+  }
+  .status.rascunho{color:var(--ink-faint); border-color:var(--ink-faint); background:#F1EEE6;}
+  .status.enviado{color:var(--amber); border-color:var(--amber); background:var(--amber-pale);}
+  .status.aprovado{color:var(--green); border-color:var(--green); background:var(--green-pale);}
+  .status.correcao{color:var(--red); border-color:var(--red); background:var(--red-pale);}
+
+  .btn{
+    font-family:'Source Serif 4', serif; font-size:13.5px; font-weight:600;
+    padding:7px 14px; border:1px solid var(--ink); background:var(--ink); color:#fff;
+    cursor:pointer;
+  }
+  .btn.secondary{background:transparent; color:var(--ink); border:1px solid var(--line-strong);}
+  .btn.green{background:var(--green); border-color:var(--green);}
+  .btn.red{background:var(--red); border-color:var(--red);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn-row{display:flex; gap:8px; margin-top:14px;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-faint); margin-bottom:5px; letter-spacing:0.02em;}
+  .field input, .field select, .field textarea{
+    width:100%; font-family:'Source Serif 4', serif; font-size:14px;
+    padding:8px 10px; border:1px solid var(--line-strong); background:var(--paper);
+    color:var(--ink);
+  }
+  .field textarea{min-height:56px; resize:vertical;}
+  .field input.mono, .field select.mono{font-family:'IBM Plex Mono', monospace;}
+
+  .helper-note{
+    font-size:12.5px; color:var(--ink-soft); border-left:2px solid var(--line-strong);
+    padding:6px 12px; margin:10px 0; background:var(--paper-deep);
+  }
+  .balance-check{
+    display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:12px;
+    padding:9px 12px; margin-top:10px; border:1px solid;
+  }
+  .balance-check.ok{color:var(--green); border-color:var(--green); background:var(--green-pale);}
+  .balance-check.bad{color:var(--red); border-color:var(--red); background:var(--red-pale);}
+
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;}
+  .kpi{background:#fff; border:1px solid var(--line-strong); padding:14px 16px;}
+  .kpi .kpi-label{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-faint); margin-bottom:8px;}
+  .kpi .kpi-value{font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; color:var(--ink);}
+  .kpi.warn .kpi-value{color:var(--amber);}
+  .kpi.ok .kpi-value{color:var(--green);}
+  .kpi.bad .kpi-value{color:var(--red);}
+
+  .dre-row{display:flex; justify-content:space-between; padding:9px 4px; border-bottom:1px solid var(--line); font-size:14px;}
+  .dre-row.total{font-weight:700; border-top:1px solid var(--line-strong); border-bottom:none; margin-top:4px; padding-top:10px;}
+  .dre-row.sub{padding-left:18px; color:var(--ink-soft); font-size:13.5px;}
+  .dre-row .val{font-family:'IBM Plex Mono', monospace;}
+  .dre-row.clickable{cursor:pointer;}
+  .dre-row.clickable:hover{background:var(--green-pale);}
+
+  .bp-cols{display:grid; grid-template-columns:1fr 1fr; gap:0;}
+  .bp-col{padding:16px 18px;}
+  .bp-col + .bp-col{border-left:1px solid var(--line-strong);}
+  .bp-group-label{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-faint); margin:14px 0 6px 0;}
+  .bp-group-label:first-child{margin-top:0;}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(30,42,56,0.5);
+    display:flex; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .modal{background:#fff; border:1px solid var(--line-strong); width:560px; max-width:100%; max-height:80vh; overflow:auto;}
+  .modal-head{padding:14px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; background:var(--paper-deep);}
+  .modal-head h3{margin:0; font-size:15px;}
+  .modal-body{padding:16px 20px;}
+  .modal-close{cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--ink-soft); background:none; border:none;}
+
+  .breadcrumb-trail{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:10px;}
+  .breadcrumb-trail span{color:var(--green);}
+
+  .tag-pill{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    padding:2px 7px; background:var(--blue-pale); color:var(--blue); margin-right:5px;
+  }
+  .empty-state{padding:34px 18px; text-align:center; color:var(--ink-faint); font-size:13.5px;}
+
+  .partida-row{display:grid; grid-template-columns:2fr 90px 110px 110px 30px; gap:8px; align-items:center; margin-bottom:8px;}
+  .partida-row select, .partida-row input{padding:7px 8px; font-size:13px;}
+  .remove-partida{background:none; border:none; color:var(--red); cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:16px; line-height:1;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const h = React.createElement;
+const { useState, useMemo } = React;
+
+/* ============================================================
+   DADOS FICTÍCIOS — Módulo Unidade II
+   Estrutura já pensada no formato de futuras coleções Firestore
+   ============================================================ */
+
+const GRUPO_INFO = {
+  1:{ nome:"Ativo", natureza:"devedora", destino:"BP" },
+  2:{ nome:"Passivo", natureza:"credora", destino:"BP" },
+  3:{ nome:"Patrimônio Líquido", natureza:"credora", destino:"BP" },
+  4:{ nome:"Receitas", natureza:"credora", destino:"DRE" },
+  5:{ nome:"Despesas", natureza:"devedora", destino:"DRE" },
+  6:{ nome:"Custos", natureza:"devedora", destino:"DRE" },
+  7:{ nome:"Resultado", natureza:"devedora", destino:"ARE" },
+};
+function naturezaDe(grupo, redutora){
+  const base = GRUPO_INFO[grupo].natureza;
+  if(!redutora) return base;
+  return base === "devedora" ? "credora" : "devedora";
+}
+function destinoDe(grupo){ return GRUPO_INFO[grupo].destino; }
+
+// Plano de Contas oficial — CEDUP Hermann Hering (atualizado em 25/03/2026)
+// Apenas contas analíticas / subcontas (as que recebem lançamento); as sintéticas
+// e os grupos servem só de agrupamento e são derivados aqui pelo código.
+const PLANO_CONTAS_INICIAL = [
+  // 1. ATIVO — 1.1 Circulante
+  { codigo:"1.1.1.01", nome:"Caixa Geral", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.02.01", nome:"Banco X", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.02.02", nome:"Banco Y", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.03.01", nome:"Aplicação Banco X", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.03.02", nome:"Aplicação Banco Y", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.04", nome:"Cheques em Cobrança", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.1.05", nome:"Numerários em Trânsito", grupo:1, subgrupo:"Caixa e Equivalentes de Caixa" },
+  { codigo:"1.1.2.01", nome:"Duplicatas a Receber", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.02", nome:"Clientes", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.03", nome:"Notas Promissórias", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.04", nome:"Cartões de Crédito a Receber", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.05", nome:"Cheques a Receber", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.06", nome:"Adiantamento a Fornecedores", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.07", nome:"Adiantamento a Empregados", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.08", nome:"Empréstimos a Coligadas (CP)", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.09", nome:"Juros a Receber", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.10", nome:"Aluguéis a Receber", grupo:1, subgrupo:"Valores a Receber" },
+  { codigo:"1.1.2.11", nome:"ICMS a Recuperar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.12", nome:"ICMS-ST a Recuperar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.13", nome:"IPI a Recuperar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.14", nome:"PIS a Recuperar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.15", nome:"COFINS a Recuperar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.16", nome:"IRRF a Compensar", grupo:1, subgrupo:"Tributos a Recuperar" },
+  { codigo:"1.1.2.99", nome:"(-) Provisão para Créditos de Liquidação Duvidosa", grupo:1, subgrupo:"Valores a Receber", redutora:true },
+  { codigo:"1.1.3.01", nome:"Mercadorias para Revenda", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.02", nome:"Mercadorias em Trânsito", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.03", nome:"Mercadorias em Poder de Terceiros", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.04", nome:"Matérias-Primas", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.05", nome:"Material Secundário", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.06", nome:"Produtos em Elaboração", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.07", nome:"Produtos Acabados", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.08", nome:"Material de Expediente", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.09", nome:"Serviços em Andamento", grupo:1, subgrupo:"Estoques" },
+  { codigo:"1.1.3.99", nome:"(-) Perdas / Ajuste de Estoques", grupo:1, subgrupo:"Estoques", redutora:true },
+  { codigo:"1.1.4.01", nome:"Seguros a Apropriar", grupo:1, subgrupo:"Despesas Antecipadas" },
+  { codigo:"1.1.4.02", nome:"Assinaturas e Licenças", grupo:1, subgrupo:"Despesas Antecipadas" },
+  { codigo:"1.1.4.03", nome:"Aluguéis Antecipados", grupo:1, subgrupo:"Despesas Antecipadas" },
+  // 1.2 Não Circulante
+  { codigo:"1.2.1.01", nome:"Clientes LP", grupo:1, subgrupo:"Realizável a Longo Prazo" },
+  { codigo:"1.2.1.02", nome:"Títulos a Receber", grupo:1, subgrupo:"Realizável a Longo Prazo" },
+  { codigo:"1.2.1.03", nome:"Depósitos Judiciais", grupo:1, subgrupo:"Realizável a Longo Prazo" },
+  { codigo:"1.2.1.04", nome:"Empréstimos a Coligadas", grupo:1, subgrupo:"Realizável a Longo Prazo" },
+  { codigo:"1.2.1.05", nome:"Tributos Diferidos", grupo:1, subgrupo:"Realizável a Longo Prazo" },
+  { codigo:"1.2.2.01", nome:"Ações de Controladas", grupo:1, subgrupo:"Investimentos" },
+  { codigo:"1.2.2.02", nome:"Ações de Coligadas", grupo:1, subgrupo:"Investimentos" },
+  { codigo:"1.2.2.03", nome:"Outras Participações", grupo:1, subgrupo:"Investimentos" },
+  { codigo:"1.2.3.01", nome:"Edificações", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.02", nome:"Móveis e Utensílios", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.03", nome:"Veículos", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.04", nome:"Ferramentas", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.05", nome:"Máquinas e Equipamentos", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.06", nome:"Reflorestamentos", grupo:1, subgrupo:"Imobilizado" },
+  { codigo:"1.2.3.51", nome:"(-) Depreciação Acumulada Edificações", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.3.52", nome:"(-) Depreciação Acumulada Móveis", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.3.53", nome:"(-) Depreciação Acumulada Veículos", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.3.54", nome:"(-) Depreciação Acumulada Ferramentas", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.3.55", nome:"(-) Depreciação Acumulada Máquinas", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.3.56", nome:"(-) Exaustão Acumulada", grupo:1, subgrupo:"Imobilizado", redutora:true },
+  { codigo:"1.2.4.01", nome:"Fundo de Comércio", grupo:1, subgrupo:"Intangível" },
+  { codigo:"1.2.4.02", nome:"Marcas e Patentes", grupo:1, subgrupo:"Intangível" },
+  { codigo:"1.2.4.03", nome:"Softwares", grupo:1, subgrupo:"Intangível" },
+  { codigo:"1.2.4.99", nome:"(-) Amortização Acumulada", grupo:1, subgrupo:"Intangível", redutora:true },
+
+  // 2. PASSIVO
+  { codigo:"2.1.1.01", nome:"Duplicatas a Pagar", grupo:2, subgrupo:"Fornecedores" },
+  { codigo:"2.1.1.02", nome:"Fornecedores Diversos", grupo:2, subgrupo:"Fornecedores" },
+  { codigo:"2.1.2.01", nome:"Convênios a Pagar", grupo:2, subgrupo:"Contas a Pagar" },
+  { codigo:"2.1.2.02", nome:"Plano de Saúde Funcionários", grupo:2, subgrupo:"Contas a Pagar" },
+  { codigo:"2.1.3.01", nome:"Salários a Pagar", grupo:2, subgrupo:"Obrigações Trabalhistas" },
+  { codigo:"2.1.3.02", nome:"Pró-Labore a Pagar", grupo:2, subgrupo:"Obrigações Trabalhistas" },
+  { codigo:"2.1.4.01", nome:"INSS Folha", grupo:2, subgrupo:"Encargos Sociais" },
+  { codigo:"2.1.4.02", nome:"INSS Retido PJ", grupo:2, subgrupo:"Encargos Sociais" },
+  { codigo:"2.1.4.03", nome:"FGTS a Recolher", grupo:2, subgrupo:"Encargos Sociais" },
+  { codigo:"2.1.5.01", nome:"Provisão de Férias", grupo:2, subgrupo:"Provisão de Férias" },
+  { codigo:"2.1.5.02", nome:"Encargos sobre Férias", grupo:2, subgrupo:"Provisão de Férias" },
+  { codigo:"2.1.6.01", nome:"Provisão 13º", grupo:2, subgrupo:"Provisão 13º Salário" },
+  { codigo:"2.1.6.02", nome:"Encargos 13º", grupo:2, subgrupo:"Provisão 13º Salário" },
+  { codigo:"2.1.7.01", nome:"Dividendos a Pagar", grupo:2, subgrupo:"Dividendos" },
+  { codigo:"2.1.7.02", nome:"Dividendos Intermediários", grupo:2, subgrupo:"Dividendos" },
+  { codigo:"2.1.8.01", nome:"IRPJ", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.02", nome:"CSLL", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.03", nome:"IPI", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.04", nome:"ICMS", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.05", nome:"PIS", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.06", nome:"COFINS", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.07", nome:"PIS Importação", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.08", nome:"COFINS Importação", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.8.09", nome:"ISS", grupo:2, subgrupo:"Tributos a Recolher" },
+  { codigo:"2.1.9.01", nome:"Empréstimos Bancários", grupo:2, subgrupo:"Empréstimos e Financiamentos" },
+  { codigo:"2.1.9.02", nome:"Financiamentos", grupo:2, subgrupo:"Empréstimos e Financiamentos" },
+  { codigo:"2.1.9.99", nome:"(-) Encargos a Transcorrer", grupo:2, subgrupo:"Empréstimos e Financiamentos", redutora:true },
+  { codigo:"2.1.10.01", nome:"Duplicatas Descontadas", grupo:2, subgrupo:"Desconto de Duplicatas" },
+  { codigo:"2.1.10.99", nome:"(-) Encargos", grupo:2, subgrupo:"Desconto de Duplicatas", redutora:true },
+  { codigo:"2.2.1", nome:"Adiantamento de Sócios", grupo:2, subgrupo:"Passivo Não Circulante" },
+  { codigo:"2.2.2", nome:"Adiantamento de Acionistas", grupo:2, subgrupo:"Passivo Não Circulante" },
+  { codigo:"2.2.3", nome:"Empréstimos de Coligadas", grupo:2, subgrupo:"Passivo Não Circulante" },
+  { codigo:"2.2.4", nome:"Empréstimos de Controladas", grupo:2, subgrupo:"Passivo Não Circulante" },
+
+  // 3. PATRIMÔNIO LÍQUIDO
+  { codigo:"3.1.01", nome:"Capital Subscrito", grupo:3, subgrupo:"Capital Social" },
+  { codigo:"3.1.02", nome:"(-) Capital a Integralizar", grupo:3, subgrupo:"Capital Social", redutora:true },
+  { codigo:"3.2.01", nome:"Ágio na Emissão", grupo:3, subgrupo:"Reservas de Capital" },
+  { codigo:"3.2.02", nome:"Doações/Subvenções", grupo:3, subgrupo:"Reservas de Capital" },
+  { codigo:"3.2.03", nome:"Prêmios Debêntures", grupo:3, subgrupo:"Reservas de Capital" },
+  { codigo:"3.3.01", nome:"Ajustes de Avaliação — Ativos", grupo:3, subgrupo:"Ajustes de Avaliação" },
+  { codigo:"3.3.02", nome:"Ajustes de Avaliação — Passivos", grupo:3, subgrupo:"Ajustes de Avaliação" },
+  { codigo:"3.4.01", nome:"Reserva Legal", grupo:3, subgrupo:"Reservas de Lucros" },
+  { codigo:"3.4.02", nome:"Incentivos Fiscais", grupo:3, subgrupo:"Reservas de Lucros" },
+  { codigo:"3.5", nome:"(-) Ações em Tesouraria", grupo:3, subgrupo:"Patrimônio Líquido", redutora:true },
+  { codigo:"3.6", nome:"(-) Prejuízos Acumulados", grupo:3, subgrupo:"Patrimônio Líquido", redutora:true },
+  { codigo:"3.9", nome:"Resultado do Exercício", grupo:3, subgrupo:"Patrimônio Líquido" },
+
+  // 4. RECEITAS
+  { codigo:"4.1.1.01", nome:"Receita de Vendas de Mercadorias", grupo:4, subgrupo:"Receita Bruta de Vendas" },
+  { codigo:"4.1.1.02", nome:"Receita de Vendas de Produtos", grupo:4, subgrupo:"Receita Bruta de Vendas" },
+  { codigo:"4.1.1.03", nome:"Receita de Prestação de Serviços", grupo:4, subgrupo:"Receita Bruta de Vendas" },
+  { codigo:"4.2.01", nome:"ICMS sobre Vendas", grupo:4, subgrupo:"(-) Deduções da Receita", redutora:true },
+  { codigo:"4.2.02", nome:"PIS/COFINS sobre Vendas", grupo:4, subgrupo:"(-) Deduções da Receita", redutora:true },
+  { codigo:"4.2.03", nome:"ISS sobre Serviços", grupo:4, subgrupo:"(-) Deduções da Receita", redutora:true },
+  { codigo:"4.2.04", nome:"Descontos Incondicionais", grupo:4, subgrupo:"(-) Deduções da Receita", redutora:true },
+  { codigo:"4.2.05", nome:"Abatimentos", grupo:4, subgrupo:"(-) Deduções da Receita", redutora:true },
+  { codigo:"4.3.01", nome:"Juros Ativos", grupo:4, subgrupo:"Receitas Financeiras" },
+  { codigo:"4.3.02", nome:"Rendimentos de Aplicações Financeiras", grupo:4, subgrupo:"Receitas Financeiras" },
+  { codigo:"4.3.03", nome:"Descontos Obtidos", grupo:4, subgrupo:"Receitas Financeiras" },
+  { codigo:"4.3.04", nome:"Variações Cambiais Ativas", grupo:4, subgrupo:"Receitas Financeiras" },
+  { codigo:"4.4.01", nome:"Receitas de Aluguéis", grupo:4, subgrupo:"Outras Receitas Operacionais" },
+  { codigo:"4.4.02", nome:"Venda de Sucatas", grupo:4, subgrupo:"Outras Receitas Operacionais" },
+  { codigo:"4.4.03", nome:"Dividendos Recebidos", grupo:4, subgrupo:"Outras Receitas Operacionais" },
+  { codigo:"4.4.04", nome:"Ganho na Venda de Imobilizado", grupo:4, subgrupo:"Outras Receitas Operacionais" },
+  { codigo:"4.4.05", nome:"Resultado Positivo da Equivalência Patrimonial", grupo:4, subgrupo:"Outras Receitas Operacionais" },
+
+  // 5. DESPESAS
+  { codigo:"5.1.01", nome:"Honorários da Diretoria", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.02", nome:"Salários Administrativos", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.03", nome:"Encargos Sociais Administrativos", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.04", nome:"Energia Elétrica", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.05", nome:"Telefone e Internet", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.06", nome:"Serviços de Terceiros", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.07", nome:"Seguros", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.1.08", nome:"Manutenção e Reparos", grupo:5, subgrupo:"Despesas Administrativas" },
+  { codigo:"5.2.01", nome:"Propaganda e Publicidade", grupo:5, subgrupo:"Despesas Comerciais" },
+  { codigo:"5.2.02", nome:"Comissões sobre Vendas", grupo:5, subgrupo:"Despesas Comerciais" },
+  { codigo:"5.2.03", nome:"Fretes sobre Vendas", grupo:5, subgrupo:"Despesas Comerciais" },
+  { codigo:"5.2.04", nome:"Despesas com Vendas", grupo:5, subgrupo:"Despesas Comerciais" },
+  { codigo:"5.3.01", nome:"Juros Passivos", grupo:5, subgrupo:"Despesas Financeiras" },
+  { codigo:"5.3.02", nome:"Variações Cambiais Passivas", grupo:5, subgrupo:"Despesas Financeiras" },
+  { codigo:"5.3.03", nome:"Descontos Concedidos", grupo:5, subgrupo:"Despesas Financeiras" },
+  { codigo:"5.4.01", nome:"Perdas Diversas", grupo:5, subgrupo:"Outras Despesas" },
+  { codigo:"5.4.02", nome:"Resultado Negativo da Equivalência Patrimonial", grupo:5, subgrupo:"Outras Despesas" },
+
+  // 6. CUSTOS
+  { codigo:"6.1.01", nome:"Materiais Aplicados", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.1.02", nome:"Salários da Produção", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.1.03", nome:"Encargos Sociais da Produção", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.1.04", nome:"Benefícios a Funcionários", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.1.05", nome:"Energia Elétrica Produção", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.1.06", nome:"Combustíveis e Lubrificantes", grupo:6, subgrupo:"Custos de Produção" },
+  { codigo:"6.2.01", nome:"Custo das Mercadorias Vendidas (CMV)", grupo:6, subgrupo:"Custos das Vendas (CMV/CPV/CSV)" },
+  { codigo:"6.2.02", nome:"Custo dos Produtos Vendidos (CPV)", grupo:6, subgrupo:"Custos das Vendas (CMV/CPV/CSV)" },
+  { codigo:"6.2.03", nome:"Custo dos Serviços Vendidos (CSV)", grupo:6, subgrupo:"Custos das Vendas (CMV/CPV/CSV)" },
+
+  // 7. RESULTADO
+  { codigo:"7.1.01", nome:"ARE – Apuração do Resultado do Exercício", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.02", nome:"Encerramento das Receitas", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.03", nome:"Encerramento das Despesas", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.04", nome:"Encerramento dos Custos", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.05", nome:"Resultado Bruto do Exercício", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.06", nome:"Resultado Operacional", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.07", nome:"Resultado Antes do Resultado Financeiro", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.08", nome:"Resultado Antes do IRPJ e da CSLL", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.09", nome:"Resultado Antes das Participações", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.10", nome:"Resultado Líquido do Exercício", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.11", nome:"Lucro do Exercício", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.1.12", nome:"Prejuízo do Exercício", grupo:7, subgrupo:"Apuração e Encerramento do Resultado" },
+  { codigo:"7.2.01", nome:"IRPJ sobre o Lucro", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.02", nome:"CSLL sobre o Lucro", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.03", nome:"Provisão para IRPJ", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.04", nome:"Provisão para CSLL", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.05", nome:"IRPJ Corrente", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.06", nome:"CSLL Corrente", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.07", nome:"IRPJ Diferido", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.08", nome:"CSLL Diferida", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.09", nome:"Ajuste de IRPJ do Exercício", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.2.10", nome:"Ajuste de CSLL do Exercício", grupo:7, subgrupo:"Tributos sobre o Lucro" },
+  { codigo:"7.3.01", nome:"Participações de Empregados", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.3.02", nome:"Participações de Administradores", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.3.03", nome:"Participações de Debenturistas", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.3.04", nome:"Participações de Partes Beneficiárias", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.3.05", nome:"Fundo de Assistência ou Previdência de Empregados", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.3.06", nome:"Outras Participações sobre o Lucro", grupo:7, subgrupo:"Participações sobre o Resultado" },
+  { codigo:"7.4.01", nome:"Lucros Acumulados", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.02", nome:"Prejuízos Acumulados", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.03", nome:"Reserva Legal", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.04", nome:"Reserva Estatutária", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.05", nome:"Reserva para Contingências", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.06", nome:"Reserva de Incentivos Fiscais", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.07", nome:"Reserva de Lucros a Realizar", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.08", nome:"Reserva para Expansão", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.09", nome:"Dividendos Propostos", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.10", nome:"Dividendos a Distribuir", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.11", nome:"Juros sobre Capital Próprio", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.12", nome:"Reversão de Reservas", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.13", nome:"Absorção de Prejuízos", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.14", nome:"Transferência para Reservas", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.4.15", nome:"Transferência do Lucro para o Patrimônio Líquido", grupo:7, subgrupo:"Destinação do Resultado" },
+  { codigo:"7.5.01", nome:"Ajustes de Exercícios Anteriores", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.02", nome:"Reversão de Ajustes de Exercícios Anteriores", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.03", nome:"Ajustes de Avaliação Patrimonial no Resultado", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.04", nome:"Efeitos de Mudança de Critério Contábil", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.05", nome:"Efeitos de Retificação de Erros", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.06", nome:"Ajustes de Encerramento", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.07", nome:"Ajustes Finais de Apuração", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.08", nome:"Reclassificações para Resultado", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.09", nome:"Compensação de Prejuízos do Exercício", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+  { codigo:"7.5.10", nome:"Transferência do Resultado para Lucros/Prejuízos Acumulados", grupo:7, subgrupo:"Ajustes e Complementos do Resultado" },
+].map(c => ({ ...c, natureza: naturezaDe(c.grupo, !!c.redutora), destino: destinoDe(c.grupo) }));
+
+const DOCUMENTOS_CATALOGO_INICIAL = [
+  {
+    id:"NF-186686", numero:"186686", serie:"1", tipo:"NF-e", direcao:"entrada",
+    natureza:"Compra para comercialização — interna", cfop:"1102", data:"2026-09-09",
+    emitente:{ nome:"Distribuidora Sul Mercantil S.A.", cnpj:"04.980.301/0001-80", ie:"568338278", endereco:"Rua Comercial, 962", municipioUf:"Blumenau/SC", cep:"89000-000" },
+    destinatario:{ nome:"Comercial Boa Vista Ltda", endereco:"Rua Comercial, 580", municipioUf:"Blumenau/SC" },
+    itens:[
+      { codigo:"001", descricao:"Caderno universitário", ncm:"48202000", cst:"00", cfop:"1102", unidade:"UN", qtd:8, valorUnit:32.13, total:257.04 },
+      { codigo:"002", descricao:"Caderno universitário", ncm:"48202000", cst:"00", cfop:"1102", unidade:"UN", qtd:7, valorUnit:32.50, total:227.50 },
+      { codigo:"003", descricao:"Caderno universitário", ncm:"48202000", cst:"00", cfop:"1102", unidade:"UN", qtd:9, valorUnit:28.97, total:260.73 },
+    ],
+    impostos:{
+      icms:{ base:880.27, aliquota:17.00, valor:149.65, contabilizado:true },
+      ipi:{ base:0, aliquota:0, valor:0, contabilizado:true },
+      pis:{ base:730.62, aliquota:1.65, valor:12.06, contabilizado:true },
+      cofins:{ base:730.62, aliquota:7.60, valor:55.53, contabilizado:true },
+      cbs:{ base:663.03, aliquota:0.90, valor:5.97, contabilizado:false },
+      ibs:{ base:663.03, aliquota:0.10, valor:0.66, contabilizado:false },
+    },
+    totais:{ produtos:745.27, desconto:0, frete:96.00, seguro:39.00, outras:0, total:880.27 },
+    transportador:{ nome:"Transportadora Didática Ltda", cnpj:"81.646.349/0001-05", placaUf:"ABC1D23/SC", volumes:8, pesoBrutoLiquido:"71 / 67", freteContaDe:"EMITENTE" },
+    valorTotal:880.27, completo:true,
+  },
+  {
+    id:"NF-103738", numero:"103738", serie:"1", tipo:"NF-e", direcao:"saida",
+    natureza:"Venda de mercadoria adquirida de terceiros — interna", cfop:"5102", data:"2026-09-09",
+    emitente:{ nome:"Comercial Boa Vista Ltda", endereco:"Rua Comercial, 102", municipioUf:"Blumenau/SC" },
+    destinatario:{ nome:"Papelaria Nova Era Ltda", cnpj:"23.117.359/0001-49", ie:"731352041", endereco:"Rua Comercial, 620", municipioUf:"Blumenau/SC", cep:"89000-000" },
+    itens:[
+      { codigo:"001", descricao:"Cadeira de escritório", ncm:"94013090", cst:"00", cfop:"5102", unidade:"UN", qtd:2, valorUnit:388.34, total:776.68 },
+      { codigo:"002", descricao:"Caneta esferográfica", ncm:"96081000", cst:"00", cfop:"5102", unidade:"UN", qtd:2, valorUnit:5.72, total:11.44 },
+      { codigo:"003", descricao:"Caneta esferográfica", ncm:"96081000", cst:"00", cfop:"5102", unidade:"UN", qtd:5, valorUnit:5.53, total:27.65 },
+    ],
+    impostos:{
+      icms:{ base:840.77, aliquota:17.00, valor:142.93, contabilizado:true },
+      ipi:{ base:0, aliquota:0, valor:0, contabilizado:true },
+      pis:{ base:697.84, aliquota:1.65, valor:11.51, contabilizado:true },
+      cofins:{ base:697.84, aliquota:7.60, valor:53.04, contabilizado:true },
+      cbs:{ base:633.29, aliquota:0.90, valor:5.70, contabilizado:false },
+      ibs:{ base:633.29, aliquota:0.10, valor:0.63, contabilizado:false },
+    },
+    totais:{ produtos:815.77, desconto:0, frete:0, seguro:0, outras:25.00, total:840.77 },
+    transportador:{ nome:"Transportadora Didática Ltda", cnpj:"16.291.161/0001-11", placaUf:"ABC1D23/SC", volumes:1, pesoBrutoLiquido:"76 / 45", freteContaDe:"SEM FRETE" },
+    valorTotal:840.77, completo:true,
+  },
+];
+
+const LANCAMENTOS_ALUNO_DEMONSTRATIVO = [
+  {
+    id:1, data:"2026-09-09", documento:"NF-186686", historico:"Compra de mercadorias para revenda, conforme NF-e 186686",
+    status:"aprovado",
+    partidas:[
+      { conta:"1.1.3.01", tipo:"D", valor:880.27 },
+      { conta:"2.1.1.02", tipo:"C", valor:880.27 },
+    ]
+  },
+  {
+    id:2, data:"2026-09-09", documento:"NF-103738", historico:"Reconhecimento da receita de venda de mercadorias, conforme NF-e 103738",
+    status:"aprovado",
+    partidas:[
+      { conta:"1.1.2.02", tipo:"D", valor:840.77 },
+      { conta:"4.1.1.01", tipo:"C", valor:840.77 },
+    ]
+  },
+  {
+    id:3, data:"2026-09-09", documento:"NF-103738", historico:"Baixa do CMV referente à venda registrada na NF-103738",
+    status:"aprovado",
+    partidas:[
+      { conta:"6.2.01", tipo:"D", valor:600 },
+      { conta:"1.1.3.01", tipo:"C", valor:600 },
+    ]
+  },
+  {
+    id:4, data:"2026-09-10", documento:"NF-103738", historico:"Frete sobre venda registrado na NF-e 103738",
+    status:"enviado",
+    partidas:[
+      { conta:"5.2.03", tipo:"D", valor:25 },
+      { conta:"1.1.1.02.01", tipo:"C", valor:25 },
+    ]
+  },
+  {
+    id:5, data:"2026-08-20", documento:"—", historico:"Aplicação financeira em CDB de liquidez diária",
+    status:"rascunho",
+    partidas:[
+      { conta:"1.1.1.03.01", tipo:"D", valor:2000 },
+      { conta:"1.1.1.02.01", tipo:"C", valor:2000 },
+    ]
+  },
+  {
+    id:6, data:"2026-08-22", documento:"—", historico:"Pagamento de juros sobre empréstimo bancário",
+    status:"correcao",
+    obsCorrecao:"Conferir se o valor inclui IOF separadamente, conforme o extrato anexado.",
+    partidas:[
+      { conta:"5.3.01", tipo:"D", valor:340 },
+      { conta:"1.1.1.02.01", tipo:"C", valor:340 },
+    ]
+  },
+];
+
+const LANCAMENTOS_BEATRIZ_SOUZA = [
+  {
+    id:1, data:"2026-09-11", documento:"NF-186686", historico:"Compra de mercadorias para revenda, conforme NF-e 186686",
+    status:"aprovado",
+    partidas:[
+      { conta:"1.1.3.01", tipo:"D", valor:880.27 },
+      { conta:"2.1.1.02", tipo:"C", valor:880.27 },
+    ]
+  },
+  {
+    id:2, data:"2026-09-12", documento:"NF-103738", historico:"Venda de mercadorias, conforme NF-e 103738 — lançamento único da receita e do custo",
+    status:"correcao",
+    obsCorrecao:"Revise: a venda deve reconhecer a receita e a baixa do CMV separadamente, em lançamentos distintos — não em um único lançamento combinando os dois efeitos.",
+    partidas:[
+      { conta:"1.1.2.02", tipo:"D", valor:840.77 },
+      { conta:"4.1.1.01", tipo:"C", valor:840.77 },
+    ]
+  },
+  {
+    id:3, data:"2026-09-13", documento:"NF-103738", historico:"Baixa do CMV referente à venda registrada na NF-103738",
+    status:"enviado",
+    partidas:[
+      { conta:"6.2.01", tipo:"D", valor:600 },
+      { conta:"1.1.3.01", tipo:"C", valor:600 },
+    ]
+  },
+];
+
+const LANCAMENTOS_CAIO_FERNANDES = [
+  {
+    id:1, data:"2026-09-10", documento:"NF-186686", historico:"Compra de mercadorias para revenda, conforme NF-e 186686",
+    status:"aprovado",
+    partidas:[
+      { conta:"1.1.3.01", tipo:"D", valor:880.27 },
+      { conta:"2.1.1.02", tipo:"C", valor:880.27 },
+    ]
+  },
+  {
+    id:2, data:"2026-09-10", documento:"NF-103738", historico:"Reconhecimento da receita de venda de mercadorias, conforme NF-e 103738",
+    status:"aprovado",
+    partidas:[
+      { conta:"1.1.2.02", tipo:"D", valor:840.77 },
+      { conta:"4.1.1.01", tipo:"C", valor:840.77 },
+    ]
+  },
+  {
+    id:3, data:"2026-09-10", documento:"NF-103738", historico:"Baixa do CMV referente à venda registrada na NF-103738",
+    status:"aprovado",
+    partidas:[
+      { conta:"6.2.01", tipo:"D", valor:600 },
+      { conta:"1.1.3.01", tipo:"C", valor:600 },
+    ]
+  },
+  {
+    id:4, data:"2026-09-11", documento:"NF-103738", historico:"Frete sobre venda registrado na NF-e 103738",
+    status:"aprovado",
+    partidas:[
+      { conta:"5.2.03", tipo:"D", valor:25 },
+      { conta:"1.1.1.02.01", tipo:"C", valor:25 },
+    ]
+  },
+];
+
+const DADOS_ALUNOS_INICIAL = {
+  "20260001": { lancamentos: LANCAMENTOS_ALUNO_DEMONSTRATIVO, digitacoes:{}, classificacoes:[] },
+  "20260002": { lancamentos: LANCAMENTOS_BEATRIZ_SOUZA, digitacoes:{}, classificacoes:[] },
+  "20260003": { lancamentos: LANCAMENTOS_CAIO_FERNANDES, digitacoes:{}, classificacoes:[] },
+  "20260004": { lancamentos:[], digitacoes:{}, classificacoes:[] },
+};
+
+const EMPRESA = { nome:"Comércio Têxtil Horizonte Ltda (didática)", aluno:"Aluno demonstrativo", turma:"3º Ano — Técnico em Contabilidade" };
+const TURMAS_INICIAL = [
+  { id:"t1", nome:"3º Ano — Técnico em Contabilidade", documentosIds:["NF-186686","NF-103738"],
+    prazoUnidadeII:"", descontoPorDiaAtraso:0, penalidadeAtrasoFixa:2,
+    alunos:[
+    { nome:"Aluno demonstrativo", matricula:"20260001", pendentes:1, aprovados:3, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false },
+    { nome:"Beatriz Souza", matricula:"20260002", pendentes:2, aprovados:5, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false },
+    { nome:"Caio Fernandes", matricula:"20260003", pendentes:0, aprovados:6, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false },
+    { nome:"Duda Ramires", matricula:"20260004", pendentes:3, aprovados:2, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false },
+  ]},
+];
+
+/* ============================================================
+   FUNÇÕES DE PROCESSAMENTO
+   (Diário aprovado → Razão → Balancete → ARE/DRE → Balanço)
+   ============================================================ */
+
+function contaInfo(codigo, contas){ return contas.find(c => c.codigo === codigo); }
+
+function lancamentosAprovados(lancamentos){
+  return lancamentos.filter(l => l.status === "aprovado");
+}
+
+function calcularRazao(lancamentos, contas){
+  const aprovados = lancamentosAprovados(lancamentos);
+  const porConta = {};
+  contas.forEach(c => porConta[c.codigo] = { conta:c, movimentos:[], totalD:0, totalC:0 });
+  aprovados.forEach(l => {
+    l.partidas.forEach(p => {
+      const bucket = porConta[p.conta];
+      if(!bucket) return;
+      bucket.movimentos.push({ data:l.data, historico:l.historico, documento:l.documento, tipo:p.tipo, valor:p.valor, lancamentoId:l.id });
+      if(p.tipo === "D") bucket.totalD += p.valor; else bucket.totalC += p.valor;
+    });
+  });
+  return porConta;
+}
+
+function saldoConta(bucket){
+  const c = bucket.conta;
+  const saldo = c.natureza === "devedora" ? (bucket.totalD - bucket.totalC) : (bucket.totalC - bucket.totalD);
+  return saldo;
+}
+
+function calcularBalancete(razao){
+  return Object.values(razao).filter(b => b.movimentos.length > 0);
+}
+
+function calcularDRE(razao){
+  const linhas = Object.values(razao).filter(b => b.conta.destino === "DRE" && b.movimentos.length > 0);
+  const receitaBruta = linhas.filter(l => l.conta.grupo===4 && l.conta.subgrupo==="Receita Bruta de Vendas").reduce((s,l)=>s+saldoConta(l),0);
+  const deducoes = linhas.filter(l => l.conta.grupo===4 && l.conta.redutora).reduce((s,l)=>s+saldoConta(l),0);
+  const cmv = linhas.filter(l => l.conta.codigo.startsWith("6.2")).reduce((s,l)=>s+saldoConta(l),0);
+  const despesasOp = linhas.filter(l => l.conta.grupo===5 && l.conta.subgrupo!=="Despesas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
+  const receitasFin = linhas.filter(l => l.conta.grupo===4 && l.conta.subgrupo==="Receitas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
+  const despesasFin = linhas.filter(l => l.conta.grupo===5 && l.conta.subgrupo==="Despesas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
+  const receitaLiquida = receitaBruta - deducoes;
+  const resultadoBruto = receitaLiquida - cmv;
+  const resultadoFinanceiro = receitasFin - despesasFin;
+  const resultadoExercicio = resultadoBruto - despesasOp + resultadoFinanceiro;
+  return { linhas, receitaBruta, deducoes, cmv, despesasOp, receitasFin, despesasFin, receitaLiquida, resultadoBruto, resultadoFinanceiro, resultadoExercicio };
+}
+
+function calcularBP(razao, resultadoExercicio){
+  const ativos = Object.values(razao).filter(b => b.conta.grupo===1 && b.movimentos.length > 0);
+  const passivos = Object.values(razao).filter(b => b.conta.grupo===2 && b.movimentos.length > 0);
+  const pl = Object.values(razao).filter(b => b.conta.grupo===3 && b.movimentos.length > 0);
+  const totalAtivo = ativos.reduce((s,l)=>s+saldoConta(l),0);
+  const totalPassivo = passivos.reduce((s,l)=>s+saldoConta(l),0);
+  const totalPLContas = pl.reduce((s,l)=>s+saldoConta(l),0);
+  const totalPL = totalPLContas + resultadoExercicio;
+  return { ativos, passivos, pl, totalAtivo, totalPassivo, totalPL, fecha: Math.abs(totalAtivo - (totalPassivo + totalPL)) < 0.005 };
+}
+
+function fmt(v){
+  const n = Number(v)||0;
+  return n.toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function prazoEfetivo(aluno, turma){
+  return aluno.prazoIndividual || turma.prazoUnidadeII || "";
+}
+function diasAtraso(dataEntrega, prazo){
+  if(!prazo) return 0;
+  const fim = dataEntrega || new Date().toISOString().slice(0,10);
+  const d1 = new Date(prazo+"T00:00:00"), d2 = new Date(fim+"T00:00:00");
+  const dias = Math.round((d2-d1)/86400000);
+  return Math.max(0, dias);
+}
+function fmtData(iso){
+  if(!iso) return "—";
+  const [a,m,d] = iso.split("-");
+  return d+"/"+m+"/"+a;
+}
+function descontoSugerido(dias, turma){
+  if(dias <= 0) return 0;
+  return (turma.penalidadeAtrasoFixa||0) + (dias-1) * (turma.descontoPorDiaAtraso||0);
+}
+function descontoEfetivo(aluno, turma){
+  const dias = diasAtraso(aluno.dataEntrega, prazoEfetivo(aluno, turma));
+  return aluno.descontoManual ? (aluno.desconto||0) : descontoSugerido(dias, turma);
+}
+function estatisticasAluno(matricula, dadosAlunos){
+  const lancamentos = dadosAlunos[matricula]?.lancamentos || [];
+  return {
+    pendentes: lancamentos.filter(l=>l.status==="enviado").length,
+    aprovados: lancamentos.filter(l=>l.status==="aprovado").length,
+  };
+}
+
+/* ============================================================
+   COMPONENTES DE UI
+   ============================================================ */
+
+function StatusBadge({status}){
+  const label = { rascunho:"Rascunho", enviado:"Enviado p/ análise", aprovado:"Aprovado", correcao:"Correção necessária" }[status];
+  return h("span", {className:`status ${status}`}, label);
+}
+
+function Kpi({label, value, tone}){
+  return h("div", {className:`kpi ${tone||""}`},
+    h("div",{className:"kpi-label"}, label),
+    h("div",{className:"kpi-value mono"}, value)
+  );
+}
+
+function DrillModal({item, onClose}){
+  if(!item) return null;
+  return h("div",{className:"modal-backdrop", onClick:onClose},
+    h("div",{className:"modal", onClick:e=>e.stopPropagation()},
+      h("div",{className:"modal-head"},
+        h("h3",null, item.title),
+        h("button",{className:"modal-close", onClick:onClose},"fechar ×")
+      ),
+      h("div",{className:"modal-body"},
+        h("p",{className:"helper-note"}, item.legenda),
+        h("table",null,
+          h("thead",null,h("tr",null,
+            h("th",null,"Data"), h("th",null,"Documento"), h("th",null,"Histórico"), h("th",{className:"num"},"Valor")
+          )),
+          h("tbody",null, item.linhas.map((m,i)=>h("tr",{key:i},
+            h("td",{className:"mono"}, m.data),
+            h("td",{className:"mono"}, m.documento),
+            h("td",null, m.historico),
+            h("td",{className:"num mono"}, (m.tipo==="D"?"D  ":"C  ")+fmt(m.valor))
+          )))
+        )
+      )
+    )
+  );
+}
+
+/* ---------- Telas ---------- */
+
+function TelaDashboard({role, lancamentos, goto, alunoAtual, turma, setTurmas, turmas}){
+  const aprovados = lancamentosAprovados(lancamentos).length;
+  const pendentes = lancamentos.filter(l=>l.status==="enviado").length;
+  const correcao = lancamentos.filter(l=>l.status==="correcao").length;
+  const rascunho = lancamentos.filter(l=>l.status==="rascunho").length;
+  const comCorrecao = lancamentos.filter(l=>l.obsCorrecao);
+  const prazo = role==="aluno" && alunoAtual ? prazoEfetivo(alunoAtual, turma) : "";
+  const hoje = new Date().toISOString().slice(0,10);
+  const vencido = prazo && !alunoAtual?.dataEntrega && hoje > prazo;
+  function entregarAtividade(){
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome===alunoAtual.nome ? {...a, dataEntrega: hoje} : a)}));
+  }
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"01 · visão geral"),
+    h("h2",{className:"screen-title"}, role==="professor" ? "Painel — Unidade II" : "Meu progresso — Unidade II"),
+    h("p",{className:"screen-sub"}, role==="professor"
+      ? "Acompanhamento das turmas na unidade de Operações com Mercadorias e Operações Financeiras."
+      : "Ciclo contábil construído progressivamente: cada documento novo soma fatos à mesma escrituração da sua empresa didática."),
+    h("div",{className:"kpi-row"},
+      h(Kpi,{label:"Lançamentos aprovados", value:aprovados, tone:"ok"}),
+      h(Kpi,{label:"Aguardando correção do professor", value:pendentes, tone:"warn"}),
+      h(Kpi,{label:"Com correção necessária", value:correcao, tone:"bad"}),
+      role==="aluno"
+        ? h(Kpi,{label:"Nota da Unidade II", value: alunoAtual?.notaLiberada ? fmt(Math.max(0, alunoAtual.nota - descontoEfetivo(alunoAtual, turma))) : "—", tone: alunoAtual?.notaLiberada ? "ok" : undefined})
+        : h(Kpi,{label:"Em rascunho", value:rascunho}),
+    ),
+    role==="aluno" && !alunoAtual?.notaLiberada && h("div",{className:"helper-note"}, "A nota da Unidade II ainda não foi liberada pelo professor."),
+    role==="aluno" && h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Prazo da Unidade II")),
+      h("div",{className:"panel-body"},
+        !prazo ? h("div",{style:{color:"var(--ink-soft)",fontSize:"14px"}},"Nenhum prazo definido pelo professor ainda.") :
+        h(React.Fragment, null,
+          h("div",{style:{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}},
+            h("div",null, h("div",{className:"kpi-label"},"Prazo"), h("div",{className:"mono", style:{fontSize:"15px"}}, fmtData(prazo))),
+            h("div",null, h("div",{className:"kpi-label"},"Entrega"), h("div",{className:"mono", style:{fontSize:"15px"}}, alunoAtual.dataEntrega?fmtData(alunoAtual.dataEntrega):"ainda não entregue")),
+            !alunoAtual.dataEntrega && h("button",{className: vencido?"btn red":"btn green", onClick:entregarAtividade}, "Entregar atividade"),
+          ),
+          vencido && h("div",{className:"balance-check bad", style:{marginTop:12}}, "Prazo vencido — entregue assim que possível; o atraso pode gerar desconto de pontualidade."),
+        )
+      )
+    ),
+    role==="aluno" && h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Correções recebidas")),
+      h("div",{className:"panel-body", style:{padding:0}},
+        comCorrecao.length===0 ? h("div",{className:"empty-state"},"Nenhuma correção recebida até agora.") :
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Data"),h("th",null,"Histórico"),h("th",null,"Observação do professor"),h("th",null,"Status atual"))),
+          h("tbody",null, comCorrecao.map(l=>h("tr",{key:l.id},
+            h("td",{className:"mono"}, l.data), h("td",null, l.historico), h("td",null, l.obsCorrecao),
+            h("td",null, h(StatusBadge,{status:l.status}))
+          )))
+        )
+      )
+    ),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Fluxo do ciclo contábil desta unidade")),
+      h("div",{className:"panel-body"},
+        h("p",{style:{margin:0,color:"var(--ink-soft)",fontSize:"14px"}},
+          "Documento fiscal → análise fiscal → classificação contábil → lançamento (rascunho → enviado → aprovado) → Razão → Balancete → ARE → DRE → Balanço Patrimonial. Use o menu à esquerda para percorrer cada etapa.")
+      )
+    )
+  );
+}
+
+function TelaEmpresa({alunoAtivo, turma}){
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"02 · empresa didática"),
+    h("h2",{className:"screen-title"}, EMPRESA.nome),
+    h("p",{className:"screen-sub"}, "Empresa fictícia vinculada à sua matrícula. Todos os fatos contábeis da Unidade II são acumulados aqui, formando um ciclo contábil completo."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body"},
+        h("div",{className:"grid-2"},
+          h("div",null, h("div",{className:"field"}, h("label",null,"Aluno responsável"), h("div",null, alunoAtivo.nome+(alunoAtivo.matricula?" — matrícula "+alunoAtivo.matricula:"")))),
+          h("div",null, h("div",{className:"field"}, h("label",null,"Turma"), h("div",null, turma.nome))),
+        )
+      )
+    )
+  );
+}
+
+function documentosDaTurma(turma, catalogo){
+  return catalogo.filter(d => turma.documentosIds.includes(d.id));
+}
+
+function blankItemDoc(){ return {codigo:"",descricao:"",ncm:"",cst:"",cfop:"",unidade:"UN",qtd:"",valorUnit:""}; }
+
+function NovoDocumentoForm({onCriar, onCancelar, idsExistentes, inicial}){
+  const [numero, setNumero] = useState(inicial?.numero || "");
+  const [serie, setSerie] = useState("1");
+  const [direcao, setDirecao] = useState(inicial?.direcao || "saida");
+  const [natureza, setNatureza] = useState("");
+  const [cfop, setCfop] = useState("");
+  const [data, setData] = useState("");
+  const [emitenteNome, setEmitenteNome] = useState("");
+  const [destinatarioNome, setDestinatarioNome] = useState("");
+  const [itens, setItens] = useState([blankItemDoc()]);
+  const [icmsValor, setIcmsValor] = useState("");
+  const [pisValor, setPisValor] = useState("");
+  const [cofinsValor, setCofinsValor] = useState("");
+  const [cbsValor, setCbsValor] = useState("");
+  const [ibsValor, setIbsValor] = useState("");
+  const [freteSeguroOutras, setFreteSeguroOutras] = useState("0");
+  const [erro, setErro] = useState("");
+  const editando = !!inicial?.idExistente;
+
+  function updateItem(i, field, val){ setItens(itens.map((it,idx)=> idx===i ? {...it,[field]:val} : it)); }
+  function addItem(){ setItens([...itens, blankItemDoc()]); }
+  function removeItem(i){ setItens(itens.filter((_,idx)=>idx!==i)); }
+
+  const totalProdutos = itens.reduce((s,it)=> s + (Number(it.qtd)||0)*(Number(it.valorUnit)||0), 0);
+  const valorTotal = totalProdutos + (Number(freteSeguroOutras)||0);
+
+  function criar(){
+    if(!numero.trim() || !cfop.trim() || itens.length===0){ setErro("Preencha ao menos número, CFOP e um item."); return; }
+    const id = editando ? inicial.idExistente : "NF-"+numero.trim();
+    if(!editando && idsExistentes.includes(id)){ setErro("Já existe um documento com esse número."); return; }
+    const itensCalc = itens.map(it => ({...it, qtd:Number(it.qtd)||0, valorUnit:Number(it.valorUnit)||0, total:(Number(it.qtd)||0)*(Number(it.valorUnit)||0)}));
+    onCriar({
+      id, numero:numero.trim(), serie, tipo:"NF-e", direcao, natureza, cfop:cfop.trim(), data,
+      emitente:{ nome: direcao==="entrada" ? emitenteNome : "Empresa didática (turma)" },
+      destinatario:{ nome: direcao==="saida" ? destinatarioNome : "Empresa didática (turma)" },
+      itens: itensCalc,
+      impostos:{
+        icms:{ valor:Number(icmsValor)||0, contabilizado:true }, ipi:{ valor:0, contabilizado:true },
+        pis:{ valor:Number(pisValor)||0, contabilizado:true }, cofins:{ valor:Number(cofinsValor)||0, contabilizado:true },
+        cbs:{ valor:Number(cbsValor)||0, contabilizado:false }, ibs:{ valor:Number(ibsValor)||0, contabilizado:false },
+      },
+      totais:{ produtos:totalProdutos, desconto:0, frete:Number(freteSeguroOutras)||0, seguro:0, outras:0, total:valorTotal },
+      transportador:{ nome:"", cnpj:"", placaUf:"", volumes:"", pesoBrutoLiquido:"", freteContaDe:"" },
+      valorTotal, completo:true, arquivoNome: inicial?.arquivoNome,
+    });
+  }
+
+  return h("div",{className:"panel"},
+    h("div",{className:"panel-head"}, h("h3",null, editando ? "Completar documento" : "Novo documento no catálogo")),
+    h("div",{className:"panel-body"},
+      inicial?.arquivoNome
+        ? h("div",{className:"helper-note"}, "Importado do arquivo "+inicial.arquivoNome+" — o número e a direção vieram do nome do arquivo; confira e complete os demais campos olhando o PDF.")
+        : h("div",{className:"helper-note"}, "O PDF em si (gerado no Motor Fiscal ou outra fonte) não é anexado aqui neste protótipo — o que você digita abaixo vira o gabarito contra o qual a digitação do aluno é conferida."),
+      h("div",{className:"grid-2"},
+        h("div",{className:"field"}, h("label",null,"Número"), h("input",{className:"mono", value:numero, onChange:e=>setNumero(e.target.value), disabled:editando})),
+        h("div",{className:"field"}, h("label",null,"Série"), h("input",{className:"mono", value:serie, onChange:e=>setSerie(e.target.value)})),
+      ),
+      h("div",{className:"grid-2"},
+        h("div",{className:"field"}, h("label",null,"Direção (do ponto de vista da empresa didática)"),
+          h("select",{value:direcao, onChange:e=>setDirecao(e.target.value)}, h("option",{value:"entrada"},"Entrada"), h("option",{value:"saida"},"Saída"))),
+        h("div",{className:"field"}, h("label",null,"Data de emissão"), h("input",{type:"date", className:"mono", value:data, onChange:e=>setData(e.target.value)})),
+      ),
+      h("div",{className:"field"}, h("label",null,"Natureza da operação"), h("input",{value:natureza, onChange:e=>setNatureza(e.target.value)})),
+      h("div",{className:"field"}, h("label",null,"CFOP"), h("input",{className:"mono", value:cfop, onChange:e=>setCfop(e.target.value)})),
+      direcao==="entrada"
+        ? h("div",{className:"field"}, h("label",null,"Emitente (fornecedor)"), h("input",{value:emitenteNome, onChange:e=>setEmitenteNome(e.target.value)}))
+        : h("div",{className:"field"}, h("label",null,"Destinatário (cliente)"), h("input",{value:destinatarioNome, onChange:e=>setDestinatarioNome(e.target.value)})),
+      h("label",{style:{fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Itens"),
+      h("div",{style:{marginTop:8}},
+        itens.map((it,i)=>h("div",{key:i, style:{display:"grid",gridTemplateColumns:"1.6fr 1fr 70px 70px 60px 70px 90px 24px",gap:6,marginBottom:6}},
+          h("input",{placeholder:"Descrição", value:it.descricao, onChange:e=>updateItem(i,"descricao",e.target.value)}),
+          h("input",{className:"mono", placeholder:"NCM", value:it.ncm, onChange:e=>updateItem(i,"ncm",e.target.value)}),
+          h("input",{className:"mono", placeholder:"CST", value:it.cst, onChange:e=>updateItem(i,"cst",e.target.value)}),
+          h("input",{className:"mono", placeholder:"CFOP", value:it.cfop, onChange:e=>updateItem(i,"cfop",e.target.value)}),
+          h("input",{placeholder:"Un.", value:it.unidade, onChange:e=>updateItem(i,"unidade",e.target.value)}),
+          h("input",{className:"mono", placeholder:"Qtd.", type:"number", value:it.qtd, onChange:e=>updateItem(i,"qtd",e.target.value)}),
+          h("input",{className:"mono", placeholder:"V. unit.", type:"number", value:it.valorUnit, onChange:e=>updateItem(i,"valorUnit",e.target.value)}),
+          itens.length>1 ? h("button",{className:"remove-partida", onClick:()=>removeItem(i)},"×") : h("span",null)
+        ))
+      ),
+      h("button",{className:"btn secondary", onClick:addItem},"+ adicionar item"),
+      h("label",{style:{display:"block",marginTop:16,fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Impostos e totais"),
+      h("div",{className:"grid-2", style:{marginTop:8}},
+        h("div",null,
+          h("div",{className:"field"}, h("label",null,"ICMS — valor"), h("input",{className:"mono", type:"number", value:icmsValor, onChange:e=>setIcmsValor(e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"PIS — valor"), h("input",{className:"mono", type:"number", value:pisValor, onChange:e=>setPisValor(e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"COFINS — valor"), h("input",{className:"mono", type:"number", value:cofinsValor, onChange:e=>setCofinsValor(e.target.value)})),
+        ),
+        h("div",null,
+          h("div",{className:"field"}, h("label",null,"CBS — valor (informativo)"), h("input",{className:"mono", type:"number", value:cbsValor, onChange:e=>setCbsValor(e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"IBS — valor (informativo)"), h("input",{className:"mono", type:"number", value:ibsValor, onChange:e=>setIbsValor(e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"Frete + seguro + outras"), h("input",{className:"mono", type:"number", value:freteSeguroOutras, onChange:e=>setFreteSeguroOutras(e.target.value)})),
+        )
+      ),
+      h("div",{className:"balance-check ok"}, "Total dos produtos: "+fmt(totalProdutos)+"  ·  Valor total da nota: "+fmt(valorTotal)),
+      erro && h("div",{className:"balance-check bad"}, erro),
+      h("div",{className:"btn-row"},
+        h("button",{className:"btn", onClick:criar}, editando ? "Salvar documento completo" : "Adicionar ao catálogo"),
+        h("button",{className:"btn secondary", onClick:onCancelar}, "Cancelar"),
+      )
+    )
+  );
+}
+
+function TelaDocumentos({onAbrir, role, turma, setTurmas, turmas, catalogo, setCatalogo}){
+  const [criando, setCriando] = useState(false);
+  const [editandoDoc, setEditandoDoc] = useState(null);
+  const [importando, setImportando] = useState(false);
+  const [resumoImportacao, setResumoImportacao] = useState(null);
+  const liberados = documentosDaTurma(turma, catalogo);
+
+  function toggleLiberado(docId){
+    const jaLiberado = turma.documentosIds.includes(docId);
+    const novosIds = jaLiberado ? turma.documentosIds.filter(id=>id!==docId) : [...turma.documentosIds, docId];
+    setTurmas(turmas.map(t => t.id===turma.id ? {...t, documentosIds:novosIds} : t));
+  }
+
+  async function importarZip(file){
+    setImportando(true);
+    setResumoImportacao(null);
+    try{
+      const zip = await window.JSZip.loadAsync(file);
+      const pdfEntries = Object.values(zip.files).filter(f => !f.dir && /\.pdf$/i.test(f.name));
+      const idsAtuais = catalogo.map(d=>d.id);
+      const novosRascunhos = [];
+      let ignorados = 0;
+      pdfEntries.forEach(entry => {
+        const nomeArquivo = entry.name.split("/").pop();
+        const m = nomeArquivo.match(/NF[_-]?(ENTRADA|SAIDA)[_-]?(\d+)/i);
+        const direcao = m ? (m[1].toUpperCase()==="ENTRADA" ? "entrada" : "saida") : "";
+        const numero = m ? m[2] : "";
+        const id = numero ? "NF-"+numero : "NF-IMPORT-"+Math.random().toString(36).slice(2,8);
+        if(idsAtuais.includes(id) || novosRascunhos.some(d=>d.id===id)){ ignorados++; return; }
+        novosRascunhos.push({
+          id, numero, serie:"1", tipo:"NF-e", direcao: direcao||"saida", natureza:"", cfop:"", data:"",
+          emitente:{nome:""}, destinatario:{nome:""}, itens:[], impostos:{icms:{valor:0},ipi:{valor:0},pis:{valor:0},cofins:{valor:0},cbs:{valor:0},ibs:{valor:0}},
+          totais:{produtos:0,desconto:0,frete:0,seguro:0,outras:0,total:0}, transportador:{}, valorTotal:0,
+          completo:false, arquivoNome: nomeArquivo,
+        });
+      });
+      setCatalogo([...catalogo, ...novosRascunhos]);
+      setResumoImportacao({ total:pdfEntries.length, importados:novosRascunhos.length, ignorados });
+    } catch(e){
+      setResumoImportacao({ erro: "Não foi possível ler o arquivo ZIP." });
+    }
+    setImportando(false);
+  }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"03 · documentos fiscais"),
+    h("h2",{className:"screen-title"},"Documentos disponibilizados"),
+    h("p",{className:"screen-sub"}, role==="professor"
+      ? "Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma "+turma.nome+" — os alunos dessa turma só veem o que estiver marcado como liberado."
+      : "NF-e didáticas liberadas pelo professor para a sua turma. O conteúdo detalhado só aparece depois de você digitar a nota na etapa seguinte."),
+    role==="professor" && !criando && !editandoDoc && h("div",{className:"btn-row", style:{marginBottom:16}},
+      h("button",{className:"btn", onClick:()=>setCriando(true)},"+ Novo documento"),
+      h("label",{className:"btn secondary", style:{cursor:"pointer"}},
+        importando ? "Importando…" : "Importar ZIP de PDFs",
+        h("input",{type:"file", accept:".zip", style:{display:"none"}, disabled:importando, onChange:e=>{ if(e.target.files[0]) importarZip(e.target.files[0]); e.target.value=""; }})
+      ),
+    ),
+    resumoImportacao && h("div",{className:`balance-check ${resumoImportacao.erro?"bad":"ok"}`},
+      resumoImportacao.erro || (resumoImportacao.importados+" documento(s) importado(s) como rascunho de "+resumoImportacao.total+" PDF(s) no ZIP"+(resumoImportacao.ignorados?" · "+resumoImportacao.ignorados+" ignorado(s) (já existiam no catálogo)":"")+". Complete os dados de cada um antes de liberar para a turma.")
+    ),
+    criando && h(NovoDocumentoForm,{
+      idsExistentes: catalogo.map(d=>d.id),
+      onCancelar:()=>setCriando(false),
+      onCriar:(novo)=>{ setCatalogo([...catalogo, novo]); setCriando(false); }
+    }),
+    editandoDoc && h(NovoDocumentoForm,{
+      key:editandoDoc.id,
+      idsExistentes: catalogo.map(d=>d.id),
+      inicial:{ numero:editandoDoc.numero, direcao:editandoDoc.direcao, arquivoNome:editandoDoc.arquivoNome, idExistente:editandoDoc.id },
+      onCancelar:()=>setEditandoDoc(null),
+      onCriar:(atualizado)=>{ setCatalogo(catalogo.map(d=>d.id===atualizado.id?atualizado:d)); setEditandoDoc(null); }
+    }),
+    role==="professor" && h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Catálogo — liberar para "+turma.nome)),
+      h("div",{className:"panel-body", style:{padding:0}},
+        catalogo.length===0 ? h("div",{className:"empty-state"},"Nenhum documento cadastrado ainda.") :
+        h("table",null,
+          h("thead",null,h("tr",null,
+            h("th",null,"Nota"),h("th",null,"Direção"),h("th",null,"Emitente/Destinatário"),h("th",null,"Status"),h("th",null,"")
+          )),
+          h("tbody",null, catalogo.map(d => {
+            const liberado = turma.documentosIds.includes(d.id);
+            return h("tr",{key:d.id},
+              h("td",{className:"mono"}, d.numero ? "Nº "+d.numero : (d.arquivoNome||d.id)),
+              h("td",null, d.direcao==="entrada"?"Entrada":"Saída"),
+              h("td",null, (d.direcao==="entrada" ? d.emitente.nome : d.destinatario.nome) || "—"),
+              h("td",null, !d.completo
+                ? h("span",{className:"status enviado"},"aguardando dados")
+                : h("span",{className:`status ${liberado?"aprovado":"rascunho"}`}, liberado?"liberado":"não liberado")),
+              h("td",null,
+                d.completo
+                  ? [
+                      h("button",{key:"ver", className:"btn secondary", style:{marginRight:8}, onClick:()=>onAbrir(d)},"ver conteúdo"),
+                      h("button",{key:"lib", className:liberado?"btn red":"btn green", onClick:()=>toggleLiberado(d.id)}, liberado?"remover da turma":"liberar para a turma")
+                    ]
+                  : h("button",{className:"btn", onClick:()=>setEditandoDoc(d)},"completar dados")
+              )
+            );
+          }))
+        )
+      )
+    ),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null, role==="professor" ? "Liberados para "+turma.nome : "Suas notas liberadas")),
+      h("div",{className:"panel-body", style:{padding:0}},
+        liberados.length===0 ? h("div",{className:"empty-state"},"Nenhum documento liberado para esta turma ainda.") :
+        h("table",null,
+          h("thead",null,h("tr",null,
+            h("th",null,"Nota"),h("th",null,"Direção"),h("th",null,"Emitente/Destinatário"),
+            h("th",null,"CFOP"),h("th",{className:"num"},"Valor total")
+          )),
+          h("tbody",null, liberados.map(d => h("tr",{key:d.id, className:"clickable", onClick:()=>onAbrir(d)},
+            h("td",{className:"mono"}, "Nº "+d.numero),
+            h("td",null, d.direcao==="entrada"?"Entrada":"Saída"),
+            h("td",null, d.direcao==="entrada" ? d.emitente.nome : d.destinatario.nome),
+            h("td",{className:"mono"}, d.cfop),
+            h("td",{className:"num mono"}, fmt(d.valorTotal))
+          )))
+        )
+      )
+
+    )
+  );
+}
+
+function blankDigitacao(doc){
+  return {
+    numero:"", serie:"", natureza:"", cfop:"", data:"",
+    emitenteNome:"", emitenteDoc:"", emitenteEndereco:"",
+    destinatarioNome:"", destinatarioDoc:"", destinatarioEndereco:"",
+    itens: doc.itens.map(()=>({codigo:"",descricao:"",ncm:"",cst:"",cfop:"",unidade:"",qtd:"",valorUnit:""})),
+    icmsValor:"", ipiValor:"", pisValor:"", cofinsValor:"", cbsValor:"", ibsValor:"",
+    totalProdutos:"", desconto:"", frete:"", seguro:"", outras:"", total:"",
+  };
+}
+
+function TelaDigitacaoNFe({documentos, digitacoes, setDigitacoes}){
+  const [docSel, setDocSel] = useState(documentos[0]?.id || "");
+  const doc = documentos.find(d=>d.id===docSel);
+  const form = digitacoes[docSel] || blankDigitacao(doc);
+  const [conferido, setConferido] = useState(null);
+
+  function setField(field, value){
+    setDigitacoes({...digitacoes, [docSel]: {...form, [field]:value}});
+  }
+  function setItemField(i, field, value){
+    const itens = form.itens.map((it,idx)=> idx===i ? {...it,[field]:value} : it);
+    setDigitacoes({...digitacoes, [docSel]: {...form, itens}});
+  }
+  function addItem(){ setDigitacoes({...digitacoes, [docSel]: {...form, itens:[...form.itens, {codigo:"",descricao:"",ncm:"",cst:"",cfop:"",unidade:"",qtd:"",valorUnit:""}]}}); }
+  function removeItem(i){ setDigitacoes({...digitacoes, [docSel]: {...form, itens: form.itens.filter((_,idx)=>idx!==i)}}); }
+
+  function conferir(){
+    const somaItens = form.itens.reduce((s,it)=> s + (Number(it.qtd)||0)*(Number(it.valorUnit)||0), 0);
+    const totalOk = Math.abs((Number(form.total)||0) - doc.valorTotal) < 0.02;
+    const itensOk = Math.abs(somaItens - doc.itens.reduce((s,i)=>s+i.total,0)) < 0.02;
+    setConferido({ totalOk, itensOk });
+  }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"04 · digitação da nf-e"),
+    h("h2",{className:"screen-title"},"Digitar nota fiscal"),
+    h("p",{className:"screen-sub"},"Abra o PDF disponibilizado pelo professor e digite os dados da nota exatamente como emitidos. Esta digitação alimenta a análise fiscal e a classificação contábil seguintes."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Nota a digitar"),
+        h("select",{className:"mono", style:{padding:"6px 8px"}, value:docSel, onChange:e=>{setDocSel(e.target.value); setConferido(null);}},
+          documentos.map(d=>h("option",{key:d.id, value:d.id}, "Nº "+d.numero+" — "+(d.direcao==="entrada"?"Entrada":"Saída"))))
+      ),
+      h("div",{className:"panel-body"},
+        h("div",{className:"helper-note"}, "Prototipo: os valores reais estão apenas no PDF que o professor disponibiliza fora do sistema. Aqui você digita o que enxerga no documento."),
+        h("div",{className:"grid-2"},
+          h("div",{className:"field"}, h("label",null,"Número da nota"), h("input",{className:"mono", value:form.numero, onChange:e=>setField("numero",e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"Série"), h("input",{className:"mono", value:form.serie, onChange:e=>setField("serie",e.target.value)})),
+        ),
+        h("div",{className:"field"}, h("label",null,"Natureza da operação"), h("input",{value:form.natureza, onChange:e=>setField("natureza",e.target.value)})),
+        h("div",{className:"grid-2"},
+          h("div",{className:"field"}, h("label",null,"CFOP"), h("input",{className:"mono", value:form.cfop, onChange:e=>setField("cfop",e.target.value)})),
+          h("div",{className:"field"}, h("label",null,"Data de emissão"), h("input",{type:"date", className:"mono", value:form.data, onChange:e=>setField("data",e.target.value)})),
+        ),
+        h("div",{className:"grid-2"},
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"Emitente — nome"), h("input",{value:form.emitenteNome, onChange:e=>setField("emitenteNome",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"Emitente — CNPJ/IE"), h("input",{className:"mono", value:form.emitenteDoc, onChange:e=>setField("emitenteDoc",e.target.value)})),
+          ),
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"Destinatário — nome"), h("input",{value:form.destinatarioNome, onChange:e=>setField("destinatarioNome",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"Destinatário — CNPJ/IE"), h("input",{className:"mono", value:form.destinatarioDoc, onChange:e=>setField("destinatarioDoc",e.target.value)})),
+          )
+        ),
+        h("label",{style:{fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Itens"),
+        h("div",{style:{marginTop:8}},
+          form.itens.map((it,i)=>h("div",{key:i, style:{display:"grid",gridTemplateColumns:"1.6fr 1fr 70px 70px 60px 70px 90px 24px",gap:6,marginBottom:6}},
+            h("input",{placeholder:"Descrição", value:it.descricao, onChange:e=>setItemField(i,"descricao",e.target.value)}),
+            h("input",{className:"mono", placeholder:"NCM", value:it.ncm, onChange:e=>setItemField(i,"ncm",e.target.value)}),
+            h("input",{className:"mono", placeholder:"CST", value:it.cst, onChange:e=>setItemField(i,"cst",e.target.value)}),
+            h("input",{className:"mono", placeholder:"CFOP", value:it.cfop, onChange:e=>setItemField(i,"cfop",e.target.value)}),
+            h("input",{placeholder:"Un.", value:it.unidade, onChange:e=>setItemField(i,"unidade",e.target.value)}),
+            h("input",{className:"mono", placeholder:"Qtd.", type:"number", value:it.qtd, onChange:e=>setItemField(i,"qtd",e.target.value)}),
+            h("input",{className:"mono", placeholder:"V. unit.", type:"number", value:it.valorUnit, onChange:e=>setItemField(i,"valorUnit",e.target.value)}),
+            h("button",{className:"remove-partida", onClick:()=>removeItem(i)},"×")
+          ))
+        ),
+        h("button",{className:"btn secondary", style:{marginTop:2}, onClick:addItem},"+ adicionar item"),
+        h("label",{style:{display:"block",marginTop:18,fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Impostos"),
+        h("div",{className:"grid-2", style:{marginTop:8}},
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"ICMS — valor (contabilizado)"), h("input",{className:"mono", type:"number", value:form.icmsValor, onChange:e=>setField("icmsValor",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"PIS — valor (contabilizado)"), h("input",{className:"mono", type:"number", value:form.pisValor, onChange:e=>setField("pisValor",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"COFINS — valor (contabilizado)"), h("input",{className:"mono", type:"number", value:form.cofinsValor, onChange:e=>setField("cofinsValor",e.target.value)})),
+          ),
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"IPI — valor (contabilizado)"), h("input",{className:"mono", type:"number", value:form.ipiValor, onChange:e=>setField("ipiValor",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"CBS — valor (informativo, transição 2026)"), h("input",{className:"mono", type:"number", value:form.cbsValor, onChange:e=>setField("cbsValor",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"IBS — valor (informativo, transição 2026)"), h("input",{className:"mono", type:"number", value:form.ibsValor, onChange:e=>setField("ibsValor",e.target.value)})),
+          )
+        ),
+        h("label",{style:{display:"block",marginTop:10,fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Totais"),
+        h("div",{className:"grid-2", style:{marginTop:8}},
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"Total dos produtos"), h("input",{className:"mono", type:"number", value:form.totalProdutos, onChange:e=>setField("totalProdutos",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"Desconto"), h("input",{className:"mono", type:"number", value:form.desconto, onChange:e=>setField("desconto",e.target.value)})),
+          ),
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"Frete + seguro + outras"), h("input",{className:"mono", type:"number", value:form.frete, onChange:e=>setField("frete",e.target.value)})),
+            h("div",{className:"field"}, h("label",null,"Valor total da nota"), h("input",{className:"mono", type:"number", value:form.total, onChange:e=>setField("total",e.target.value)})),
+          )
+        ),
+        h("div",{className:"btn-row"},
+          h("button",{className:"btn secondary", onClick:conferir},"Conferir digitação"),
+        ),
+        conferido && h("div",{className:`balance-check ${conferido.totalOk && conferido.itensOk ? "ok":"bad"}`},
+          (conferido.itensOk ? "✓" : "✗")+" soma dos itens   ·   "+(conferido.totalOk ? "✓" : "✗")+" valor total da nota"
+        )
+      )
+    )
+  );
+}
+
+function TelaAnaliseFiscal({documentos}){
+  const [docSel, setDocSel] = useState(documentos[0]?.id || "");
+  const doc = documentos.find(d=>d.id===docSel);
+  const [form, setForm] = useState({ cfopCorreto:"", cfopSugerido:"", ncmCorreto:"", ncmSugerido:"", cstCorreto:"", justificativa:"" });
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"05 · análise fiscal"),
+    h("h2",{className:"screen-title"},"Análise fiscal do documento"),
+    h("p",{className:"screen-sub"},"Antes de contabilizar, verifique se CFOP, NCM e CST estão corretos para esta operação. O sistema não indica a resposta certa."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Documento"),
+        h("select",{className:"mono", style:{padding:"6px 8px"}, value:docSel, onChange:e=>setDocSel(e.target.value)},
+          documentos.map(d=>h("option",{key:d.id, value:d.id}, d.id)))
+      ),
+      doc && h("div",{className:"panel-body"},
+        h("div",{className:"grid-2"},
+          h("div",null,
+            h("div",{className:"field"},h("label",null,"Natureza da operação"), h("div",null, doc.natureza)),
+            h("div",{className:"field"},h("label",null,"CFOP informado no documento"), h("div",{className:"mono"}, doc.cfop)),
+            h("div",{className:"field"},h("label",null,"NCM / CST dos itens"), h("div",{className:"mono"}, doc.itens.map(i=>i.ncm+"/"+i.cst).join(", "))),
+          ),
+          h("div",null,
+            h("div",{className:"field"},h("label",null,"Itens"), h("div",null, doc.itens.map(i=>i.qtd+" "+i.unidade+" "+i.descricao).join("; "))),
+            h("div",{className:"field"},h("label",null,"Valor total"), h("div",{className:"mono"}, "R$ "+fmt(doc.valorTotal))),
+          )
+        ),
+        h("hr",{style:{border:"none",borderTop:"1px solid var(--line)",margin:"6px 0 16px 0"}}),
+        h("div",{className:"grid-2"},
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"CFOP está correto?"),
+              h("select",null, h("option",null,"Selecione"), h("option",null,"Sim"), h("option",null,"Não"))),
+            h("div",{className:"field"}, h("label",null,"CFOP sugerido (se aplicável)"), h("input",{className:"mono"})),
+          ),
+          h("div",null,
+            h("div",{className:"field"}, h("label",null,"NCM está correto?"),
+              h("select",null, h("option",null,"Selecione"), h("option",null,"Sim"), h("option",null,"Não"))),
+            h("div",{className:"field"}, h("label",null,"CST está correto?"),
+              h("select",null, h("option",null,"Selecione"), h("option",null,"Sim"), h("option",null,"Não"))),
+          )
+        ),
+        h("div",{className:"field"}, h("label",null,"Justificativa / fonte utilizada na pesquisa"), h("textarea",null)),
+        h("div",{className:"btn-row"}, h("button",{className:"btn"},"Enviar análise"), h("button",{className:"btn secondary"},"Salvar rascunho"))
+      )
+    )
+  );
+}
+
+function NovaContaForm({onCriar, onCancelar, codigosExistentes}){
+  const [grupo, setGrupo] = useState(1);
+  const [subgrupo, setSubgrupo] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [nome, setNome] = useState("");
+  const [redutora, setRedutora] = useState(false);
+  const [erro, setErro] = useState("");
+
+  function criar(){
+    if(!codigo.trim() || !nome.trim() || !subgrupo.trim()){ setErro("Preencha código, subgrupo e nome."); return; }
+    if(codigosExistentes.includes(codigo.trim())){ setErro("Já existe uma conta com esse código."); return; }
+    onCriar({
+      codigo: codigo.trim(), nome: nome.trim(), grupo: Number(grupo), subgrupo: subgrupo.trim(), redutora,
+      natureza: naturezaDe(Number(grupo), redutora), destino: destinoDe(Number(grupo)),
+    });
+  }
+
+  return h("div",{className:"panel"},
+    h("div",{className:"panel-head"}, h("h3",null,"Nova conta")),
+    h("div",{className:"panel-body"},
+      h("div",{className:"grid-2"},
+        h("div",{className:"field"}, h("label",null,"Grupo"),
+          h("select",{value:grupo, onChange:e=>setGrupo(e.target.value)},
+            Object.entries(GRUPO_INFO).map(([n,info])=>h("option",{key:n, value:n}, n+" — "+info.nome)))),
+        h("div",{className:"field"}, h("label",null,"Código"), h("input",{className:"mono", placeholder:"ex.: 1.1.3.10", value:codigo, onChange:e=>setCodigo(e.target.value)})),
+      ),
+      h("div",{className:"field"}, h("label",null,"Subgrupo (classificação dentro do grupo)"), h("input",{value:subgrupo, onChange:e=>setSubgrupo(e.target.value), placeholder:"ex.: Estoques"})),
+      h("div",{className:"field"}, h("label",null,"Nome da conta"), h("input",{value:nome, onChange:e=>setNome(e.target.value)})),
+      h("div",{className:"field"}, h("label",{style:{display:"flex",alignItems:"center",gap:8,fontFamily:"'Source Serif 4', serif", fontSize:"14px", color:"var(--ink)"}},
+        h("input",{type:"checkbox", checked:redutora, onChange:e=>setRedutora(e.target.checked), style:{width:"auto"}}), "Conta redutora (natureza inversa ao grupo)")),
+      h("div",{className:"helper-note"}, "Natureza e demonstração são sugeridas automaticamente pelo grupo: "+naturezaDe(Number(grupo),redutora)+" · "+destinoDe(Number(grupo))+"."),
+      erro && h("div",{className:"balance-check bad"}, erro),
+      h("div",{className:"btn-row"},
+        h("button",{className:"btn", onClick:criar}, "Criar conta"),
+        h("button",{className:"btn secondary", onClick:onCancelar}, "Cancelar"),
+      )
+    )
+  );
+}
+
+function TelaPlanoContas({contas, setContas, role}){
+  const [busca, setBusca] = useState("");
+  const [criando, setCriando] = useState(false);
+  const filtradas = contas.filter(c => {
+    const q = busca.trim().toLowerCase();
+    if(!q) return true;
+    return c.codigo.toLowerCase().includes(q) || c.nome.toLowerCase().includes(q) || c.subgrupo.toLowerCase().includes(q);
+  });
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"06 · plano de contas"),
+    h("h2",{className:"screen-title"},"Plano de Contas"),
+    h("p",{className:"screen-sub"},"Classificação oficial da escola (CEDUP Hermann Hering). Selecionar a conta correta é parte do exercício — o sistema não sugere automaticamente."),
+    h("div",{className:"grid-2", style:{alignItems:"end", marginBottom:16}},
+      h("div",{className:"field", style:{marginBottom:0}}, h("label",null,"Buscar por código, nome ou subgrupo"), h("input",{value:busca, onChange:e=>setBusca(e.target.value), placeholder:"ex.: mercadorias, 4.1, tributos"})),
+      role==="professor" && !criando && h("div",null, h("button",{className:"btn", onClick:()=>setCriando(true)},"+ Nova conta")),
+    ),
+    criando && h(NovaContaForm,{
+      codigosExistentes: contas.map(c=>c.codigo),
+      onCancelar:()=>setCriando(false),
+      onCriar:(nova)=>{ setContas([...contas, nova]); setCriando(false); }
+    }),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Código"),h("th",null,"Conta"),h("th",null,"Grupo"),h("th",null,"Subgrupo"),h("th",null,"Natureza"),h("th",null,"Demonstração"))),
+          h("tbody",null, filtradas.map(c=>h("tr",{key:c.codigo},
+            h("td",{className:"mono"}, c.codigo),
+            h("td",null, c.nome),
+            h("td",null, GRUPO_INFO[c.grupo].nome),
+            h("td",null, c.subgrupo),
+            h("td",null, c.natureza==="devedora"?"Devedora":"Credora"),
+            h("td",null, h("span",{className:"tag-pill"}, c.destino))
+          )))
+        ),
+        filtradas.length===0 && h("div",{className:"empty-state"},"Nenhuma conta encontrada.")
+      )
+    )
+  );
+}
+
+function TelaClassificacaoContabil({documentos, contas, classificacoes, setClassificacoes}){
+  const [documento, setDocumento] = useState("");
+  const [fato, setFato] = useState("");
+  const [contaDebito, setContaDebito] = useState("");
+  const [contaCredito, setContaCredito] = useState("");
+  const [valor, setValor] = useState("");
+  const [historico, setHistorico] = useState("");
+  const [tratamento, setTratamento] = useState("");
+
+  function salvar(){
+    if(!fato.trim() || !contaDebito || !contaCredito || !valor) return;
+    setClassificacoes([...classificacoes, {
+      id: Math.max(0,...classificacoes.map(c=>c.id))+1,
+      documento, fato, contaDebito, contaCredito, valor:Number(valor), historico, tratamento, status:"pendente"
+    }]);
+    setDocumento(""); setFato(""); setContaDebito(""); setContaCredito(""); setValor(""); setHistorico(""); setTratamento("");
+  }
+  function marcarLancada(id){ setClassificacoes(classificacoes.map(c=>c.id===id?{...c,status:"lançada"}:c)); }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"07 · classificação contábil"),
+    h("h2",{className:"screen-title"},"Classificação do fato contábil"),
+    h("p",{className:"screen-sub"},"Depois de analisar o documento, identifique o fato contábil e a classificação antes de lançar no Diário. O sistema disponibiliza o Plano de Contas, mas não indica a conta correta."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Nova classificação")),
+      h("div",{className:"panel-body"},
+        h("div",{className:"grid-2"},
+          h("div",{className:"field"}, h("label",null,"Documento de origem"),
+            h("select",{value:documento, onChange:e=>setDocumento(e.target.value)},
+              h("option",{value:""},"— sem documento —"),
+              documentos.map(d=>h("option",{key:d.id, value:d.id}, "Nº "+d.numero)))),
+          h("div",{className:"field"}, h("label",null,"Valor"), h("input",{className:"mono", type:"number", value:valor, onChange:e=>setValor(e.target.value)})),
+        ),
+        h("div",{className:"field"}, h("label",null,"Fato contábil identificado"), h("textarea",{value:fato, onChange:e=>setFato(e.target.value), placeholder:"O que aconteceu, em suas palavras — ex.: compra de mercadorias a prazo"})),
+        h("div",{className:"grid-2"},
+          h("div",{className:"field"}, h("label",null,"Conta a debitar"),
+            h("select",{value:contaDebito, onChange:e=>setContaDebito(e.target.value)},
+              h("option",{value:""},"Selecione"), contas.map(c=>h("option",{key:c.codigo, value:c.codigo}, c.codigo+" — "+c.nome)))),
+          h("div",{className:"field"}, h("label",null,"Conta a creditar"),
+            h("select",{value:contaCredito, onChange:e=>setContaCredito(e.target.value)},
+              h("option",{value:""},"Selecione"), contas.map(c=>h("option",{key:c.codigo, value:c.codigo}, c.codigo+" — "+c.nome)))),
+        ),
+        h("div",{className:"field"}, h("label",null,"Histórico"), h("input",{value:historico, onChange:e=>setHistorico(e.target.value)})),
+        h("div",{className:"field"}, h("label",null,"Tratamento tributário (se houver)"), h("input",{value:tratamento, onChange:e=>setTratamento(e.target.value)})),
+        h("div",{className:"btn-row"}, h("button",{className:"btn", onClick:salvar},"Salvar classificação"))
+      )
+    ),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Classificações registradas")),
+      h("div",{className:"panel-body", style:{padding:0}},
+        classificacoes.length===0 ? h("div",{className:"empty-state"},"Nenhuma classificação registrada ainda.") :
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Fato"),h("th",null,"Débito"),h("th",null,"Crédito"),h("th",{className:"num"},"Valor"),h("th",null,"Status"),h("th",null,""))),
+          h("tbody",null, classificacoes.map(c=>h("tr",{key:c.id},
+            h("td",null, c.fato), h("td",{className:"mono"}, c.contaDebito), h("td",{className:"mono"}, c.contaCredito),
+            h("td",{className:"num mono"}, fmt(c.valor)),
+            h("td",null, h("span",{className:`status ${c.status==="lançada"?"aprovado":"rascunho"}`}, c.status)),
+            h("td",null, c.status==="pendente" && h("button",{className:"btn secondary", onClick:()=>marcarLancada(c.id)},"marcar como lançada no Diário"))
+          )))
+        )
+      )
+    ),
+    h("div",{className:"helper-note"}, "Use os dados desta classificação para preencher as partidas do lançamento na etapa seguinte (Livro Diário).")
+  );
+}
+
+function NovoLancamentoForm({onSalvar, documentos, contas}){
+  const [data, setData] = useState("");
+  const [documento, setDocumento] = useState("");
+  const [historico, setHistorico] = useState("");
+  const [partidas, setPartidas] = useState([{conta:"",tipo:"D",valor:""},{conta:"",tipo:"C",valor:""}]);
+
+  const totalD = partidas.filter(p=>p.tipo==="D").reduce((s,p)=>s+(Number(p.valor)||0),0);
+  const totalC = partidas.filter(p=>p.tipo==="C").reduce((s,p)=>s+(Number(p.valor)||0),0);
+  const bate = totalD > 0 && Math.abs(totalD-totalC) < 0.005;
+
+  function updatePartida(i, field, val){
+    const novo = [...partidas]; novo[i] = {...novo[i], [field]:val}; setPartidas(novo);
+  }
+  function addPartida(){ setPartidas([...partidas, {conta:"",tipo:"D",valor:""}]); }
+  function removePartida(i){ setPartidas(partidas.filter((_,idx)=>idx!==i)); }
+
+  return h("div",{className:"panel"},
+    h("div",{className:"panel-head"}, h("h3",null,"Novo lançamento")),
+    h("div",{className:"panel-body"},
+      h("div",{className:"grid-2"},
+        h("div",{className:"field"}, h("label",null,"Data"), h("input",{type:"date", className:"mono", value:data, onChange:e=>setData(e.target.value)})),
+        h("div",{className:"field"}, h("label",null,"Documento de origem"),
+          h("select",{value:documento, onChange:e=>setDocumento(e.target.value)},
+            h("option",{value:""},"— sem documento —"),
+            documentos.map(d=>h("option",{key:d.id, value:d.id}, d.id)))
+        ),
+      ),
+      h("div",{className:"field"}, h("label",null,"Histórico"), h("textarea",{value:historico, onChange:e=>setHistorico(e.target.value)})),
+      h("label",{style:{fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}}, "Partidas"),
+      h("div",{style:{marginTop:8}},
+        partidas.map((p,i)=>h("div",{key:i, className:"partida-row"},
+          h("select",{value:p.conta, onChange:e=>updatePartida(i,"conta",e.target.value)},
+            h("option",{value:""},"Selecione a conta"),
+            contas.map(c=>h("option",{key:c.codigo, value:c.codigo}, c.codigo+" — "+c.nome))),
+          h("select",{value:p.tipo, onChange:e=>updatePartida(i,"tipo",e.target.value)},
+            h("option",{value:"D"},"Débito"), h("option",{value:"C"},"Crédito")),
+          h("input",{className:"mono", placeholder:"Valor", type:"number", value:p.valor, onChange:e=>updatePartida(i,"valor",e.target.value)}),
+          h("div",{className:"mono",style:{fontSize:"12px",color:"var(--ink-faint)"}}, p.tipo==="D"?"a débito":"a crédito"),
+          partidas.length>2 ? h("button",{className:"remove-partida", onClick:()=>removePartida(i)},"×") : h("span",null)
+        ))
+      ),
+      h("button",{className:"btn secondary", style:{marginTop:6}, onClick:addPartida},"+ adicionar partida"),
+      h("div",{className:`balance-check ${bate?"ok":"bad"}`},
+        h("span",null, "Débitos: "+fmt(totalD)+"  ·  Créditos: "+fmt(totalC)),
+        h("span",null, bate ? "✓ Débito = Crédito" : "✗ Lançamento desequilibrado — não pode ser enviado")
+      ),
+      h("div",{className:"btn-row"},
+        h("button",{className:"btn secondary", onClick:()=>onSalvar({data,documento,historico,partidas,status:"rascunho"})}, "Salvar como rascunho"),
+        h("button",{className:"btn", disabled:!bate || !historico, onClick:()=>onSalvar({data,documento,historico,partidas,status:"enviado"})}, "Enviar para análise do professor"),
+      )
+    )
+  );
+}
+
+function TelaDiario({lancamentos, setLancamentos, documentos, contas}){
+  const [mostrarForm, setMostrarForm] = useState(false);
+  function salvar(novo){
+    setLancamentos([...lancamentos, {...novo, id: Math.max(0,...lancamentos.map(l=>l.id))+1, partidas: novo.partidas.filter(p=>p.conta && p.valor)}]);
+    setMostrarForm(false);
+  }
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"08 · livro diário"),
+    h("h2",{className:"screen-title"},"Livro Diário"),
+    h("p",{className:"screen-sub"},"Registro cronológico dos fatos contábeis da sua empresa didática. Só é enviado para análise quando débitos e créditos coincidem."),
+    !mostrarForm && h("button",{className:"btn", style:{marginBottom:18}, onClick:()=>setMostrarForm(true)},"+ Novo lançamento"),
+    mostrarForm && h(NovoLancamentoForm,{onSalvar:salvar, documentos, contas}),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Data"),h("th",null,"Doc."),h("th",null,"Histórico"),h("th",null,"Partidas"),h("th",{className:"num"},"Valor"),h("th",null,"Status"))),
+          h("tbody",null, lancamentos.slice().reverse().map(l=>h("tr",{key:l.id},
+            h("td",{className:"mono"}, l.data),
+            h("td",{className:"mono"}, l.documento),
+            h("td",null, l.historico),
+            h("td",null, l.partidas.map((p,i)=>h("div",{key:i, className:"mono", style:{fontSize:"12px"}}, (p.tipo==="D"?"D ":"C ")+p.conta)) ),
+            h("td",{className:"num mono"}, fmt(l.partidas.filter(p=>p.tipo==="D").reduce((s,p)=>s+p.valor,0))),
+            h("td",null, h(StatusBadge,{status:l.status}))
+          )))
+        )
+      )
+    )
+  );
+}
+
+function TelaRazao({razao, onDrill}){
+  const contasComMovimento = Object.values(razao).filter(b=>b.movimentos.length>0);
+  const [contaSel, setContaSel] = useState(contasComMovimento[0]?.conta.codigo || "");
+  const bucket = razao[contaSel];
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"09 · livro razão"),
+    h("h2",{className:"screen-title"},"Livro Razão"),
+    h("p",{className:"screen-sub"},"Transporte automático dos lançamentos aprovados do Diário, agrupados por conta."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Conta"),
+        h("select",{className:"mono", style:{padding:"6px 8px"}, value:contaSel, onChange:e=>setContaSel(e.target.value)},
+          contasComMovimento.map(b=>h("option",{key:b.conta.codigo, value:b.conta.codigo}, b.conta.codigo+" — "+b.conta.nome)))
+      ),
+      bucket && h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Data"),h("th",null,"Documento"),h("th",null,"Histórico"),h("th",{className:"num"},"Débito"),h("th",{className:"num"},"Crédito"))),
+          h("tbody",null, bucket.movimentos.map((m,i)=>h("tr",{key:i},
+            h("td",{className:"mono"}, m.data), h("td",{className:"mono"}, m.documento), h("td",null, m.historico),
+            h("td",{className:"num mono"}, m.tipo==="D"?fmt(m.valor):""),
+            h("td",{className:"num mono"}, m.tipo==="C"?fmt(m.valor):"")
+          ))),
+        ),
+        h("div",{style:{padding:"10px 18px", borderTop:"1px solid var(--line-strong)", display:"flex", justifyContent:"space-between", fontFamily:"'IBM Plex Mono', monospace", fontSize:"13px"}},
+          h("span",null, "Totais  D: "+fmt(bucket.totalD)+"   C: "+fmt(bucket.totalC)),
+          h("span",{style:{fontWeight:600}}, "Saldo: "+fmt(saldoConta(bucket))+" ("+(bucket.conta.natureza==="devedora"?"devedor":"credor")+")")
+        )
+      )
+    )
+  );
+}
+
+function TelaBalancete({razao}){
+  const linhas = calcularBalancete(razao);
+  const totalD = linhas.reduce((s,l)=>s+l.totalD,0);
+  const totalC = linhas.reduce((s,l)=>s+l.totalC,0);
+  const totalSaldoDev = linhas.filter(l=>saldoConta(l)>=0 && l.conta.natureza==="devedora" || saldoConta(l)<0 && l.conta.natureza==="credora").reduce((s,l)=>s+Math.abs(saldoConta(l)),0);
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"10 · balancete de verificação"),
+    h("h2",{className:"screen-title"},"Balancete de Verificação"),
+    h("p",{className:"screen-sub"},"Gerado a partir do Razão. Débitos e créditos totais devem coincidir."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Código"),h("th",null,"Conta"),h("th",{className:"num"},"Débitos"),h("th",{className:"num"},"Créditos"),h("th",{className:"num"},"Saldo"),h("th",null,"D/C"))),
+          h("tbody",null, linhas.map(l=>h("tr",{key:l.conta.codigo},
+            h("td",{className:"mono"}, l.conta.codigo), h("td",null, l.conta.nome),
+            h("td",{className:"num mono"}, fmt(l.totalD)), h("td",{className:"num mono"}, fmt(l.totalC)),
+            h("td",{className:"num mono"}, fmt(Math.abs(saldoConta(l)))),
+            h("td",{className:"mono"}, saldoConta(l)>=0 ? (l.conta.natureza==="devedora"?"D":"C") : (l.conta.natureza==="devedora"?"C":"D"))
+          )))
+        ),
+        h("div",{style:{padding:"10px 18px", borderTop:"1px solid var(--line-strong)"}},
+          h("div",{className:`balance-check ${Math.abs(totalD-totalC)<0.005?"ok":"bad"}`},
+            "Total débitos: "+fmt(totalD)+"  ·  Total créditos: "+fmt(totalC)+"  "+(Math.abs(totalD-totalC)<0.005?"✓ confere":"✗ não confere"))
+        )
+      )
+    )
+  );
+}
+
+function TelaARE({dre}){
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"11 · apuração do resultado"),
+    h("h2",{className:"screen-title"},"ARE — Apuração do Resultado do Exercício"),
+    h("p",{className:"screen-sub"},"Encerramento conceitual das contas de resultado — receitas, deduções, custos e despesas — para apuração do resultado do período."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body"},
+        h("div",{className:"dre-row"}, h("span",null,"Receitas"), h("span",{className:"val"}, fmt(dre.receitaBruta+dre.receitasFin))),
+        h("div",{className:"dre-row sub"}, h("span",null,"(–) Deduções"), h("span",{className:"val"}, "("+fmt(dre.deducoes)+")")),
+        h("div",{className:"dre-row sub"}, h("span",null,"(–) Custos (CMV)"), h("span",{className:"val"}, "("+fmt(dre.cmv)+")")),
+        h("div",{className:"dre-row sub"}, h("span",null,"(–) Despesas"), h("span",{className:"val"}, "("+fmt(dre.despesasOp+dre.despesasFin)+")")),
+        h("div",{className:"dre-row total"}, h("span",null,"= Resultado do Exercício"), h("span",{className:"val"}, fmt(dre.resultadoExercicio)))
+      )
+    )
+  );
+}
+
+function TelaDRE({dre, onDrill}){
+  const linha = (label, valor, key, cls) => h("div",{className:`dre-row ${cls||""} clickable`, onClick:()=>{
+    const contas = dre.linhas.filter(l=>{
+      if(key==="receita") return l.conta.grupo.includes("Receita") && !l.conta.grupo.includes("Financeira");
+      if(key==="deducoes") return l.conta.grupo.includes("Dedução");
+      if(key==="cmv") return l.conta.codigo.startsWith("6.2");
+      if(key==="despop") return l.conta.grupo==="Despesa Operacional";
+      if(key==="finrec") return l.conta.grupo==="Receita Financeira";
+      if(key==="findesp") return l.conta.grupo==="Despesa Financeira";
+      return false;
+    });
+    const movimentos = contas.flatMap(c=>c.movimentos.map(m=>({...m})));
+    onDrill({ title:label, legenda:"Lançamentos que formam este valor na DRE.", linhas:movimentos });
+  }},
+    h("span",null,label), h("span",{className:"val mono"}, valor)
+  );
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"12 · demonstração do resultado"),
+    h("h2",{className:"screen-title"},"DRE — Demonstração do Resultado do Exercício"),
+    h("p",{className:"screen-sub"},"Clique em qualquer linha para ver quais lançamentos formaram aquele valor."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-body"},
+        linha("Receita Bruta de Vendas", fmt(dre.receitaBruta), "receita"),
+        linha("(–) Deduções da Receita", "("+fmt(dre.deducoes)+")", "deducoes", "sub"),
+        h("div",{className:"dre-row total"}, h("span",null,"= Receita Líquida"), h("span",{className:"val"}, fmt(dre.receitaLiquida))),
+        linha("(–) CMV", "("+fmt(dre.cmv)+")", "cmv", "sub"),
+        h("div",{className:"dre-row total"}, h("span",null,"= Resultado Bruto"), h("span",{className:"val"}, fmt(dre.resultadoBruto))),
+        linha("(–) Despesas Operacionais", "("+fmt(dre.despesasOp)+")", "despop", "sub"),
+        linha("(+) Receitas Financeiras", fmt(dre.receitasFin), "finrec", "sub"),
+        linha("(–) Despesas Financeiras", "("+fmt(dre.despesasFin)+")", "findesp", "sub"),
+        h("div",{className:"dre-row total"}, h("span",null,"= Resultado do Exercício"), h("span",{className:"val"}, fmt(dre.resultadoExercicio)))
+      )
+    )
+  );
+}
+
+function TelaBP({bp, onDrill}){
+  const grupo = (contas, titulo) => h(React.Fragment,null,
+    h("div",{className:"bp-group-label"}, titulo),
+    contas.length===0 ? h("div",{style:{fontSize:"13px", color:"var(--ink-faint)"}},"—") :
+    contas.map(c=>h("div",{className:"dre-row clickable", key:c.conta.codigo, onClick:()=>onDrill({title:c.conta.nome, legenda:"Lançamentos que compõem este saldo.", linhas:c.movimentos})},
+      h("span",null, c.conta.nome), h("span",{className:"val mono"}, fmt(Math.abs(saldoConta(c))))
+    ))
+  );
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"13 · balanço patrimonial"),
+    h("h2",{className:"screen-title"},"Balanço Patrimonial"),
+    h("p",{className:"screen-sub"},"Gerado a partir das contas patrimoniais. Clique em uma conta para rastrear a origem do saldo."),
+    h("div",{className:"panel"},
+      h("div",{className:"bp-cols"},
+        h("div",{className:"bp-col"}, grupo(bp.ativos, "ATIVO CIRCULANTE")),
+        h("div",{className:"bp-col"},
+          grupo(bp.passivos, "PASSIVO CIRCULANTE"),
+          h("div",{className:"bp-group-label"},"PATRIMÔNIO LÍQUIDO"),
+          bp.pl.map(c=>h("div",{className:"dre-row", key:c.conta.codigo}, h("span",null,c.conta.nome), h("span",{className:"val mono"}, fmt(saldoConta(c))))),
+          h("div",{className:"dre-row"}, h("span",null,"Resultado do Exercício"), h("span",{className:"val mono"}, fmt(bp.totalPL - bp.pl.reduce((s,l)=>s+saldoConta(l),0)))),
+        )
+      ),
+      h("div",{style:{padding:"10px 18px", borderTop:"1px solid var(--line-strong)"}},
+        h("div",{className:`balance-check ${bp.fecha?"ok":"bad"}`},
+          "Ativo: "+fmt(bp.totalAtivo)+"  ·  Passivo + PL: "+fmt(bp.totalPassivo+bp.totalPL)+"  "+(bp.fecha?"✓ o balanço fecha":"✗ não fecha"))
+      )
+    )
+  );
+}
+
+const PDFJS_VERSION = "4.4.168";
+let pdfjsLibCache = null;
+async function carregarPdfJs(){
+  if(!pdfjsLibCache){
+    pdfjsLibCache = await import(`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.mjs`);
+    pdfjsLibCache.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
+  }
+  return pdfjsLibCache;
+}
+
+async function extrairLinhasPdf(file){
+  const pdfjsLib = await carregarPdfJs();
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({data:buf}).promise;
+  const linhas = [];
+  for(let p=1; p<=doc.numPages; p++){
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    const porY = {};
+    content.items.forEach(it => {
+      const y = Math.round(it.transform[5]/3)*3;
+      (porY[y] = porY[y]||[]).push(it);
+    });
+    Object.keys(porY).map(Number).sort((a,b)=>b-a).forEach(y => {
+      const ordenados = porY[y].sort((a,b)=>a.transform[4]-b.transform[4]);
+      const partes = [];
+      ordenados.forEach(it => {
+        const s = it.str;
+        if(!s.trim()) return;
+        if(partes.length && partes[partes.length-1]===s) return; // descarta texto duplicado sobreposto (efeito de negrito falso comum em impressão web→PDF)
+        partes.push(s);
+      });
+      const linha = partes.join(" ").replace(/\s+/g," ").trim();
+      if(linha) linhas.push(linha);
+    });
+  }
+  return linhas;
+}
+
+function undoubleToken(tok){
+  const n = tok.length;
+  if(n < 2 || n % 2 !== 0) return tok;
+  for(let i=0;i<n;i+=2){ if(tok[i]!==tok[i+1]) return tok; }
+  let out = ""; for(let i=0;i<n;i+=2) out += tok[i];
+  return out;
+}
+function undoubleLinha(linha){
+  return linha.split(" ").map(undoubleToken).join(" ");
+}
+
+function candidatosDeLinhas(linhas){
+  const candidatos = [];
+  const vistas = new Set();
+  linhas.forEach(linhaOriginal => {
+    const linha = undoubleLinha(linhaOriginal);
+    const mMatricula = linha.match(/\d{6,12}/);
+    if(!mMatricula) return;
+    if(vistas.has(mMatricula[0])) return;
+    let nome = (linha.slice(0,mMatricula.index) + linha.slice(mMatricula.index+mMatricula[0].length))
+      .replace(/^\s*\d+/, "")
+      .replace(/matr[íi]cula|\bnome( do aluno| completo)?\b|\baluno\b/gi, "")
+      .replace(/[:\-|]/g, " ").replace(/\s+/g, " ").trim();
+    const palavras = nome.split(" ").filter(w => /^[A-Za-zÀ-ÿ.']+$/.test(w));
+    if(palavras.length < 2) return;
+    vistas.add(mMatricula[0]);
+    candidatos.push({ nome: palavras.join(" "), matricula: mMatricula[0], incluir:true });
+  });
+  return candidatos;
+}
+
+function TelaTurmas({turmas, setTurmas, turmaAtualId, setTurmaAtualId, dadosAlunos}){
+  const [novoAluno, setNovoAluno] = useState("");
+  const [novaMatricula, setNovaMatricula] = useState("");
+  const [novaTurma, setNovaTurma] = useState("");
+  const [origemDocs, setOrigemDocs] = useState("vazia");
+  const [importandoPdf, setImportandoPdf] = useState(false);
+  const [candidatos, setCandidatos] = useState(null);
+  const [erroImportacao, setErroImportacao] = useState("");
+  const turmaAtual = turmas.find(t=>t.id===turmaAtualId) || turmas[0];
+
+  function adicionarAluno(){
+    if(!novoAluno.trim()) return;
+    setTurmas(turmas.map(t => t.id===turmaAtual.id ? {...t, alunos:[...t.alunos, {nome:novoAluno.trim(), matricula:novaMatricula.trim(), pendentes:0, aprovados:0, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false}]} : t));
+    setNovoAluno(""); setNovaMatricula("");
+  }
+  function criarTurma(){
+    if(!novaTurma.trim()) return;
+    const id = "t"+(turmas.length+1);
+    const documentosIds = origemDocs==="vazia" ? [] : (turmas.find(t=>t.id===origemDocs)?.documentosIds || []);
+    setTurmas([...turmas, {id, nome:novaTurma.trim(), documentosIds, prazoUnidadeII:"", descontoPorDiaAtraso:0, penalidadeAtrasoFixa:2, alunos:[]}]);
+    setTurmaAtualId(id);
+    setNovaTurma(""); setOrigemDocs("vazia");
+  }
+
+  async function handleArquivoPdf(file){
+    setImportandoPdf(true); setErroImportacao(""); setCandidatos(null);
+    try{
+      const linhas = await extrairLinhasPdf(file);
+      const encontrados = candidatosDeLinhas(linhas);
+      if(encontrados.length===0){ setErroImportacao("Não encontrei linhas com nome + matrícula reconhecíveis nesse PDF. Ele pode ser uma imagem escaneada (sem texto) ou usar um formato diferente do esperado."); }
+      setCandidatos(encontrados);
+    } catch(e){
+      setErroImportacao("Não foi possível ler esse PDF.");
+    }
+    setImportandoPdf(false);
+  }
+
+  function toggleCandidato(i){ setCandidatos(candidatos.map((c,idx)=> idx===i ? {...c, incluir:!c.incluir} : c)); }
+  function editarCandidato(i, field, val){ setCandidatos(candidatos.map((c,idx)=> idx===i ? {...c, [field]:val} : c)); }
+  function confirmarImportacao(){
+    const matriculasAtuais = turmaAtual.alunos.map(a=>a.matricula).filter(Boolean);
+    const novos = candidatos.filter(c => c.incluir && c.nome.trim() && !matriculasAtuais.includes(c.matricula))
+      .map(c => ({nome:c.nome.trim(), matricula:c.matricula, pendentes:0, aprovados:0, nota:null, notaLiberada:false, prazoIndividual:null, prazoHistorico:[], dataEntrega:null, desconto:0, descontoManual:false}));
+    setTurmas(turmas.map(t => t.id===turmaAtual.id ? {...t, alunos:[...t.alunos, ...novos]} : t));
+    setCandidatos(null);
+  }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"turmas"),
+    h("h2",{className:"screen-title"},"Turmas"),
+    h("p",{className:"screen-sub"},"Crie turmas e cadastre os alunos que terão empresa didática própria na Unidade II."),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Suas turmas")),
+      h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Turma"),h("th",{className:"num"},"Alunos"),h("th",{className:"num"},"Documentos liberados"))),
+          h("tbody",null, turmas.map(t=>h("tr",{key:t.id, className:"clickable", onClick:()=>setTurmaAtualId(t.id)},
+            h("td",null, t.nome+(t.id===turmaAtual.id?"  ·  (selecionada)":"")), h("td",{className:"num mono"}, t.alunos.length), h("td",{className:"num mono"}, t.documentosIds.length)
+          )))
+        )
+      )
+    ),
+    h("div",{className:"panel", style:{marginBottom:22}},
+      h("div",{className:"panel-head"}, h("h3",null,"Nova turma")),
+      h("div",{className:"panel-body"},
+        h("div",{className:"field"}, h("label",null,"Nome da turma"), h("input",{value:novaTurma, onChange:e=>setNovaTurma(e.target.value)})),
+        h("div",{className:"field"}, h("label",null,"Documentos fiscais desta turma"),
+          h("select",{value:origemDocs, onChange:e=>setOrigemDocs(e.target.value)},
+            h("option",{value:"vazia"},"Começar sem documentos liberados"),
+            turmas.map(t=>h("option",{key:t.id, value:t.id}, "Reaproveitar os mesmos documentos de: "+t.nome+" ("+t.documentosIds.length+")"))
+          )
+        ),
+        h("div",{className:"helper-note"}, "Reaproveitar copia a lista de documentos já liberados no momento da criação — liberar um novo documento depois não afeta as outras turmas."),
+        h("div",{className:"btn-row"}, h("button",{className:"btn secondary", onClick:criarTurma},"+ Criar turma"))
+      )
+    ),
+    turmaAtual && h("div",{className:"panel", style:{marginBottom:22}},
+      h("div",{className:"panel-head"}, h("h3",null,"Prazo e pontualidade — "+turmaAtual.nome)),
+      h("div",{className:"panel-body"},
+        h("div",{className:"field"}, h("label",null,"Prazo da Unidade II (vale para toda a turma)"),
+          h("input",{type:"date", className:"mono", value:turmaAtual.prazoUnidadeII, onChange:e=>setTurmas(turmas.map(t=>t.id===turmaAtual.id?{...t,prazoUnidadeII:e.target.value}:t))})),
+        h("div",{className:"grid-2"},
+          h("div",{className:"field"}, h("label",null,"Penalidade no 1º dia de atraso (pontos)"),
+            h("input",{type:"number", min:0, step:0.5, className:"mono", value:turmaAtual.penalidadeAtrasoFixa, onChange:e=>setTurmas(turmas.map(t=>t.id===turmaAtual.id?{...t,penalidadeAtrasoFixa:Number(e.target.value)||0}:t))})),
+          h("div",{className:"field"}, h("label",null,"Desconto por dia adicional de atraso (a partir do 2º dia)"),
+            h("input",{type:"number", min:0, step:0.1, className:"mono", value:turmaAtual.descontoPorDiaAtraso, onChange:e=>setTurmas(turmas.map(t=>t.id===turmaAtual.id?{...t,descontoPorDiaAtraso:Number(e.target.value)||0}:t))})),
+        ),
+        h("div",{className:"helper-note"}, "Calculado automaticamente assim que houver atraso: penalidade fixa no 1º dia + (dias adicionais × desconto por dia). O professor sempre pode sobrescrever o valor no Painel do Professor antes de liberar a nota. Prorrogações individuais (por aluno) são dadas lá também, em Avaliação.")
+      )
+    ),
+    turmaAtual && h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Alunos — "+turmaAtual.nome)),
+      h("div",{className:"panel-body"},
+        h("div",{className:"btn-row", style:{marginBottom:14, flexWrap:"wrap"}},
+          h("input",{placeholder:"Nome do aluno", value:novoAluno, onChange:e=>setNovoAluno(e.target.value), style:{maxWidth:220, padding:"7px 10px", border:"1px solid var(--line-strong)", background:"var(--paper)"}}),
+          h("input",{placeholder:"Matrícula", className:"mono", value:novaMatricula, onChange:e=>setNovaMatricula(e.target.value), style:{maxWidth:140, padding:"7px 10px", border:"1px solid var(--line-strong)", background:"var(--paper)"}}),
+          h("button",{className:"btn secondary", onClick:adicionarAluno},"+ Adicionar aluno"),
+          h("label",{className:"btn secondary", style:{cursor:"pointer"}},
+            importandoPdf ? "Lendo PDF…" : "Importar lista (PDF)",
+            h("input",{type:"file", accept:".pdf", style:{display:"none"}, disabled:importandoPdf, onChange:e=>{ if(e.target.files[0]) handleArquivoPdf(e.target.files[0]); e.target.value=""; }})
+          ),
+        ),
+        erroImportacao && h("div",{className:"balance-check bad", style:{marginBottom:14}}, erroImportacao),
+        candidatos && h("div",{className:"panel", style:{marginBottom:16}},
+          h("div",{className:"panel-head"}, h("h3",null,"Revisar antes de importar ("+candidatos.filter(c=>c.incluir).length+" de "+candidatos.length+")")),
+          h("div",{className:"panel-body"},
+            h("div",{className:"helper-note"}, "Extraído automaticamente do PDF — confira nome e matrícula linha a linha e desmarque o que não for aluno de verdade (cabeçalhos, datas etc. podem ter entrado por engano)."),
+            h("table",null,
+              h("thead",null,h("tr",null,h("th",null,""),h("th",null,"Nome"),h("th",null,"Matrícula"))),
+              h("tbody",null, candidatos.map((c,i)=>h("tr",{key:i},
+                h("td",null, h("input",{type:"checkbox", checked:c.incluir, onChange:()=>toggleCandidato(i), style:{width:"auto"}})),
+                h("td",null, h("input",{value:c.nome, onChange:e=>editarCandidato(i,"nome",e.target.value)})),
+                h("td",null, h("input",{className:"mono", value:c.matricula, onChange:e=>editarCandidato(i,"matricula",e.target.value)})),
+              )))
+            ),
+            h("div",{className:"btn-row"},
+              h("button",{className:"btn", onClick:confirmarImportacao},"Confirmar importação"),
+              h("button",{className:"btn secondary", onClick:()=>setCandidatos(null)},"Cancelar"),
+            )
+          )
+        ),
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Aluno"),h("th",null,"Matrícula"),h("th",{className:"num"},"Pendentes"),h("th",{className:"num"},"Aprovados"))),
+          h("tbody",null, turmaAtual.alunos.map((a,i)=>{
+            const st = estatisticasAluno(a.matricula, dadosAlunos);
+            return h("tr",{key:a.matricula||a.nome+i},
+              h("td",null,a.nome), h("td",{className:"mono"},a.matricula||"—"), h("td",{className:"num mono"},st.pendentes), h("td",{className:"num mono"},st.aprovados)
+            );
+          }))
+        )
+      )
+    )
+  );
+}
+
+function TelaPainelProfessor({goto, turma, turmas, setTurmas, dadosAlunos}){
+  const todosLancamentos = turma.alunos.flatMap(a => dadosAlunos[a.matricula]?.lancamentos || []);
+  const pendentes = todosLancamentos.filter(l=>l.status==="enviado");
+  const emCorrecao = todosLancamentos.filter(l=>l.status==="correcao");
+  const aprovadosTotal = todosLancamentos.filter(l=>l.status==="aprovado").length;
+
+  function setNota(nomeAluno, valor){
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome===nomeAluno ? {...a, nota: valor===""?null:Number(valor)} : a)}));
+  }
+  function setDesconto(nomeAluno, valor){
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome===nomeAluno ? {...a, desconto: valor===""?0:Number(valor), descontoManual:true} : a)}));
+  }
+  function toggleLiberada(nomeAluno){
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome===nomeAluno ? {...a, notaLiberada: !a.notaLiberada} : a)}));
+  }
+  function usarSugestaoAutomatica(nomeAluno){
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome===nomeAluno ? {...a, descontoManual:false} : a)}));
+  }
+  const [prorrogando, setProrrogando] = useState(null);
+  const [novoPrazoData, setNovoPrazoData] = useState("");
+  const [novoPrazoMotivo, setNovoPrazoMotivo] = useState("");
+  function abrirProrrogacao(nomeAluno){
+    const a = turma.alunos.find(x=>x.nome===nomeAluno);
+    setProrrogando(nomeAluno); setNovoPrazoData(prazoEfetivo(a, turma)); setNovoPrazoMotivo("");
+  }
+  function confirmarProrrogacao(){
+    if(!novoPrazoData) return;
+    setTurmas(turmas.map(t => t.id!==turma.id ? t : {...t, alunos: t.alunos.map(a => a.nome!==prorrogando ? a : {
+      ...a, prazoIndividual:novoPrazoData, prazoHistorico:[...a.prazoHistorico, {data:novoPrazoData, motivo:novoPrazoMotivo}]
+    })}));
+    setProrrogando(null);
+  }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"painel do professor"),
+    h("h2",{className:"screen-title"},"Painel do Professor — Unidade II"),
+    h("p",{className:"screen-sub"},"Visão geral das turmas, lançamentos pendentes e indicadores pedagógicos."),
+    h("div",{className:"kpi-row"},
+      h(Kpi,{label:"Alunos na turma", value:turma.alunos.length}),
+      h(Kpi,{label:"Lançamentos pendentes", value:pendentes.length, tone:"warn"}),
+      h(Kpi,{label:"Correções em aberto", value:emCorrecao.length, tone:"bad"}),
+      h(Kpi,{label:"Aprovados na turma", value: aprovadosTotal, tone:"ok"}),
+    ),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Turma — "+turma.nome)),
+      h("div",{className:"panel-body", style:{padding:0}},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Aluno"),h("th",{className:"num"},"Pendentes"),h("th",{className:"num"},"Aprovados"))),
+          h("tbody",null, turma.alunos.map(a=>{
+            const st = estatisticasAluno(a.matricula, dadosAlunos);
+            return h("tr",{key:a.nome},
+              h("td",null,a.nome), h("td",{className:"num mono"},st.pendentes), h("td",{className:"num mono"},st.aprovados)
+            );
+          }))
+        )
+      )
+    ),
+    h("div",{className:"panel"},
+      h("div",{className:"panel-head"}, h("h3",null,"Avaliação — Nota da Unidade II")),
+      h("div",{className:"panel-body"},
+        h("div",{className:"helper-note"}, "Uma nota única por aluno para o ciclo completo da Unidade II. Desconto de pontualidade é uma sugestão — ajuste ou zere antes de liberar. O aluno só vê a nota final depois de liberada."),
+        !turma.prazoUnidadeII && h("div",{className:"balance-check bad", style:{marginBottom:14}}, "Nenhum prazo definido para esta turma ainda — configure em Turmas → Prazo e pontualidade."),
+        prorrogando && h("div",{className:"panel", style:{marginBottom:14}},
+          h("div",{className:"panel-head"}, h("h3",null,"Novo prazo — "+prorrogando)),
+          h("div",{className:"panel-body"},
+            h("div",{className:"grid-2"},
+              h("div",{className:"field"}, h("label",null,"Novo prazo individual"), h("input",{type:"date", className:"mono", value:novoPrazoData, onChange:e=>setNovoPrazoData(e.target.value)})),
+              h("div",{className:"field"}, h("label",null,"Motivo (opcional)"), h("input",{value:novoPrazoMotivo, onChange:e=>setNovoPrazoMotivo(e.target.value)})),
+            ),
+            (turma.alunos.find(a=>a.nome===prorrogando)?.prazoHistorico.length>0) && h("div",{className:"helper-note"},
+              "Histórico: "+turma.alunos.find(a=>a.nome===prorrogando).prazoHistorico.map(p=>fmtData(p.data)+(p.motivo?" ("+p.motivo+")":"")).join(" · ")),
+            h("div",{className:"btn-row"},
+              h("button",{className:"btn", onClick:confirmarProrrogacao},"Salvar novo prazo"),
+              h("button",{className:"btn secondary", onClick:()=>setProrrogando(null)},"Cancelar"),
+            )
+          )
+        ),
+        h("table",null,
+          h("thead",null,h("tr",null,
+            h("th",null,"Aluno"),h("th",null,"Prazo"),h("th",null,"Entrega"),h("th",{className:"num"},"Atraso"),
+            h("th",{className:"num"},"Nota bruta"),h("th",{className:"num"},"Desconto"),h("th",{className:"num"},"Final"),h("th",null,"Status"),h("th",null,"")
+          )),
+          h("tbody",null, turma.alunos.map(a => {
+            const prazo = prazoEfetivo(a, turma);
+            const dias = diasAtraso(a.dataEntrega, prazo);
+            const desconto = descontoEfetivo(a, turma);
+            const notaFinal = a.nota===null||a.nota===undefined ? null : Math.max(0, a.nota - desconto);
+            return h("tr",{key:a.nome},
+              h("td",null,a.nome),
+              h("td",null, h("span",{className:"mono"}, fmtData(prazo)), a.prazoIndividual && h("span",{className:"tag-pill", style:{marginLeft:6}},"individual")),
+              h("td",{className:"mono"}, fmtData(a.dataEntrega)),
+              h("td",{className:"num mono"}, dias>0 ? dias+"d" : "—"),
+              h("td",null, h("input",{type:"number", min:0, max:10, step:0.1, className:"mono", style:{width:70,padding:"5px 6px"}, value: a.nota ?? "", onChange:e=>setNota(a.nome, e.target.value)})),
+              h("td",null,
+                h("input",{type:"number", min:0, step:0.1, className:"mono", style:{width:60,padding:"5px 6px"}, value: desconto, onChange:e=>setDesconto(a.nome, e.target.value)}),
+                h("div",{style:{fontSize:"10.5px", color:"var(--ink-faint)", marginTop:3}},
+                  a.descontoManual ? "manual" : (dias>0 ? "automático" : "—"),
+                  a.descontoManual && h("button",{className:"btn secondary", style:{marginLeft:6,padding:"2px 6px",fontSize:"10.5px"}, onClick:()=>usarSugestaoAutomatica(a.nome)}, "usar automático")
+                )
+              ),
+              h("td",{className:"num mono"}, notaFinal===null?"—":fmt(notaFinal)),
+              h("td",null, h("span",{className:`status ${a.notaLiberada?"aprovado":"rascunho"}`}, a.notaLiberada?"liberada":"não liberada")),
+              h("td",null,
+                h("button",{className:"btn secondary", style:{marginRight:6}, onClick:()=>abrirProrrogacao(a.nome)},"novo prazo"),
+                h("button",{className: a.notaLiberada?"btn red":"btn green", disabled: a.nota===null||a.nota===undefined, onClick:()=>toggleLiberada(a.nome)}, a.notaLiberada?"ocultar":"liberar")
+              )
+            );
+          }))
+        )
+      )
+    ),
+    h("div",{className:"helper-note"}, "Indicadores pedagógicos recorrentes (a detalhar): erro de débito/crédito, conta inadequada, CFOP/NCM/CST inconsistente, CMV não reconhecido, lançamento desequilibrado.")
+  );
+}
+
+function TelaHistoricoLancamentos({lancamentos, contas, turma, alunoAtivo}){
+  const ordenados = lancamentos.slice().reverse();
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"histórico do aluno"),
+    h("h2",{className:"screen-title"},"Histórico de lançamentos — "+alunoAtivo.nome),
+    h("p",{className:"screen-sub"},"Todos os lançamentos da empresa didática deste aluno, aprovados ou não, com as observações de correção já dadas. Diferente da Fila de Correção, que só mostra o que está pendente agora."),
+    lancamentos.length===0 && h("div",{className:"panel"}, h("div",{className:"empty-state"},"Nenhum lançamento registrado ainda.")),
+    ordenados.map(l => h("div",{className:"panel", key:l.id},
+      h("div",{className:"panel-head"},
+        h("h3",null, l.data+" · "+l.documento+" — "+l.historico),
+        h(StatusBadge,{status:l.status})
+      ),
+      h("div",{className:"panel-body"},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Conta"),h("th",{className:"num"},"Débito"),h("th",{className:"num"},"Crédito"))),
+          h("tbody",null, l.partidas.map((p,i)=>h("tr",{key:i},
+            h("td",{className:"mono"}, p.conta+" — "+(contaInfo(p.conta, contas)?.nome||"")),
+            h("td",{className:"num mono"}, p.tipo==="D"?fmt(p.valor):""),
+            h("td",{className:"num mono"}, p.tipo==="C"?fmt(p.valor):"")
+          )))
+        ),
+        l.obsCorrecao && h("div",{className:"helper-note", style:{marginTop:10}}, h("b",null,"Observação de correção enviada ao aluno: "), l.obsCorrecao)
+      )
+    ))
+  );
+}
+
+function TelaFilaCorrecao({dadosAlunos, setDadosAlunos, alunos, contas, documentos}){
+  const [obs, setObs] = useState({});
+  const [analise, setAnalise] = useState({}); // { [chave]: {loading, resultado:{status,feedback}, erro} }
+  const [iaIndisponivel, setIaIndisponivel] = useState(false);
+
+  function chave(matricula, id){ return matricula+"-"+id; }
+
+  function atualizarLancamento(matricula, id, mudar){
+    setDadosAlunos(prev => ({...prev, [matricula]: {...prev[matricula], lancamentos: (prev[matricula]?.lancamentos||[]).map(l => l.id===id ? mudar(l) : l)}}));
+  }
+  function aprovar(matricula, id){ atualizarLancamento(matricula, id, l => ({...l, status:"aprovado"})); }
+  function devolver(matricula, id){ atualizarLancamento(matricula, id, l => ({...l, status:"correcao", obsCorrecao: obs[chave(matricula,id)] || "Revisar lançamento."})); }
+
+  const fila = alunos.flatMap(al => (dadosAlunos[al.matricula]?.lancamentos || [])
+    .filter(l=>l.status==="enviado")
+    .map(l => ({aluno:al, lancamento:l})));
+
+  async function analisarComIA(matricula, l){
+    const k = chave(matricula, l.id);
+    setAnalise(prev => ({...prev, [k]:{loading:true}}));
+    const sample = await (window.claude ? window.claude.use("sample") : Promise.resolve(null));
+    if(!sample){ setIaIndisponivel(true); setAnalise(prev=>({...prev,[k]:null})); return; }
+
+    const doc = documentos.find(d=>d.id===l.documento);
+    const partidasTexto = l.partidas.map(p => {
+      const c = contaInfo(p.conta, contas);
+      return (p.tipo==="D"?"Débito":"Crédito")+" — "+p.conta+" "+(c?c.nome:"(conta não encontrada)")+" — R$ "+fmt(p.valor);
+    }).join("\n");
+    const docTexto = doc
+      ? "Documento de origem: NF-e nº "+doc.numero+", "+(doc.direcao==="entrada"?"entrada":"saída")+", natureza \""+doc.natureza+"\", CFOP "+doc.cfop+", itens: "+doc.itens.map(i=>i.qtd+" "+i.unidade+" "+i.descricao).join("; ")+", valor total R$ "+fmt(doc.valorTotal)+"."
+      : "Sem documento de origem vinculado.";
+
+    const prompt = `Você é um professor de Contabilidade Intermediária revisando o lançamento de um aluno do ensino técnico, na Unidade II (Operações com Mercadorias e Operações Financeiras).
+
+${docTexto}
+
+Histórico informado pelo aluno: "${l.historico}"
+
+Partidas do lançamento:
+${partidasTexto}
+
+Avalie se a classificação contábil (contas escolhidas, natureza débito/crédito, separação de efeitos quando aplicável — ex.: em vendas, receita e CMV devem ser lançados separadamente) está coerente com o fato descrito e com o documento de origem. Não é preciso que bata com uma única "resposta certa" — julgue como um professor experiente julgaria, aceitando soluções tecnicamente corretas ainda que diferentes da mais óbvia.
+
+Responda em português, em JSON, exatamente neste formato:
+{"status": "ok" ou "inconsistencias", "feedback": "texto para o aluno, direto e didático, sem revelar a conta certa caso haja erro — aponte o que reconsiderar, não a resposta"}
+
+Se estiver tudo certo, "feedback" deve parabenizar o aluno e destacar en poucas palavras o que ele acertou. Se houver inconsistência, "feedback" deve orientar o que o aluno deve reexaminar (ex.: "revise se esta operação deveria reconhecer também a baixa do estoque"), sem entregar a conta ou o lançamento corretos.`;
+
+    try{
+      const resultado = await sample.json(prompt, {modelTier:"default"});
+      setAnalise(prev => ({...prev, [k]:{loading:false, resultado}}));
+      if(resultado.status==="inconsistencias" && resultado.feedback){
+        setObs(prevObs => ({...prevObs, [k]: resultado.feedback}));
+      }
+    } catch(e){
+      if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){
+        setIaIndisponivel(true);
+        setAnalise(prev=>({...prev,[k]:null}));
+      } else {
+        setAnalise(prev => ({...prev, [k]:{loading:false, erro: e.code==="rate_limited" ? "Muitas análises seguidas — aguarde um momento e tente de novo." : "Não foi possível concluir a análise agora."}}));
+      }
+    }
+  }
+
+  return h(React.Fragment, null,
+    h("div",{className:"screen-eyebrow"},"fila de correção"),
+    h("h2",{className:"screen-title"},"Lançamentos enviados para análise"),
+    h("p",{className:"screen-sub"},"De todos os alunos da turma. Compare cada lançamento com o documento de origem antes de aprovar ou devolver."),
+    fila.length===0 && h("div",{className:"panel"}, h("div",{className:"empty-state"},"Nenhum lançamento pendente no momento.")),
+    fila.map(({aluno, lancamento:l}) => {
+      const k = chave(aluno.matricula, l.id);
+      const a = analise[k];
+      return h("div",{className:"panel", key:k},
+      h("div",{className:"panel-head"},
+        h("div",null,
+          h("div",{className:"mono", style:{fontSize:"10.5px", color:"var(--ink-faint)", marginBottom:2}}, aluno.nome),
+          h("h3",{style:{margin:0}}, l.data+" · "+l.documento+" — "+l.historico)
+        ),
+        h(StatusBadge,{status:l.status})
+      ),
+      h("div",{className:"panel-body"},
+        h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Conta"),h("th",{className:"num"},"Débito"),h("th",{className:"num"},"Crédito"))),
+          h("tbody",null, l.partidas.map((p,i)=>h("tr",{key:i},
+            h("td",{className:"mono"}, p.conta+" — "+(contaInfo(p.conta, contas)?.nome||"")),
+            h("td",{className:"num mono"}, p.tipo==="D"?fmt(p.valor):""),
+            h("td",{className:"num mono"}, p.tipo==="C"?fmt(p.valor):"")
+          )))
+        ),
+        !iaIndisponivel && h("div",{className:"btn-row", style:{marginTop:12}},
+          h("button",{className:"btn secondary", disabled:a?.loading, onClick:()=>analisarComIA(aluno.matricula, l)}, a?.loading ? "Analisando…" : "Analisar com IA")
+        ),
+        a?.erro && h("div",{className:"balance-check bad", style:{marginTop:10}}, a.erro),
+        a?.resultado && h("div",{className:`balance-check ${a.resultado.status==="ok"?"ok":"bad"}`, style:{marginTop:10, display:"block"}},
+          h("div",{style:{fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", marginBottom:4}}, a.resultado.status==="ok" ? "✓ parecer da IA — sem inconsistências aparentes" : "✗ parecer da IA — possíveis inconsistências"),
+          h("div",{style:{fontFamily:"'Source Serif 4', serif"}}, a.resultado.feedback)
+        ),
+        h("div",{className:"field", style:{marginTop:12}}, h("label",null,"Observação (caso devolva para correção)"),
+          h("textarea",{value:obs[k]||"", onChange:e=>setObs({...obs,[k]:e.target.value})})),
+        h("div",{className:"btn-row"},
+          h("button",{className:"btn green", onClick:()=>aprovar(aluno.matricula, l.id)},"Aprovar"),
+          h("button",{className:"btn red", onClick:()=>devolver(aluno.matricula, l.id)},"Devolver para correção"),
+        )
+      )
+    );
+    })
+  );
+}
+
+/* ---------- App shell ---------- */
+
+const MENU_ALUNO = [
+  {key:"dashboard", num:"01", label:"Meu progresso"},
+  {key:"empresa", num:"02", label:"Empresa didática"},
+  {key:"documentos", num:"03", label:"Documentos fiscais"},
+  {key:"digitacao", num:"04", label:"Digitação da NF-e"},
+  {key:"analise", num:"05", label:"Análise fiscal"},
+  {key:"plano", num:"06", label:"Plano de contas"},
+  {key:"classificacao", num:"07", label:"Classificação contábil"},
+  {key:"diario", num:"08", label:"Livro diário"},
+  {key:"razao", num:"09", label:"Livro razão"},
+  {key:"balancete", num:"10", label:"Balancete"},
+  {key:"are", num:"11", label:"ARE"},
+  {key:"dre", num:"12", label:"DRE"},
+  {key:"bp", num:"13", label:"Balanço patrimonial"},
+];
+
+const MENU_PROFESSOR = [
+  {key:"painel", num:"·", label:"Painel do professor"},
+  {key:"turmas", num:"·", label:"Turmas"},
+  {key:"fila", num:"·", label:"Fila de correção"},
+  {key:"historico", num:"·", label:"Histórico do aluno"},
+  {key:"documentos", num:"·", label:"Documentos fiscais"},
+  {key:"plano", num:"·", label:"Plano de contas"},
+  {key:"razao", num:"·", label:"Livro razão (aluno)"},
+  {key:"balancete", num:"·", label:"Balancete (aluno)"},
+  {key:"dre", num:"·", label:"DRE (aluno)"},
+  {key:"bp", num:"·", label:"Balanço (aluno)"},
+];
+
+function TelaAcesso({onEntrar}){
+  return h("div",{style:{
+    minHeight:"100vh", width:"100%", background:"#EEF1EF", color:"#1B1F1D",
+    fontFamily:"'IBM Plex Sans', system-ui, sans-serif", display:"flex", flexDirection:"column"
+  }},
+    h("div",{style:{height:6, width:"100%", display:"flex"}},
+      h("div",{style:{flex:1, background:"#0B5D3B"}}),
+      h("div",{style:{flex:1, background:"#F4F4F0"}}),
+      h("div",{style:{flex:1, background:"#B4272B"}}),
+    ),
+    h("div",{style:{display:"flex", alignItems:"center", gap:14, padding:"22px 56px", borderBottom:"1px solid #D7DEDA", background:"#ffffff"}},
+      h("div",{style:{width:38, height:38, borderRadius:"50%", background:"#0B5D3B", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}},
+        h("svg",{width:20, height:20, viewBox:"0 0 24 24", fill:"none", "aria-hidden":"true"},
+          h("path",{d:"M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z", stroke:"#ffffff", strokeWidth:"1.6"}),
+          h("path",{d:"M8 11h8M8 15h5", stroke:"#ffffff", strokeWidth:"1.6", strokeLinecap:"round"}))
+      ),
+      h("div",null,
+        h("div",{style:{fontSize:13, fontWeight:600, letterSpacing:"0.02em"}},"CEDUP HERMANN HERING"),
+        h("div",{style:{fontSize:12, color:"#5C6660"}},"Secretaria de Estado da Educação de Santa Catarina")
+      )
+    ),
+    h("div",{style:{flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:40, boxSizing:"border-box"}},
+      h("div",{style:{width:440, maxWidth:"100%", background:"#ffffff", border:"1px solid #D7DEDA", boxShadow:"0 8px 28px rgba(20,30,24,0.08)", padding:"44px 40px", boxSizing:"border-box"}},
+        h("div",{style:{fontSize:11, letterSpacing:"0.1em", color:"#5C6660", textTransform:"uppercase", marginBottom:10}}, "Portal do Aluno e do Professor"),
+        h("h1",{style:{margin:"0 0 14px 0", fontFamily:"'Lora', Georgia, serif", fontSize:26, fontWeight:600, lineHeight:1.3, color:"#0B2A1C"}}, "Escrituração Contábil — Contabilidade Intermediária"),
+        h("p",{style:{margin:"0 0 30px 0", fontSize:14.5, color:"#4A544E", lineHeight:1.65}}, "Utilize sua conta Google institucional para acessar. Alunos confirmam a matrícula no primeiro acesso."),
+        h("button",{onClick:onEntrar, style:{width:"100%", boxSizing:"border-box", display:"flex", alignItems:"center", justifyContent:"center", gap:12, padding:14, minHeight:50, background:"#0B5D3B", border:"none", color:"#ffffff", fontFamily:"'IBM Plex Sans', sans-serif", fontSize:15, fontWeight:600, cursor:"pointer"}},
+          h("svg",{width:18, height:18, viewBox:"0 0 18 18", "aria-hidden":"true"},
+            h("path",{fill:"#4285F4", d:"M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"}),
+            h("path",{fill:"#34A853", d:"M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"}),
+            h("path",{fill:"#FBBC05", d:"M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"}),
+            h("path",{fill:"#EA4335", d:"M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"})
+          ),
+          "Continuar com Google"
+        ),
+        h("div",{style:{marginTop:24, paddingTop:20, borderTop:"1px solid #E6EAE7", fontSize:12.5, color:"#6B746E", lineHeight:1.6}},
+          "Acesso institucional. Em caso de dúvidas, procure a secretaria ou o professor responsável pela disciplina."),
+        h("div",{className:"helper-note", style:{marginTop:20}}, "Protótipo: este botão ainda não autentica de verdade — ele só leva ao sistema, onde você escolhe Aluno/Professor para navegar (login demonstrativo).")
+      )
+    ),
+    h("div",{style:{padding:"14px 56px", fontSize:11.5, color:"#7C857F", textAlign:"center", borderTop:"1px solid #D7DEDA"}},
+      "Governo do Estado de Santa Catarina — Rede Estadual de Educação Profissional"
+    )
+  );
+}
+
+function App(){
+  const [role, setRole] = useState("aluno");
+  const [screen, setScreen] = useState("dashboard");
+  const [dadosAlunos, setDadosAlunos] = useState(DADOS_ALUNOS_INICIAL);
+  const [contas, setContas] = useState(PLANO_CONTAS_INICIAL);
+  const [catalogo, setCatalogo] = useState(DOCUMENTOS_CATALOGO_INICIAL);
+  const [turmas, setTurmas] = useState(TURMAS_INICIAL);
+  const [turmaAtualId, setTurmaAtualIdRaw] = useState(TURMAS_INICIAL[0].id);
+  const [matriculaAtiva, setMatriculaAtiva] = useState(TURMAS_INICIAL[0].alunos[0].matricula);
+  const [drill, setDrill] = useState(null);
+  const [docAberto, setDocAberto] = useState(null);
+  const [sessaoEncerrada, setSessaoEncerrada] = useState(false);
+  const [acessado, setAcessado] = useState(false);
+  const [statusBackup, setStatusBackup] = useState({estado:"idle"}); // idle | gerando | erro
+
+  const turmaAtual = turmas.find(t=>t.id===turmaAtualId) || turmas[0];
+  const alunoAtivo = turmaAtual.alunos.find(a=>a.matricula===matriculaAtiva) || turmaAtual.alunos[0];
+  function setTurmaAtualId(id){
+    setTurmaAtualIdRaw(id);
+    const nova = turmas.find(t=>t.id===id);
+    if(nova && nova.alunos[0]) setMatriculaAtiva(nova.alunos[0].matricula);
+  }
+  const dadosAtivos = (alunoAtivo && dadosAlunos[alunoAtivo.matricula]) || {lancamentos:[], digitacoes:{}, classificacoes:[]};
+  const lancamentos = dadosAtivos.lancamentos;
+  const digitacoes = dadosAtivos.digitacoes;
+  const classificacoes = dadosAtivos.classificacoes;
+  function setLancamentos(novo){
+    setDadosAlunos(prev => ({...prev, [matriculaAtiva]: {...(prev[matriculaAtiva]||{digitacoes:{},classificacoes:[]}), lancamentos: typeof novo==="function" ? novo(prev[matriculaAtiva]?.lancamentos||[]) : novo}}));
+  }
+  function setDigitacoes(novo){
+    setDadosAlunos(prev => ({...prev, [matriculaAtiva]: {...(prev[matriculaAtiva]||{lancamentos:[],classificacoes:[]}), digitacoes: typeof novo==="function" ? novo(prev[matriculaAtiva]?.digitacoes||{}) : novo}}));
+  }
+  function setClassificacoes(novo){
+    setDadosAlunos(prev => ({...prev, [matriculaAtiva]: {...(prev[matriculaAtiva]||{lancamentos:[],digitacoes:{}}), classificacoes: typeof novo==="function" ? novo(prev[matriculaAtiva]?.classificacoes||[]) : novo}}));
+  }
+
+  const razao = useMemo(()=>calcularRazao(lancamentos, contas), [lancamentos, contas]);
+  const dre = useMemo(()=>calcularDRE(razao), [razao]);
+  const bp = useMemo(()=>calcularBP(razao, dre.resultadoExercicio), [razao, dre]);
+
+  function trocarRole(r){ setRole(r); setScreen(r==="professor"?"painel":"dashboard"); }
+
+  async function sairComBackup(){
+    setStatusBackup({estado:"gerando"});
+    const backup = {
+      geradoEm: new Date().toISOString(),
+      papel: role, aluno: alunoAtivo.nome, matricula: alunoAtivo.matricula, empresa: EMPRESA.nome, turma: turmaAtual.nome,
+      contas, turmas, catalogo, dadosAlunos,
+    };
+    const downloads = window.claude ? await window.claude.use("downloads") : null;
+    if(!downloads){
+      setStatusBackup({estado:"erro", msg:"Download de backup não está disponível nesta visualização."});
+      return;
+    }
+    try{
+      const nomeArquivo = "backup-ci-unidadeII-"+role+"-"+new Date().toISOString().slice(0,10)+".json";
+      await downloads.save({ filename: nomeArquivo, data: JSON.stringify(backup, null, 2) });
+      setStatusBackup({estado:"idle"});
+      setSessaoEncerrada(true);
+    } catch(e){
+      const msg = e.code==="declined" ? "Backup cancelado — você continua na sessão."
+        : e.code==="rate_limited" ? "Muitos pedidos de download seguidos — tente de novo em instantes."
+        : "Não foi possível gerar o backup agora.";
+      setStatusBackup({estado:"erro", msg});
+    }
+  }
+
+  const menu = role==="professor" ? MENU_PROFESSOR : MENU_ALUNO;
+
+  let tela;
+  if(role==="aluno"){
+    const documentosTurma = documentosDaTurma(turmaAtual, catalogo);
+    if(screen==="dashboard") tela = h(TelaDashboard,{role, lancamentos, goto:setScreen, alunoAtual: alunoAtivo, turma:turmaAtual, turmas, setTurmas});
+    else if(screen==="empresa") tela = h(TelaEmpresa,{alunoAtivo, turma:turmaAtual});
+    else if(screen==="documentos") tela = h(TelaDocumentos,{onAbrir:setDocAberto, role, turma:turmaAtual, turmas, setTurmas, catalogo, setCatalogo});
+    else if(screen==="digitacao") tela = h(TelaDigitacaoNFe,{documentos:documentosTurma, digitacoes, setDigitacoes});
+    else if(screen==="analise") tela = h(TelaAnaliseFiscal,{documentos:documentosTurma});
+    else if(screen==="plano") tela = h(TelaPlanoContas,{contas, setContas, role});
+    else if(screen==="classificacao") tela = h(TelaClassificacaoContabil,{documentos:documentosTurma, contas, classificacoes, setClassificacoes});
+    else if(screen==="diario") tela = h(TelaDiario,{lancamentos, setLancamentos, documentos:documentosTurma, contas});
+    else if(screen==="razao") tela = h(TelaRazao,{razao});
+    else if(screen==="balancete") tela = h(TelaBalancete,{razao});
+    else if(screen==="are") tela = h(TelaARE,{dre});
+    else if(screen==="dre") tela = h(TelaDRE,{dre, onDrill:setDrill});
+    else if(screen==="bp") tela = h(TelaBP,{bp, onDrill:setDrill});
+  } else {
+    if(screen==="painel") tela = h(TelaPainelProfessor,{goto:setScreen, turma:turmaAtual, turmas, setTurmas, dadosAlunos});
+    else if(screen==="turmas") tela = h(TelaTurmas,{turmas, setTurmas, turmaAtualId, setTurmaAtualId, dadosAlunos});
+    else if(screen==="fila") tela = h(TelaFilaCorrecao,{dadosAlunos, setDadosAlunos, alunos:turmaAtual.alunos, contas, documentos:catalogo});
+    else if(screen==="historico") tela = h(TelaHistoricoLancamentos,{lancamentos, contas, turma:turmaAtual, alunoAtivo});
+    else if(screen==="documentos") tela = h(TelaDocumentos,{onAbrir:setDocAberto, role, turma:turmaAtual, turmas, setTurmas, catalogo, setCatalogo});
+    else if(screen==="plano") tela = h(TelaPlanoContas,{contas, setContas, role});
+    else if(screen==="razao") tela = h(TelaRazao,{razao});
+    else if(screen==="balancete") tela = h(TelaBalancete,{razao});
+    else if(screen==="dre") tela = h(TelaDRE,{dre, onDrill:setDrill});
+    else if(screen==="bp") tela = h(TelaBP,{bp, onDrill:setDrill});
+  }
+
+  if(sessaoEncerrada){
+    return h("div",{style:{minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--paper)"}},
+      h("div",{className:"panel", style:{maxWidth:420, textAlign:"center"}},
+        h("div",{className:"panel-body"},
+          h("div",{style:{fontSize:"28px", marginBottom:8}}, "📒"),
+          h("h2",{style:{margin:"0 0 8px 0"}}, "Sessão encerrada"),
+          h("p",{style:{color:"var(--ink-soft)", fontSize:"14px", margin:"0 0 18px 0"}}, "Backup gerado e salvo no seu dispositivo antes de sair."),
+          h("button",{className:"btn", onClick:()=>{ setSessaoEncerrada(false); setAcessado(false); }}, "Entrar novamente")
+        )
+      )
+    );
+  }
+
+  if(!acessado){
+    return h(TelaAcesso,{onEntrar:()=>setAcessado(true)});
+  }
+
+  return h("div",{className:"app"},
+    h("div",{className:"sidebar"},
+      h("div",{className:"sidebar-head"},
+        h("div",{className:"kicker"},"CI · UNIDADE II"),
+        h("h1",null,"Escrituração Contábil")
+      ),
+      h("div",{className:"nav-group"},
+        h("div",{className:"nav-group-label"}, role==="professor"?"professor":"aluno"),
+        menu.map(item => h("div",{
+            key:item.key,
+            className:"nav-item"+(screen===item.key?" active":""),
+            onClick:()=>setScreen(item.key)
+          },
+          h("span",{className:"num mono"}, item.num),
+          h("span",null, item.label)
+        ))
+      ),
+      h("div",{className:"sidebar-foot"}, "protótipo · dados fictícios · sem Firebase")
+    ),
+    h("div",{className:"main"},
+      h("div",{className:"topbar"},
+        h("div",{className:"empresa"}, "Empresa didática de: ",
+          h("select",{className:"mono", style:{padding:"4px 6px", fontSize:"13px"}, value:matriculaAtiva, onChange:e=>setMatriculaAtiva(e.target.value)},
+            turmaAtual.alunos.map(a=>h("option",{key:a.matricula||a.nome, value:a.matricula}, a.nome)))
+        ),
+        h("div",{className:"role-switch"},
+          "Login demonstrativo:",
+          h("button",{className:"role-btn"+(role==="aluno"?" active":""), onClick:()=>trocarRole("aluno")},"Aluno"),
+          h("button",{className:"role-btn"+(role==="professor"?" active":""), onClick:()=>trocarRole("professor")},"Professor"),
+          h("button",{className:"role-btn", style:{marginLeft:14}, disabled:statusBackup.estado==="gerando", onClick:sairComBackup}, statusBackup.estado==="gerando" ? "Gerando backup…" : "Sair (gera backup)"),
+          statusBackup.estado==="erro" && h("span",{className:"mono", style:{color:"var(--red)", fontSize:"11px", marginLeft:8}}, statusBackup.msg),
+        )
+      ),
+      h("div",{className:"content"}, tela)
+    ),
+    h(DrillModal,{item:drill, onClose:()=>setDrill(null)}),
+    docAberto && h("div",{className:"modal-backdrop", onClick:()=>setDocAberto(null)},
+      h("div",{className:"modal", onClick:e=>e.stopPropagation()},
+        h("div",{className:"modal-head"}, h("h3",null,"NF-e Nº "+docAberto.numero+" — "+(docAberto.direcao==="entrada"?"Entrada":"Saída")), h("button",{className:"modal-close", onClick:()=>setDocAberto(null)},"fechar ×")),
+        role==="professor" ? h("div",{className:"modal-body"},
+          h("div",{className:"field"}, h("label",null,"Natureza / CFOP"), h("div",{className:"mono"}, docAberto.natureza+" · "+docAberto.cfop)),
+          h("div",{className:"field"}, h("label",null, docAberto.direcao==="entrada"?"Emitente":"Destinatário"),
+            h("div",null, (docAberto.direcao==="entrada"?docAberto.emitente:docAberto.destinatario).nome)),
+          h("label",{style:{fontFamily:"'IBM Plex Mono', monospace", fontSize:"10.5px", color:"var(--ink-faint)"}},"Itens"),
+          h("table",{style:{marginTop:6}},
+            h("thead",null,h("tr",null,h("th",null,"Descrição"),h("th",null,"NCM"),h("th",null,"CST"),h("th",{className:"num"},"Qtd"),h("th",{className:"num"},"Total"))),
+            h("tbody",null, docAberto.itens.map((it,i)=>h("tr",{key:i},
+              h("td",null,it.descricao), h("td",{className:"mono"},it.ncm), h("td",{className:"mono"},it.cst),
+              h("td",{className:"num mono"},it.qtd), h("td",{className:"num mono"},fmt(it.total))
+            )))
+          ),
+          h("div",{className:"field", style:{marginTop:14}}, h("label",null,"Impostos"),
+            h("div",{className:"mono", style:{fontSize:"12.5px", lineHeight:1.8}},
+              "ICMS "+fmt(docAberto.impostos.icms.valor)+" · PIS "+fmt(docAberto.impostos.pis.valor)+" · COFINS "+fmt(docAberto.impostos.cofins.valor)+" (contabilizados)",
+              h("br"), "CBS "+fmt(docAberto.impostos.cbs.valor)+" · IBS "+fmt(docAberto.impostos.ibs.valor)+" (informativos — transição 2026, sem contabilização didática)"
+            )),
+          h("div",{className:"field"}, h("label",null,"Valor total da nota"), h("div",{className:"mono"}, "R$ "+fmt(docAberto.valorTotal))),
+        ) : h("div",{className:"modal-body"},
+          h("p",{style:{margin:0,color:"var(--ink-soft)",fontSize:"14px"}},
+            "O conteúdo desta nota está no PDF disponibilizado pelo professor, fora deste sistema. Abra o PDF e siga para a etapa "),
+          h("p",{style:{margin:"10px 0 0 0"}}, h("b",null,"04 · Digitação da NF-e"), " para registrar os dados aqui.")
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+</script>
+</body>
+</html>
