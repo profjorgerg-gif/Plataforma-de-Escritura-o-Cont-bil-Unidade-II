@@ -1,6 +1,7 @@
-// Inicialização do Firebase — preencha o .env com as credenciais do seu projeto
-// (Console Firebase → Configurações do projeto → Seus apps → Config do SDK).
-// Nunca commite o .env — ele já está no .gitignore.
+// Inicialização do Firebase — valores do projeto plataforma-ci-unidade-ii.
+// Estes valores do SDK web NÃO são segredo (o Google os expõe publicamente
+// em qualquer site que usa Firebase) — a segurança vem das regras do
+// Firestore (firestore.rules), não de esconder isto.
 
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
@@ -8,12 +9,12 @@ import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDjiLT14olFfprH7Xj21_07yRdB6IXJSTo",
+  authDomain: "plataforma-ci-unidade-ii.firebaseapp.com",
+  projectId: "plataforma-ci-unidade-ii",
+  storageBucket: "plataforma-ci-unidade-ii.firebasestorage.app",
+  messagingSenderId: "402551258413",
+  appId: "1:402551258413:web:fe045b5044bc800dafa7a4",
 };
 
 export const app = initializeApp(firebaseConfig);
