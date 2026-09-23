@@ -4,7 +4,7 @@ rules_version = '2';
 // Espelha a tabela "Regras de segurança" do documento de modelo de dados.
 // Princípio central: o aluno nunca escreve nota, prazo ou status de aprovação —
 // só o professor. O papel (aluno/professor/admin) vem de users/{uid} e NUNCA
-// é definido pelo próprio cliente (veja a nota no final sobre criação de users/{uid}).
+// é definido pelo próprio cliente (veja a nota abaixo sobre criação de users/{uid}).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -42,16 +42,21 @@ service cloud.firestore {
     }
 
     // ---------- users ----------
-    // Criação e o campo "papel" nunca vêm do cliente — só de uma Cloud Function
-    // (trigger de criação de conta), que decide o papel a partir de um cadastro
-    // prévio (professor/admin) ou da confirmação de matrícula (aluno).
+    // Criação: o próprio usuário cria seu documento no primeiro login (sem
+    // Cloud Function, para não depender do plano Blaze) — mas só pode se
+    // auto-cadastrar como aluno novo, sem matrícula ainda. Ninguém vira
+    // professor/admin por essa porta; isso é feito manualmente no Console.
     match /users/{uid} {
       allow read: if signedIn() && (
         request.auth.uid == uid ||
         souAdmin() ||
         (souProfessor() && resource.data.turmaId != null && souProfessorDaTurma(resource.data.turmaId))
       );
-      allow create: if false; // só Cloud Function (Admin SDK ignora as regras)
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.papel == 'aluno'
+        && request.resource.data.matriculaConfirmada == false
+        && request.resource.data.turmaId == null
+        && request.resource.data.matricula == null;
       allow update: if signedIn() && request.auth.uid == uid
         && resource.data.matriculaConfirmada == false
         && request.resource.data.papel == resource.data.papel // não muda o próprio papel
@@ -126,11 +131,6 @@ service cloud.firestore {
         }
 
         // ---------- análises fiscais ----------
-        // Subcoleção adicionada durante a portagem (não estava no desenho
-        // original) — a tela de Análise Fiscal do protótipo tinha campos
-        // sem estado nenhum por trás; ao portar para componente real,
-        // ganhou persistência de verdade. Atualize o documento de modelo
-        // de dados se quiserem manter os dois em sincronia.
         match /analisesFiscais/{id} {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
@@ -140,9 +140,9 @@ service cloud.firestore {
       }
     }
 
-    // ---------- professores autorizados (usada só pela Cloud Function
-    // criarPerfilNoPrimeiroLogin via Admin SDK, que ignora estas regras;
-    // aqui só bloqueamos acesso direto do cliente) ----------
+    // ---------- professores autorizados (não usada por enquanto, já que
+    // a criação de perfil não passa mais por Cloud Function — mantida
+    // para uso futuro; acesso direto do cliente continua bloqueado) ----------
     match /professoresAutorizados/{email} {
       allow read, write: if souAdmin();
     }
