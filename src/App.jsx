@@ -3,7 +3,7 @@ import {
   onAuthStateChanged, signInWithPopup, signOut,
 } from "firebase/auth";
 import {
-  doc, getDoc, updateDoc, collection, query, where, getDocs,
+  doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs,
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase.js";
 import TelaAcesso from "./components/layout/TelaAcesso.jsx";
@@ -13,16 +13,17 @@ import Shell from "./components/layout/Shell.jsx";
 // Fluxo real de autenticação, substituindo o "login demonstrativo" do protótipo:
 //
 //   1. TelaAcesso        → signInWithPopup(auth, googleProvider)
-//   2. onAuthStateChanged → carrega/cria users/{uid}
+//   2. onAuthStateChanged → carrega ou CRIA users/{uid} (ver nota abaixo)
 //   3. matriculaConfirmada == false → TelaConfirmarMatricula
 //   4. matriculaConfirmada == true  → Shell (o app propriamente dito)
 //
-// A criação do documento users/{uid} e a definição do campo "papel" NÃO
-// acontecem aqui — por segurança, isso é responsabilidade de uma Cloud
-// Function (auth trigger), conforme a nota em firestore.rules. Este
-// componente só LÊ o documento e, quando ainda não confirmada a matrícula,
-// escreve os três campos que a regra permite (matricula, turmaId,
-// matriculaConfirmada).
+// A criação do documento users/{uid} acontece aqui mesmo, no cliente —
+// sem Cloud Function, para não depender do plano Blaze (pago). Isso é
+// seguro porque a regra do Firestore (allow create em /users/{uid}) só
+// permite criar com papel "aluno", matriculaConfirmada: false — nunca como
+// professor/admin. Promover alguém a professor é manual, uma vez, direto
+// no Console: Firestore → Dados → users → o documento da pessoa → trocar
+// "papel" para "professor" e "matriculaConfirmada" para true.
 
 export default function App() {
   const [carregando, setCarregando] = useState(true);
@@ -33,8 +34,21 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUsuario(u);
       if (u) {
-        const snap = await getDoc(doc(db, "users", u.uid));
-        setPerfil(snap.exists() ? snap.data() : null);
+        const ref = doc(db, "users", u.uid);
+        let snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            nome: u.displayName || "",
+            email: (u.email || "").toLowerCase(),
+            papel: "aluno",
+            turmaId: null,
+            matricula: null,
+            matriculaConfirmada: false,
+            criadoEm: new Date().toISOString(),
+          });
+          snap = await getDoc(ref);
+        }
+        setPerfil(snap.data());
       } else {
         setPerfil(null);
       }
@@ -77,8 +91,6 @@ export default function App() {
   }
 
   if (!perfil) {
-    // users/{uid} ainda não existe — normalmente a Cloud Function de auth
-    // trigger cria isso em segundos; um pequeno atraso aqui é esperado.
     return <div className="empty-state">Preparando seu acesso…</div>;
   }
 
