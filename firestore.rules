@@ -67,8 +67,13 @@ service cloud.firestore {
 
     // ---------- turmas ----------
     match /turmas/{turmaId} {
+      // Leitura em consulta de lista (ex.: "minhas turmas") precisa checar
+      // o campo direto em resource.data — chamar souProfessorDaTurma(turmaId)
+      // aqui faria um get() no próprio documento sendo listado, e o
+      // Firestore recusa a consulta inteira em silêncio nesse caso (ficava
+      // "Carregando turmas..." para sempre, sem nenhum erro visível).
       allow read: if signedIn() && (
-        souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId)
+        souAdmin() || resource.data.professorId == request.auth.uid || estouNaTurmaDoAluno(turmaId)
       );
       allow create: if souAdmin() || (souProfessor() && request.resource.data.professorId == request.auth.uid);
       allow update: if souAdmin() || souProfessorDaTurma(turmaId);
