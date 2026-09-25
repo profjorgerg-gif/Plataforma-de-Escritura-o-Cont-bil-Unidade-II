@@ -77,7 +77,10 @@ const MENU_PROFESSOR = [
 
 function manuaisPara(papel) {
   if (papel === "aluno") return [{ key: "manual-aluno", label: "Manual do Aluno" }];
-  if (papel === "professor") return [{ key: "manual-professor", label: "Manual do Professor" }];
+  if (papel === "professor") return [
+    { key: "manual-professor", label: "Manual do Professor" },
+    { key: "manual-aluno", label: "Manual do Aluno" },
+  ];
   if (papel === "admin") return [
     { key: "manual-aluno", label: "Manual do Aluno" },
     { key: "manual-professor", label: "Manual do Professor" },

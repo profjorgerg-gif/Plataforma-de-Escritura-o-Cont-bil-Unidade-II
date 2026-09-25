@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 
+function blankItemDigitacao() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", qtd: "", valorUnit: "" }; }
+
 function blankDigitacao(docFiscal) {
   return {
     numero: "", serie: "", natureza: "", cfop: "", data: "",
     emitenteNome: "", emitenteDoc: "", emitenteEndereco: "",
     destinatarioNome: "", destinatarioDoc: "", destinatarioEndereco: "",
-    itens: docFiscal.itens.map(() => ({ codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", qtd: "", valorUnit: "" })),
+    itens: docFiscal.itens.length > 0 ? docFiscal.itens.map(blankItemDigitacao) : [blankItemDigitacao()],
     icmsValor: "", ipiValor: "", pisValor: "", cofinsValor: "", cbsValor: "", ibsValor: "",
     totalProdutos: "", desconto: "", frete: "", seguro: "", outras: "", total: "",
   };
@@ -47,7 +49,10 @@ export default function DigitacaoNFe({ turmaId, matricula, documentos }) {
   function addItem() { setForm({ ...form, itens: [...form.itens, { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", qtd: "", valorUnit: "" }] }); }
   function removeItem(i) { setForm({ ...form, itens: form.itens.filter((_, idx) => idx !== i) }); }
 
+  const semGabarito = docFiscal.itens.length === 0 && !docFiscal.valorTotal;
+
   function conferir() {
+    if (semGabarito) { setConferido({ semGabarito: true }); return; }
     const somaItens = form.itens.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0), 0);
     const totalOk = Math.abs((Number(form.total) || 0) - docFiscal.valorTotal) < 0.02;
     const itensOk = Math.abs(somaItens - docFiscal.itens.reduce((s, i) => s + i.total, 0)) < 0.02;
@@ -142,7 +147,12 @@ export default function DigitacaoNFe({ turmaId, matricula, documentos }) {
             <button className="btn" disabled={salvando} onClick={salvar}>{salvando ? "Salvando…" : "Salvar digitação"}</button>
           </div>
           {salvo && <div className="balance-check ok" style={{ marginTop: 10 }}>✓ digitação salva</div>}
-          {conferido && (
+          {conferido && conferido.semGabarito && (
+            <div className="helper-note" style={{ marginTop: 10 }}>
+              O professor ainda não cadastrou um gabarito para este documento — a conferência automática não está disponível. Digite com atenção conforme o PDF; seu professor vai revisar na correção.
+            </div>
+          )}
+          {conferido && !conferido.semGabarito && (
             <div className={"balance-check " + (conferido.totalOk && conferido.itensOk ? "ok" : "bad")}>
               {conferido.itensOk ? "✓" : "✗"} soma dos itens · {conferido.totalOk ? "✓" : "✗"} valor total da nota
             </div>

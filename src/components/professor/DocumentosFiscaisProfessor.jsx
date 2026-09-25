@@ -173,7 +173,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
     <>
       <div className="screen-eyebrow">documentos fiscais</div>
       <h2 className="screen-title">Documentos disponibilizados</h2>
-      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome}.</p>
+      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome} — o preenchimento dos dados (CFOP, itens, impostos) é feito pelo aluno, em "Digitação da NF-e". Você só precisa preencher aqui se quiser deixar um gabarito para conferência automática.</p>
 
       {!criando && !editandoDoc && (
         <div className="btn-row" style={{ marginBottom: 16 }}>
@@ -188,7 +188,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
 
       {resumoImportacao && (
         <div className={"balance-check " + (resumoImportacao.erro ? "bad" : "ok")}>
-          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) como rascunho de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Complete os dados de cada um antes de liberar.`}
+          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Já pode liberar para a turma — os alunos preenchem os dados na Digitação da NF-e.`}
         </div>
       )}
 
@@ -208,7 +208,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
         <div className="panel-body" style={{ padding: 0 }}>
           {catalogo.length === 0 ? <div className="empty-state">Nenhum documento cadastrado ainda.</div> : (
             <table>
-              <thead><tr><th>Nota</th><th>Direção</th><th>Emitente/Destinatário</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Nota</th><th>Direção</th><th>Emitente/Destinatário</th><th>Gabarito</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 {catalogo.map((d) => {
                   const liberado = (turma.documentosIds || []).includes(d.id);
@@ -217,13 +217,11 @@ export default function DocumentosFiscaisProfessor({ turma }) {
                       <td className="mono">{d.numero ? "Nº " + d.numero : (d.arquivoNome || d.id)}</td>
                       <td>{d.direcao === "entrada" ? "Entrada" : "Saída"}</td>
                       <td>{(d.direcao === "entrada" ? d.emitente?.nome : d.destinatario?.nome) || "—"}</td>
-                      <td>{!d.completo ? <span className="status enviado">aguardando dados</span> : <span className={"status " + (liberado ? "aprovado" : "rascunho")}>{liberado ? "liberado" : "não liberado"}</span>}</td>
+                      <td>{d.completo ? <span className="tag-pill">preenchido</span> : <span className="status rascunho">sem gabarito — ok liberar assim</span>}</td>
+                      <td><span className={"status " + (liberado ? "aprovado" : "rascunho")}>{liberado ? "liberado" : "não liberado"}</span></td>
                       <td>
-                        {d.completo ? (
-                          <button className={liberado ? "btn red" : "btn green"} onClick={() => toggleLiberado(d.id, liberado)}>{liberado ? "remover da turma" : "liberar para a turma"}</button>
-                        ) : (
-                          <button className="btn" onClick={() => setEditandoDoc(d)}>completar dados</button>
-                        )}
+                        <button className={liberado ? "btn red" : "btn green"} style={{ marginRight: 8 }} onClick={() => toggleLiberado(d.id, liberado)}>{liberado ? "remover da turma" : "liberar para a turma"}</button>
+                        <button className="btn secondary" onClick={() => setEditandoDoc(d)}>{d.completo ? "editar" : "preencher gabarito (opcional)"}</button>
                       </td>
                     </tr>
                   );
