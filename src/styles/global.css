@@ -259,3 +259,27 @@
   .sidebar-head h1{font-size:17px;}
   .btn, .btn.secondary, .btn.green, .btn.red{font-size:13px; padding:8px 12px;}
 }
+
+/* ============================================================
+   IMPRESSÃO / SALVAR COMO PDF — usado nos manuais (botão .no-print
+   chama window.print(); o navegador já oferece "Salvar como PDF"
+   no próprio diálogo de impressão, sem precisar de biblioteca nenhuma).
+   ============================================================ */
+@media print {
+  .no-print{ display:none !important; }
+  .sidebar, .sidebar-backdrop, .topbar, .menu-toggle{ display:none !important; }
+  .app{ display:block; }
+  .main{ width:100%; }
+  .content{ padding:0; max-width:none; }
+  body{ background:#fff; color:#000; }
+
+  /* evita que um passo do manual corte ao meio entre duas páginas */
+  .panel{ break-inside:avoid; page-break-inside:avoid; border:1px solid #999; box-shadow:none; }
+  .panel-head{ background:#f0f0f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  h2.screen-title{ break-after:avoid; }
+  .screen-eyebrow{ break-after:avoid; }
+}
+@page{
+  margin: 16mm;
+}
