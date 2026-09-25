@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { collection, doc, addDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
@@ -65,6 +65,34 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
       })
     ));
     setCandidatos(null);
+  }
+
+  const [removendo, setRemovendo] = useState(null); // matricula em remoção, ou null
+
+  // Nunca apaga silenciosamente — se o aluno já tem algum lançamento
+  // aprovado, a remoção é bloqueada (princípio do projeto: dado contábil
+  // aprovado não some sem mais nem menos). Sem aprovados, remove o
+  // registro do aluno e tudo que ele gerou nas subcoleções.
+  async function removerAluno(aluno) {
+    if (!window.confirm(`Remover "${aluno.nome}" (matrícula ${aluno.matricula}) da turma? Essa ação não pode ser desfeita.`)) return;
+    setRemovendo(aluno.matricula);
+    try {
+      const base = collection(db, "turmas", turmaAtual.id, "alunos", aluno.matricula, "lancamentos");
+      const lancamentosSnap = await getDocs(base);
+      const temAprovado = lancamentosSnap.docs.some((d) => d.data().status === "aprovado");
+      if (temAprovado) {
+        alert("Este aluno já tem lançamentos aprovados — a remoção foi bloqueada para não apagar dado contábil validado. Se for realmente necessário, isso precisa ser decidido com mais cuidado (não é uma ação de um clique).");
+        return;
+      }
+      const subcolecoes = ["lancamentos", "digitacoesNFe", "classificacoes", "analisesFiscais"];
+      for (const nome of subcolecoes) {
+        const snap = await getDocs(collection(db, "turmas", turmaAtual.id, "alunos", aluno.matricula, nome));
+        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+      }
+      await deleteDoc(doc(db, "turmas", turmaAtual.id, "alunos", aluno.matricula));
+    } finally {
+      setRemovendo(null);
+    }
   }
 
   if (turmas === null) return <div className="empty-state">Carregando turmas…</div>;
@@ -171,14 +199,19 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
             )}
 
             <table>
-              <thead><tr><th>Aluno</th><th>Matrícula</th><th className="num">Nota</th><th></th></tr></thead>
+              <thead><tr><th>Aluno</th><th>Matrícula</th><th className="num">Nota</th><th></th><th></th></tr></thead>
               <tbody>
                 {(alunos || []).map((a) => (
-                  <tr key={a.matricula} className="clickable" onClick={() => onSelecionarAluno(a)}>
-                    <td>{a.nome}</td>
+                  <tr key={a.matricula}>
+                    <td className="clickable" onClick={() => onSelecionarAluno(a)}>{a.nome}</td>
                     <td className="mono">{a.matricula}</td>
                     <td className="num mono">{a.notaLiberada ? a.nota : "—"}</td>
-                    <td><span className="tag-pill">ver histórico →</span></td>
+                    <td><span className="tag-pill" style={{ cursor: "pointer" }} onClick={() => onSelecionarAluno(a)}>ver histórico →</span></td>
+                    <td>
+                      <button className="btn red" disabled={removendo === a.matricula} onClick={() => removerAluno(a)}>
+                        {removendo === a.matricula ? "Removendo…" : "Remover"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
