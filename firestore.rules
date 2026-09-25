@@ -4,7 +4,7 @@ rules_version = '2';
 // Espelha a tabela "Regras de segurança" do documento de modelo de dados.
 // Princípio central: o aluno nunca escreve nota, prazo ou status de aprovação —
 // só o professor. O papel (aluno/professor/admin) vem de users/{uid} e NUNCA
-// é definido pelo próprio cliente (veja a nota abaixo sobre criação de users/{uid}).
+// é definido pelo próprio cliente (veja a nota no final sobre criação de users/{uid}).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -40,23 +40,30 @@ service cloud.firestore {
     function estouNaTurmaDoAluno(turmaId) {
       return souAluno() && meu().turmaId == turmaId;
     }
+    // Conta de teste: o professor pode agir como um aluno se, e somente se,
+    // aquele registro de aluno estiver marcado contaTeste == true. Nunca
+    // vale para um aluno de verdade — é um "aluno fictício" que só o
+    // professor consegue escrever, usado para testar o fluxo sem precisar
+    // logar com outra conta Google.
+    function souProfessorTestando(turmaId, matricula) {
+      return souProfessorDaTurma(turmaId) &&
+        get(/databases/$(database)/documents/turmas/$(turmaId)/alunos/$(matricula)).data.contaTeste == true;
+    }
+    function podeAgirComoEsteAluno(turmaId, matricula) {
+      return souEsteAlunoNestaTurma(turmaId, matricula) || souProfessorTestando(turmaId, matricula);
+    }
 
     // ---------- users ----------
-    // Criação: o próprio usuário cria seu documento no primeiro login (sem
-    // Cloud Function, para não depender do plano Blaze) — mas só pode se
-    // auto-cadastrar como aluno novo, sem matrícula ainda. Ninguém vira
-    // professor/admin por essa porta; isso é feito manualmente no Console.
+    // Criação e o campo "papel" nunca vêm do cliente — só de uma Cloud Function
+    // (trigger de criação de conta), que decide o papel a partir de um cadastro
+    // prévio (professor/admin) ou da confirmação de matrícula (aluno).
     match /users/{uid} {
       allow read: if signedIn() && (
         request.auth.uid == uid ||
         souAdmin() ||
         (souProfessor() && resource.data.turmaId != null && souProfessorDaTurma(resource.data.turmaId))
       );
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.papel == 'aluno'
-        && request.resource.data.matriculaConfirmada == false
-        && request.resource.data.turmaId == null
-        && request.resource.data.matricula == null;
+      allow create: if false; // só Cloud Function (Admin SDK ignora as regras)
       allow update: if signedIn() && request.auth.uid == uid
         && resource.data.matriculaConfirmada == false
         && request.resource.data.papel == resource.data.papel // não muda o próprio papel
@@ -67,13 +74,8 @@ service cloud.firestore {
 
     // ---------- turmas ----------
     match /turmas/{turmaId} {
-      // Leitura em consulta de lista (ex.: "minhas turmas") precisa checar
-      // o campo direto em resource.data — chamar souProfessorDaTurma(turmaId)
-      // aqui faria um get() no próprio documento sendo listado, e o
-      // Firestore recusa a consulta inteira em silêncio nesse caso (ficava
-      // "Carregando turmas..." para sempre, sem nenhum erro visível).
       allow read: if signedIn() && (
-        souAdmin() || resource.data.professorId == request.auth.uid || estouNaTurmaDoAluno(turmaId)
+        souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId)
       );
       allow create: if souAdmin() || (souProfessor() && request.resource.data.professorId == request.auth.uid);
       allow update: if souAdmin() || souProfessorDaTurma(turmaId);
@@ -106,17 +108,17 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if souEsteAlunoNestaTurma(turmaId, matricula)
+          allow create: if podeAgirComoEsteAluno(turmaId, matricula)
             && request.resource.data.status in ['rascunho', 'enviado'];
           allow update: if
-            // aluno só edita o próprio lançamento enquanto não foi aprovado
-            (souEsteAlunoNestaTurma(turmaId, matricula)
+            // aluno (ou professor testando) só edita o próprio lançamento enquanto não foi aprovado
+            (podeAgirComoEsteAluno(turmaId, matricula)
               && resource.data.status != 'aprovado'
               && request.resource.data.status in ['rascunho', 'enviado'])
             // professor só muda status e observação de correção
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao']));
-          allow delete: if souEsteAlunoNestaTurma(turmaId, matricula) && resource.data.status == 'rascunho';
+          allow delete: if podeAgirComoEsteAluno(turmaId, matricula) && resource.data.status == 'rascunho';
         }
 
         // ---------- digitações de NF-e ----------
@@ -124,7 +126,7 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
         }
 
         // ---------- classificações contábeis ----------
@@ -132,22 +134,27 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
         }
 
         // ---------- análises fiscais ----------
+        // Subcoleção adicionada durante a portagem (não estava no desenho
+        // original) — a tela de Análise Fiscal do protótipo tinha campos
+        // sem estado nenhum por trás; ao portar para componente real,
+        // ganhou persistência de verdade. Atualize o documento de modelo
+        // de dados se quiserem manter os dois em sincronia.
         match /analisesFiscais/{id} {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if souEsteAlunoNestaTurma(turmaId, matricula);
+          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
         }
       }
     }
 
-    // ---------- professores autorizados (não usada por enquanto, já que
-    // a criação de perfil não passa mais por Cloud Function — mantida
-    // para uso futuro; acesso direto do cliente continua bloqueado) ----------
+    // ---------- professores autorizados (usada só pela Cloud Function
+    // criarPerfilNoPrimeiroLogin via Admin SDK, que ignora estas regras;
+    // aqui só bloqueamos acesso direto do cliente) ----------
     match /professoresAutorizados/{email} {
       allow read, write: if souAdmin();
     }
