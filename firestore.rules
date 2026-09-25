@@ -54,16 +54,21 @@ service cloud.firestore {
     }
 
     // ---------- users ----------
-    // Criação e o campo "papel" nunca vêm do cliente — só de uma Cloud Function
-    // (trigger de criação de conta), que decide o papel a partir de um cadastro
-    // prévio (professor/admin) ou da confirmação de matrícula (aluno).
+    // Criação: o próprio usuário cria seu documento no primeiro login (sem
+    // Cloud Function, para não depender do plano Blaze) — mas só pode se
+    // auto-cadastrar como aluno novo, sem matrícula ainda. Ninguém vira
+    // professor/admin por essa porta; isso é feito manualmente no Console.
     match /users/{uid} {
       allow read: if signedIn() && (
         request.auth.uid == uid ||
         souAdmin() ||
         (souProfessor() && resource.data.turmaId != null && souProfessorDaTurma(resource.data.turmaId))
       );
-      allow create: if false; // só Cloud Function (Admin SDK ignora as regras)
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.papel == 'aluno'
+        && request.resource.data.matriculaConfirmada == false
+        && request.resource.data.turmaId == null
+        && request.resource.data.matricula == null;
       allow update: if signedIn() && request.auth.uid == uid
         && resource.data.matriculaConfirmada == false
         && request.resource.data.papel == resource.data.papel // não muda o próprio papel
@@ -74,8 +79,13 @@ service cloud.firestore {
 
     // ---------- turmas ----------
     match /turmas/{turmaId} {
+      // Leitura em consulta de lista (ex.: "minhas turmas") precisa checar
+      // o campo direto em resource.data — chamar souProfessorDaTurma(turmaId)
+      // aqui faria um get() no próprio documento sendo listado, e o
+      // Firestore recusa a consulta inteira em silêncio nesse caso (ficava
+      // "Carregando turmas..." para sempre, sem nenhum erro visível).
       allow read: if signedIn() && (
-        souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId)
+        souAdmin() || resource.data.professorId == request.auth.uid || estouNaTurmaDoAluno(turmaId)
       );
       allow create: if souAdmin() || (souProfessor() && request.resource.data.professorId == request.auth.uid);
       allow update: if souAdmin() || souProfessorDaTurma(turmaId);
@@ -138,11 +148,6 @@ service cloud.firestore {
         }
 
         // ---------- análises fiscais ----------
-        // Subcoleção adicionada durante a portagem (não estava no desenho
-        // original) — a tela de Análise Fiscal do protótipo tinha campos
-        // sem estado nenhum por trás; ao portar para componente real,
-        // ganhou persistência de verdade. Atualize o documento de modelo
-        // de dados se quiserem manter os dois em sincronia.
         match /analisesFiscais/{id} {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
@@ -152,9 +157,7 @@ service cloud.firestore {
       }
     }
 
-    // ---------- professores autorizados (usada só pela Cloud Function
-    // criarPerfilNoPrimeiroLogin via Admin SDK, que ignora estas regras;
-    // aqui só bloqueamos acesso direto do cliente) ----------
+    // ---------- professores autorizados (não usada por enquanto) ----------
     match /professoresAutorizados/{email} {
       allow read, write: if souAdmin();
     }
@@ -169,8 +172,6 @@ service cloud.firestore {
 
     // ---------- catálogo de documentos fiscais ----------
     match /documentosFiscais/{id} {
-      // Aluno só lê um documento se ele estiver liberado para a turma dele —
-      // verificação cruzada com turmas/{turmaId}.documentosIds.
       allow read: if signedIn() && (
         souAdmin() || souProfessor() ||
         (souAluno() && meu().turmaId != null
@@ -180,7 +181,6 @@ service cloud.firestore {
     }
 
     // A conferência de Débito = Crédito fica no Cloud Function trigger de
-    // lancamentos (veja o comentário acima, na regra de lancamentos) — não
-    // dá para somar arrays dentro de uma Security Rule.
+    // lancamentos — não dá para somar arrays dentro de uma Security Rule.
   }
 }
