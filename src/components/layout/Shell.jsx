@@ -23,26 +23,31 @@ import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
 import DocumentosFiscaisProfessor from "../professor/DocumentosFiscaisProfessor.jsx";
+import ModoTeste from "../professor/ModoTeste.jsx";
+
+import ManualAluno from "../manuais/ManualAluno.jsx";
+import ManualProfessor from "../manuais/ManualProfessor.jsx";
+import ManualOperacao from "../manuais/ManualOperacao.jsx";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
 //
 // LADO DO ALUNO: completo — todas as 13 telas ligadas ao Firestore.
-// LADO DO PROFESSOR: completo — Painel (+ Avaliação embutida, como no
-// protótipo), Turmas (+ importação de alunos via PDF), Fila de Correção
-// (aprovar/devolver — sem o parecer de IA, que depende de uma Cloud
-// Function ainda não escrita), Histórico do aluno, Documentos Fiscais
-// (catálogo + importação via ZIP), Plano de Contas (+ criar conta).
+// LADO DO PROFESSOR: completo — Painel (+ Avaliação embutida), Turmas
+// (+ importação de alunos via PDF), Fila de Correção, Histórico do aluno,
+// Documentos Fiscais (+ ZIP), Plano de Contas, Modo de teste.
 //
-// O seletor de "qual turma/aluno estou vendo" mora aqui no Shell:
-// turmaSelecionadaId (lista de turmas do professor) e alunoSelecionado
-// (setado ao clicar num aluno em Turmas, usado por Histórico do aluno).
+// MODO DE TESTE: o professor cria uma "conta de teste" (turmas/{id}/alunos
+// com contaTeste:true) e entra nela para navegar pelas telas do aluno sem
+// precisar de uma segunda conta Google. As regras do Firestore (função
+// podeAgirComoEsteAluno) só liberam escrita do professor nessa conta
+// marcada — nunca em alunos reais. Enquanto ativo, papelEfetivo/turmaId/
+// matricula abaixo passam a apontar para a conta de teste, e um aviso fixo
+// aparece no topo do conteúdo.
 //
-// Padrão a seguir ao portar/ajustar uma tela: useEscrituracao (lançamentos
-// + razão/DRE/BP já calculados), useDocumentosDaTurma (catálogo liberado
-// para uma turma) e useLancamentosDaTurma (todos os lançamentos de todos
-// os alunos de uma turma, para Painel/Fila) cobrem a maior parte do que
-// qualquer tela precisa — prefira esses hooks a escrever um listener novo.
+// MANUAIS: aluno vê só o Manual do Aluno; professor só o Manual do
+// Professor; admin vê os três (inclui o de Operacionalização, mais
+// técnico). Isso usa perfil.papel de verdade — não muda em modo de teste.
 
 const MENU_ALUNO = [
   { key: "dashboard", label: "Meu progresso" },
@@ -67,9 +72,21 @@ const MENU_PROFESSOR = [
   { key: "historico", label: "Histórico do aluno" },
   { key: "documentos", label: "Documentos fiscais" },
   { key: "plano", label: "Plano de contas" },
+  { key: "modoteste", label: "Modo de teste" },
 ];
 
-function TelaDashboardAluno({ perfil, esc }) {
+function manuaisPara(papel) {
+  if (papel === "aluno") return [{ key: "manual-aluno", label: "Manual do Aluno" }];
+  if (papel === "professor") return [{ key: "manual-professor", label: "Manual do Professor" }];
+  if (papel === "admin") return [
+    { key: "manual-aluno", label: "Manual do Aluno" },
+    { key: "manual-professor", label: "Manual do Professor" },
+    { key: "manual-operacao", label: "Manual de Operacionalização" },
+  ];
+  return [];
+}
+
+function TelaDashboardAluno({ identificacao, esc }) {
   const { lancamentos, dre, bp } = esc;
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
   const pendentes = lancamentos.filter((l) => l.status === "enviado").length;
@@ -79,7 +96,7 @@ function TelaDashboardAluno({ perfil, esc }) {
     <>
       <div className="screen-eyebrow">01 · visão geral</div>
       <h2 className="screen-title">Meu progresso — Unidade II</h2>
-      <p className="screen-sub">Matrícula {perfil.matricula}. Dados ao vivo do Firestore.</p>
+      <p className="screen-sub">{identificacao}. Dados ao vivo do Firestore.</p>
       <div className="kpi-row">
         <div className="kpi ok"><div className="kpi-label">Lançamentos aprovados</div><div className="kpi-value mono">{aprovados}</div></div>
         <div className="kpi warn"><div className="kpi-label">Aguardando correção</div><div className="kpi-value mono">{pendentes}</div></div>
@@ -95,17 +112,35 @@ function TelaDashboardAluno({ perfil, esc }) {
 }
 
 export default function Shell({ usuario, perfil, onSair }) {
-  const [screen, setScreen] = useState(perfil.papel === "professor" ? "painel" : "dashboard");
-  const menu = perfil.papel === "professor" ? MENU_PROFESSOR : MENU_ALUNO;
+  const ehProfessorOuAdmin = perfil.papel === "professor" || perfil.papel === "admin";
 
-  // --- Aluno: a própria escrituração ---
-  const turmaId = perfil.papel === "aluno" ? perfil.turmaId : null;
-  const matricula = perfil.papel === "aluno" ? perfil.matricula : null;
+  const [screen, setScreen] = useState(ehProfessorOuAdmin ? "painel" : "dashboard");
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  // --- Modo de teste (só existe para professor/admin) ---
+  const [testeAtivo, setTesteAtivo] = useState(null); // { turmaId, matricula, nome } | null
+  const emTeste = ehProfessorOuAdmin && !!testeAtivo;
+
+  function sairDoModoTeste() {
+    setTesteAtivo(null);
+    setScreen("painel");
+  }
+  function entrarNoModoTeste(alvo) {
+    setTesteAtivo(alvo);
+    setScreen("dashboard");
+  }
+
+  // papelEfetivo/turmaId/matricula: o que as telas de aluno realmente usam,
+  // já considerando o modo de teste.
+  const papelEfetivo = emTeste ? "aluno" : perfil.papel;
+  const turmaId = emTeste ? testeAtivo.turmaId : (perfil.papel === "aluno" ? perfil.turmaId : null);
+  const matricula = emTeste ? testeAtivo.matricula : (perfil.papel === "aluno" ? perfil.matricula : null);
+
   const esc = useEscrituracao(turmaId, matricula);
   const documentos = useDocumentosDaTurma(turmaId);
 
-  // --- Professor: turma e aluno selecionados ---
-  const turmasDoProfessor = useTurmasDoProfessor(perfil.papel === "professor" ? usuario.uid : null);
+  // --- Professor/admin: turma e aluno selecionados ---
+  const turmasDoProfessor = useTurmasDoProfessor(ehProfessorOuAdmin ? usuario.uid : null);
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
   const turmaSelecionada = turmasDoProfessor?.find((t) => t.id === turmaSelecionadaId) || turmasDoProfessor?.[0] || null;
@@ -119,50 +154,64 @@ export default function Shell({ usuario, perfil, onSair }) {
   async function gerarBackup() {
     setGerandoBackup(true);
     try {
-      if (perfil.papel === "aluno") await backupDoAluno(perfil);
-      else if (turmaSelecionada) await backupDaTurma(turmaSelecionada);
+      if (papelEfetivo === "aluno" && !emTeste) await backupDoAluno(perfil);
+      else if (ehProfessorOuAdmin && turmaSelecionada) await backupDaTurma(turmaSelecionada);
     } finally {
       setGerandoBackup(false);
     }
   }
 
+  const menu = emTeste
+    ? MENU_ALUNO
+    : papelEfetivo === "aluno"
+      ? [...MENU_ALUNO, ...manuaisPara(perfil.papel)]
+      : [...MENU_PROFESSOR, ...manuaisPara(perfil.papel)];
+
   const TELAS_COM_ESCRITURACAO = ["dashboard", "diario", "razao", "balancete", "are", "dre", "bp"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "analise", "classificacao"];
 
   let tela;
-  if (perfil.papel === "aluno" && TELAS_COM_ESCRITURACAO.includes(screen) && esc.carregando) {
-    tela = <div className="empty-state">Carregando sua escrituração…</div>;
-  } else if (perfil.papel === "aluno" && TELAS_COM_DOCUMENTOS.includes(screen) && documentos === null) {
+  if (screen === "manual-aluno") {
+    tela = <ManualAluno />;
+  } else if (screen === "manual-professor") {
+    tela = <ManualProfessor />;
+  } else if (screen === "manual-operacao") {
+    tela = <ManualOperacao />;
+  } else if (ehProfessorOuAdmin && !emTeste && screen === "modoteste") {
+    tela = <ModoTeste turma={turmaSelecionada} onEntrar={entrarNoModoTeste} />;
+  } else if (papelEfetivo === "aluno" && TELAS_COM_ESCRITURACAO.includes(screen) && esc.carregando) {
+    tela = <div className="empty-state">Carregando escrituração…</div>;
+  } else if (papelEfetivo === "aluno" && TELAS_COM_DOCUMENTOS.includes(screen) && documentos === null) {
     tela = <div className="empty-state">Carregando documentos da turma…</div>;
-  } else if (perfil.papel === "aluno" && screen === "dashboard") {
-    tela = <TelaDashboardAluno perfil={perfil} esc={esc} />;
-  } else if (perfil.papel === "aluno" && screen === "empresa") {
-    tela = <EmpresaDidatica usuario={usuario} perfil={perfil} />;
-  } else if (perfil.papel === "aluno" && screen === "documentos") {
+  } else if (papelEfetivo === "aluno" && screen === "dashboard") {
+    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} />;
+  } else if (papelEfetivo === "aluno" && screen === "empresa") {
+    tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
+  } else if (papelEfetivo === "aluno" && screen === "documentos") {
     tela = <DocumentosFiscais documentos={documentos} />;
-  } else if (perfil.papel === "aluno" && screen === "digitacao") {
+  } else if (papelEfetivo === "aluno" && screen === "digitacao") {
     tela = <DigitacaoNFe turmaId={turmaId} matricula={matricula} documentos={documentos} />;
-  } else if (perfil.papel === "aluno" && screen === "analise") {
+  } else if (papelEfetivo === "aluno" && screen === "analise") {
     tela = <AnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
-  } else if (perfil.papel === "aluno" && screen === "plano") {
-    tela = <PlanoContas contas={esc.contas} papel={perfil.papel} />;
-  } else if (perfil.papel === "aluno" && screen === "classificacao") {
+  } else if (papelEfetivo === "aluno" && screen === "plano") {
+    tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
+  } else if (papelEfetivo === "aluno" && screen === "classificacao") {
     tela = <ClassificacaoContabil turmaId={turmaId} matricula={matricula} documentos={documentos} contas={esc.contas} />;
-  } else if (perfil.papel === "aluno" && screen === "diario") {
+  } else if (papelEfetivo === "aluno" && screen === "diario") {
     tela = <LivroDiario turmaId={turmaId} matricula={matricula} lancamentos={esc.lancamentos} contas={esc.contas} documentos={documentos} />;
-  } else if (perfil.papel === "aluno" && screen === "razao") {
+  } else if (papelEfetivo === "aluno" && screen === "razao") {
     tela = <LivroRazao razao={esc.razao} />;
-  } else if (perfil.papel === "aluno" && screen === "balancete") {
+  } else if (papelEfetivo === "aluno" && screen === "balancete") {
     tela = <Balancete razao={esc.razao} />;
-  } else if (perfil.papel === "aluno" && screen === "are") {
+  } else if (papelEfetivo === "aluno" && screen === "are") {
     tela = <ARE dre={esc.dre} />;
-  } else if (perfil.papel === "aluno" && screen === "dre") {
+  } else if (papelEfetivo === "aluno" && screen === "dre") {
     tela = <DRE dre={esc.dre} />;
-  } else if (perfil.papel === "aluno" && screen === "bp") {
+  } else if (papelEfetivo === "aluno" && screen === "bp") {
     tela = <BalancoPatrimonial bp={esc.bp} />;
-  } else if (perfil.papel === "professor" && screen === "painel") {
+  } else if (ehProfessorOuAdmin && screen === "painel") {
     tela = <Painel turma={turmaSelecionada} />;
-  } else if (perfil.papel === "professor" && screen === "turmas") {
+  } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
         uid={usuario.uid}
@@ -171,17 +220,15 @@ export default function Shell({ usuario, perfil, onSair }) {
         onSelecionarAluno={selecionarAlunoEVerHistorico}
       />
     );
-  } else if (perfil.papel === "professor" && screen === "fila") {
+  } else if (ehProfessorOuAdmin && screen === "fila") {
     tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
-  } else if (perfil.papel === "professor" && screen === "historico") {
+  } else if (ehProfessorOuAdmin && screen === "historico") {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} />;
-  } else if (perfil.papel === "professor" && screen === "documentos") {
+  } else if (ehProfessorOuAdmin && screen === "documentos") {
     tela = <DocumentosFiscaisProfessor turma={turmaSelecionada} />;
-  } else if (perfil.papel === "professor" && screen === "plano") {
+  } else if (ehProfessorOuAdmin && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={perfil.papel} />;
   }
-
-  const [menuAberto, setMenuAberto] = useState(false);
 
   return (
     <div className="app">
@@ -192,7 +239,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           <h1>Escrituração Contábil</h1>
         </div>
         <div className="nav-group">
-          <div className="nav-group-label">{perfil.papel}</div>
+          <div className="nav-group-label">{emTeste ? "aluno (modo de teste)" : perfil.papel}</div>
           {menu.map((item) => (
             <div
               key={item.key}
@@ -210,19 +257,29 @@ export default function Shell({ usuario, perfil, onSair }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button className="menu-toggle" aria-label="Abrir menu" onClick={() => setMenuAberto(true)}>☰</button>
             <div className="empresa">
-              {perfil.papel === "aluno"
-                ? "Matrícula " + perfil.matricula
-                : (turmaSelecionada ? "Turma: " + turmaSelecionada.nome : "Nenhuma turma selecionada")}
+              {emTeste
+                ? "🧪 Modo de teste — " + testeAtivo.nome
+                : perfil.papel === "aluno"
+                  ? "Matrícula " + perfil.matricula
+                  : (turmaSelecionada ? "Turma: " + turmaSelecionada.nome : "Nenhuma turma selecionada")}
             </div>
           </div>
           <div className="role-switch">
-            <button className="role-btn" disabled={gerandoBackup || (perfil.papel === "professor" && !turmaSelecionada)} onClick={gerarBackup}>
+            {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>Sair do modo de teste</button>}
+            <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
               {gerandoBackup ? "Gerando backup…" : "Baixar backup"}
             </button>
             <button className="role-btn" onClick={onSair}>Sair</button>
           </div>
         </div>
-        <div className="content">{tela}</div>
+        <div className="content">
+          {emTeste && (
+            <div className="balance-check bad" style={{ marginBottom: 18 }}>
+              🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.
+            </div>
+          )}
+          {tela}
+        </div>
       </div>
     </div>
   );
