@@ -14,7 +14,7 @@ import { db } from "../../firebase.js";
 // saber de antemão a turma. Isso está anotado no documento de modelo de
 // dados; ajuste lá se decidirem representar de outro jeito.
 
-export default function TelaConfirmarMatricula({ usuario, onConfirmar }) {
+export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair }) {
   const [matricula, setMatricula] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
@@ -40,7 +40,9 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar }) {
       const turmaId = alunoDoc.ref.parent.parent.id;
       await onConfirmar(matricula.trim(), turmaId);
     } catch (e) {
-      setErro("Não foi possível confirmar agora. Tente novamente em instantes.");
+      // Mostra o motivo técnico direto na tela — geralmente é falta de um
+      // índice do Firestore, e a mensagem já traz o link para criá-lo.
+      setErro("Não foi possível confirmar agora: " + (e.message || e.code || "erro desconhecido"));
       setCarregando(false);
     }
   }
@@ -63,7 +65,7 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar }) {
           style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px", fontSize: 15, border: "1px solid #D7DEDA", marginBottom: 14 }}
         />
         {erro && (
-          <div style={{ background: "#FBEAEA", border: "1px solid #E3B4B4", color: "#8A2A2A", padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>
+          <div style={{ background: "#FBEAEA", border: "1px solid #E3B4B4", color: "#8A2A2A", padding: "10px 12px", fontSize: 13, marginBottom: 14, wordBreak: "break-word" }}>
             {erro}
           </div>
         )}
@@ -73,6 +75,12 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar }) {
           style={{ width: "100%", padding: 14, background: "#0B5D3B", border: "none", color: "#fff", fontSize: 15, fontWeight: 600, cursor: carregando ? "default" : "pointer", opacity: carregando ? 0.7 : 1 }}
         >
           {carregando ? "Confirmando…" : "Confirmar matrícula"}
+        </button>
+        <button
+          onClick={onSair}
+          style={{ width: "100%", padding: 10, background: "none", border: "none", color: "#6B746E", fontSize: 13, marginTop: 14, cursor: "pointer", textDecoration: "underline" }}
+        >
+          Sair / trocar de conta
         </button>
       </div>
     </div>
