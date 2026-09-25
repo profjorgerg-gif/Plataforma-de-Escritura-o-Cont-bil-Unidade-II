@@ -31,17 +31,27 @@ export async function backupDoAluno(perfil) {
   );
 }
 
-// Professor baixa a turma selecionada inteira — alunos + lançamentos de
-// cada um. Ele é responsável pelos dados da própria turma; um export por
-// aluno individual não faria sentido para quem está corrigindo/avaliando.
+// Professor baixa a turma selecionada inteira — TODOS os alunos, com TUDO
+// que cada um já fez até o momento (lançamentos, digitações de NF-e,
+// classificações, análises fiscais). Serve como rede de segurança para
+// quem esquecer de gerar o próprio backup individual — o professor sempre
+// tem uma cópia recente de tudo, sem depender do aluno lembrar.
 export async function backupDaTurma(turma) {
   const alunosSnap = await getDocs(collection(db, "turmas", turma.id, "alunos"));
   const alunos = alunosSnap.docs.map((d) => ({ matricula: d.id, ...d.data() }));
-  const alunosComLancamentos = await Promise.all(
-    alunos.map(async (a) => ({ ...a, lancamentos: await subcolecao(turma.id, a.matricula, "lancamentos") }))
+  const alunosCompletos = await Promise.all(
+    alunos.map(async (a) => {
+      const [lancamentos, digitacoesNFe, classificacoes, analisesFiscais] = await Promise.all([
+        subcolecao(turma.id, a.matricula, "lancamentos"),
+        subcolecao(turma.id, a.matricula, "digitacoesNFe"),
+        subcolecao(turma.id, a.matricula, "classificacoes"),
+        subcolecao(turma.id, a.matricula, "analisesFiscais"),
+      ]);
+      return { ...a, lancamentos, digitacoesNFe, classificacoes, analisesFiscais };
+    })
   );
   baixarJson(
     `backup-ci-unidadeII-turma-${turma.nome.replace(/\s+/g, "_")}-${new Date().toISOString().slice(0, 10)}.json`,
-    { geradoEm: new Date().toISOString(), turma: { id: turma.id, nome: turma.nome }, alunos: alunosComLancamentos }
+    { geradoEm: new Date().toISOString(), turma: { id: turma.id, nome: turma.nome }, alunos: alunosCompletos }
   );
 }
