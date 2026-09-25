@@ -4,6 +4,9 @@ export default function ManualOperacao() {
       <div className="screen-eyebrow">manual · restrito ao admin</div>
       <h2 className="screen-title">Manual de Operacionalização</h2>
       <p className="screen-sub">Como o sistema é construído e mantido por trás das telas.</p>
+      <div className="btn-row no-print" style={{ marginBottom: 18 }}>
+        <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
+      </div>
 
       <div className="panel">
         <div className="panel-head"><h3>1. Arquitetura</h3></div>

@@ -4,6 +4,9 @@ export default function ManualProfessor() {
       <div className="screen-eyebrow">manual</div>
       <h2 className="screen-title">Manual do Professor</h2>
       <p className="screen-sub">Como conduzir a Unidade II pela plataforma.</p>
+      <div className="btn-row no-print" style={{ marginBottom: 18 }}>
+        <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
+      </div>
 
       <div className="panel">
         <div className="panel-head"><h3>1. Turmas e alunos</h3></div>

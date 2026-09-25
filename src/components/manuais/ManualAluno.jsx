@@ -26,6 +26,9 @@ export default function ManualAluno() {
         Passo a passo de como usar a plataforma de Escrituração Contábil — Unidade II. Os quadros tracejados marcam onde uma
         captura de tela real deve entrar — use o nome de arquivo sugerido para manter tudo organizado.
       </p>
+      <div className="btn-row no-print" style={{ marginBottom: 18 }}>
+        <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
+      </div>
 
       <Passo n={1} titulo="Entrar no sistema" imagem="manual-aluno-01-login.png">
         <p>Acesse o site e clique em <b>Continuar com Google</b>. Use sua conta Google institucional.</p>

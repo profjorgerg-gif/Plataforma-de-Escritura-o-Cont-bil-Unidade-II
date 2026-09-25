@@ -277,7 +277,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         </div>
         <div className="content">
           {emTeste && (
-            <div className="balance-check bad" style={{ marginBottom: 18 }}>
+            <div className="balance-check bad no-print" style={{ marginBottom: 18 }}>
               🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.
             </div>
           )}
