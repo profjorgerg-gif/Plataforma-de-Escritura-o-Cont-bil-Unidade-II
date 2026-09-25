@@ -95,7 +95,7 @@ export default function App() {
   }
 
   if (perfil.papel === "aluno" && !perfil.matriculaConfirmada) {
-    return <TelaConfirmarMatricula usuario={usuario} onConfirmar={confirmarMatricula} />;
+        return <TelaConfirmarMatricula usuario={usuario} onConfirmar={confirmarMatricula} onSair={sair} />;
   }
 
   return <Shell usuario={usuario} perfil={perfil} onSair={sair} />;
