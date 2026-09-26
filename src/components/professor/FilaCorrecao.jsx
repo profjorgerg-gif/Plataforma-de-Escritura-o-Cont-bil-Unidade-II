@@ -92,7 +92,7 @@ export default function FilaCorrecao({ turmaId }) {
           <div className="panel" key={k}>
             <div className="panel-head">
               <div>
-                <div className="mono" style={{ fontSize: "10.5px", color: "var(--ink-faint)", marginBottom: 2 }}>{aluno.nome}</div>
+                <div className="aluno-chip">👤 {aluno.nome} <span className="mono">· matrícula {aluno.matricula}</span></div>
                 <h3 style={{ margin: 0 }}>{l.data} · {l.documento} — {l.historico}</h3>
               </div>
               <StatusBadge status={l.status} />
