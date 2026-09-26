@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.js";
-import { GRUPO_INFO, naturezaDe, destinoDe } from "../../data/planoContasOficial.js";
+import { usePlanoContas } from "../../hooks/usePlanoContas.js";
+import { GRUPO_INFO, naturezaDe, destinoDe, PLANO_CONTAS_OFICIAL } from "../../data/planoContasOficial.js";
 
 function NovaContaForm({ onCriar, onCancelar, codigosExistentes }) {
   const [grupo, setGrupo] = useState(1);
@@ -63,12 +64,15 @@ function NovaContaForm({ onCriar, onCancelar, codigosExistentes }) {
   );
 }
 
-export default function PlanoContas({ contas, papel }) {
+export default function PlanoContas({ papel }) {
+  const { contas, deFallback } = usePlanoContas();
   const [busca, setBusca] = useState("");
   const [criando, setCriando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState("");
+  const [populando, setPopulando] = useState(false);
+  const [erroPopular, setErroPopular] = useState("");
 
-  const filtradas = contas.filter((c) => {
+  const filtradas = (contas || []).filter((c) => {
     const q = busca.trim().toLowerCase();
     if (!q) return true;
     return c.codigo.toLowerCase().includes(q) || c.nome.toLowerCase().includes(q) || c.subgrupo.toLowerCase().includes(q);
@@ -85,17 +89,49 @@ export default function PlanoContas({ contas, papel }) {
     }
   }
 
+  // Popula a coleção planoContas no Firestore com as ~200 contas oficiais
+  // (até agora servidas de um array fixo no código, só como reserva). Roda
+  // inteiro no navegador do professor, num único lote — não precisa de
+  // script nem de nada instalado no computador. Some sozinho da tela assim
+  // que a coleção deixa de estar vazia (o próprio listener em tempo real
+  // detecta isso).
+  async function popularPlanoContas() {
+    setErroPopular(""); setPopulando(true);
+    try {
+      const lote = writeBatch(db);
+      PLANO_CONTAS_OFICIAL.forEach((c) => lote.set(doc(db, "planoContas", c.codigo), c));
+      await lote.commit();
+    } catch (e) {
+      setErroPopular("Não foi possível popular agora. Tente de novo em instantes.");
+    }
+    setPopulando(false);
+  }
+
+  if (contas === null) return <div className="empty-state">Carregando plano de contas…</div>;
+
   return (
     <>
       <div className="screen-eyebrow">06 · plano de contas</div>
       <h2 className="screen-title">Plano de Contas</h2>
       <p className="screen-sub">Classificação oficial da escola (CEDUP Hermann Hering). Selecionar a conta correta é parte do exercício — o sistema não sugere automaticamente.</p>
+      {deFallback && (papel === "professor" || papel === "admin") && (
+        <div className="balance-check bad" style={{ marginBottom: 16, display: "block" }}>
+          <div style={{ marginBottom: 10 }}>
+            O Plano de Contas ainda não foi salvo no banco de dados — o que você está vendo é uma lista de reserva fixa no
+            código. Contas novas criadas aqui funcionam normalmente, mas o ideal é popular a coleção de uma vez.
+          </div>
+          <button className="btn" disabled={populando} onClick={popularPlanoContas}>
+            {populando ? "Populando…" : "Popular Plano de Contas oficial (" + PLANO_CONTAS_OFICIAL.length + " contas)"}
+          </button>
+          {erroPopular && <div style={{ marginTop: 8 }}>{erroPopular}</div>}
+        </div>
+      )}
       <div className="grid-2" style={{ alignItems: "end", marginBottom: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Buscar por código, nome ou subgrupo</label>
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="ex.: mercadorias, 4.1, tributos" />
         </div>
-        {papel === "professor" && !criando && (
+        {(papel === "professor" || papel === "admin") && !criando && (
           <div><button className="btn" onClick={() => setCriando(true)}>+ Nova conta</button></div>
         )}
       </div>

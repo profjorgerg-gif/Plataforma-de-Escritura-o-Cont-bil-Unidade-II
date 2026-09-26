@@ -18,7 +18,7 @@ import { StatusBadge } from "../shared/UI.jsx";
 const analisarLancamentoFn = httpsCallable(functions, "analisarLancamento");
 
 export default function FilaCorrecao({ turmaId }) {
-  const contas = usePlanoContas();
+  const { contas } = usePlanoContas();
   const alunos = useAlunosDaTurma(turmaId);
   const catalogo = useCatalogoDocumentos();
   const { todos } = useLancamentosDaTurma(turmaId, alunos);
