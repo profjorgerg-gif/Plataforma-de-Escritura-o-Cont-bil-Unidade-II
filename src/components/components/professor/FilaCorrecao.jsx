@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
-import { db, functions } from "../../firebase.js";
+import { db } from "../../firebase.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
@@ -9,13 +8,36 @@ import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { contaInfo, fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 
-// A análise por IA chama a Cloud Function `analisarLancamento` (ver
-// functions/index.js) — substitui a capacidade `sample` que só existe no
-// runtime do Claude.ai. Sem essa function implantada (e sem o secret
-// ANTHROPIC_API_KEY configurado), a chamada falha com um erro que o botão
-// mostra — o fluxo de aprovar/devolver continua funcionando normalmente.
+// ANÁLISE POR IA — sem Cloud Function, sem custo, sem chave secreta.
+// Em vez do sistema chamar uma API de IA (o que exigiria guardar uma chave
+// num servidor — daí o plano Blaze, que decidimos evitar), é o PRÓPRIO
+// PROFESSOR quem chama, usando uma ferramenta que já tem à mão: monta-se
+// um texto com o lançamento e o documento de origem, copia para a área de
+// transferência, e o professor cola no Claude.ai (ou outro assistente) na
+// sua própria conta. Se achar o parecer útil, cola de volta no campo de
+// observação abaixo.
 
-const analisarLancamentoFn = httpsCallable(functions, "analisarLancamento");
+function montarPromptIA(l, contas, documentoInfo) {
+  const partidasTexto = l.partidas
+    .map((p) => `${p.tipo === "D" ? "Débito" : "Crédito"} — ${p.conta} ${contaInfo(p.conta, contas)?.nome || ""} — R$ ${fmt(p.valor)}`)
+    .join("\n");
+  const docTexto = documentoInfo
+    ? `Documento de origem: NF-e nº ${documentoInfo.numero}, ${documentoInfo.direcao === "entrada" ? "entrada" : "saída"}, natureza "${documentoInfo.natureza}", CFOP ${documentoInfo.cfop}.`
+    : "Sem documento de origem vinculado.";
+
+  return `Você é um professor de Contabilidade Intermediária revisando o lançamento de um aluno do ensino técnico, na Unidade II (Operações com Mercadorias e Operações Financeiras).
+
+${docTexto}
+
+Histórico informado pelo aluno: "${l.historico}"
+
+Partidas do lançamento:
+${partidasTexto}
+
+Avalie se a classificação contábil (contas escolhidas, natureza débito/crédito, separação de efeitos quando aplicável — ex.: em vendas, receita e CMV lançados separadamente) está coerente com o fato descrito e com o documento de origem. Não é preciso bater com uma única "resposta certa" — aceite soluções tecnicamente corretas ainda que diferentes da mais óbvia.
+
+Se estiver tudo certo, diga em poucas palavras o que o aluno acertou. Se houver inconsistência, aponte o que reconsiderar sem revelar a conta ou o lançamento corretos — apenas oriente.`;
+}
 
 export default function FilaCorrecao({ turmaId }) {
   const { contas } = usePlanoContas();
@@ -24,7 +46,7 @@ export default function FilaCorrecao({ turmaId }) {
   const { todos } = useLancamentosDaTurma(turmaId, alunos);
   const fila = todos.filter(({ lancamento }) => lancamento.status === "enviado");
   const [obs, setObs] = useState({});
-  const [analise, setAnalise] = useState({}); // { [chave]: {loading, resultado:{status,feedback}, erro} }
+  const [copiado, setCopiado] = useState({}); // chave -> true por alguns segundos, feedback visual
 
   function chave(matricula, id) { return matricula + "-" + id; }
 
@@ -38,22 +60,16 @@ export default function FilaCorrecao({ turmaId }) {
     });
   }
 
-  async function analisarComIA(aluno, l) {
-    const k = chave(aluno.matricula, l.id);
-    setAnalise((prev) => ({ ...prev, [k]: { loading: true } }));
+  async function copiarPromptIA(l) {
+    const k = chave(l._matricula, l.id);
     const documentoInfo = catalogo?.find((d) => d.id === l.documento) || null;
-    const partidasComNome = l.partidas.map((p) => ({ ...p, contaNome: contaInfo(p.conta, contas)?.nome }));
+    const prompt = montarPromptIA(l, contas, documentoInfo);
     try {
-      const { data: resultado } = await analisarLancamentoFn({
-        historico: l.historico, partidas: partidasComNome,
-        documento: documentoInfo ? { numero: documentoInfo.numero, direcao: documentoInfo.direcao, natureza: documentoInfo.natureza, cfop: documentoInfo.cfop } : null,
-      });
-      setAnalise((prev) => ({ ...prev, [k]: { loading: false, resultado } }));
-      if (resultado.status === "inconsistencias" && resultado.feedback) {
-        setObs((prev) => ({ ...prev, [k]: resultado.feedback }));
-      }
+      await navigator.clipboard.writeText(prompt);
+      setCopiado((prev) => ({ ...prev, [k]: true }));
+      setTimeout(() => setCopiado((prev) => ({ ...prev, [k]: false })), 3000);
     } catch (e) {
-      setAnalise((prev) => ({ ...prev, [k]: { loading: false, erro: e.message || "Não foi possível concluir a análise agora." } }));
+      window.prompt("Não copiou automaticamente — selecione e copie manualmente (Ctrl+C):", prompt);
     }
   }
 
@@ -77,6 +93,11 @@ export default function FilaCorrecao({ turmaId }) {
               <StatusBadge status={l.status} />
             </div>
             <div className="panel-body">
+              {l.obsCorrecao && (
+                <div className="helper-note" style={{ marginBottom: 12 }}>
+                  <b>Já foi devolvido antes, com esta observação:</b> {l.obsCorrecao}
+                </div>
+              )}
               <table>
                 <thead><tr><th>Conta</th><th className="num">Débito</th><th className="num">Crédito</th></tr></thead>
                 <tbody>
@@ -90,19 +111,15 @@ export default function FilaCorrecao({ turmaId }) {
                 </tbody>
               </table>
               <div className="btn-row" style={{ marginTop: 12 }}>
-                <button className="btn secondary" disabled={analise[k]?.loading} onClick={() => analisarComIA(aluno, l)}>
-                  {analise[k]?.loading ? "Analisando…" : "Analisar com IA"}
+                <button className="btn secondary" onClick={() => copiarPromptIA({ ...l, _matricula: aluno.matricula })}>
+                  {copiado[k] ? "✓ copiado!" : "📋 Copiar prompt para IA"}
                 </button>
+                <a className="btn secondary" href="https://claude.ai" target="_blank" rel="noopener noreferrer">Abrir Claude.ai ↗</a>
+                <a className="btn secondary" href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a>
               </div>
-              {analise[k]?.erro && <div className="balance-check bad" style={{ marginTop: 10 }}>{analise[k].erro}</div>}
-              {analise[k]?.resultado && (
-                <div className={"balance-check " + (analise[k].resultado.status === "ok" ? "ok" : "bad")} style={{ marginTop: 10, display: "block" }}>
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", marginBottom: 4 }}>
-                    {analise[k].resultado.status === "ok" ? "✓ parecer da IA — sem inconsistências aparentes" : "✗ parecer da IA — possíveis inconsistências"}
-                  </div>
-                  <div style={{ fontFamily: "'Source Serif 4', serif" }}>{analise[k].resultado.feedback}</div>
-                </div>
-              )}
+              <div className="helper-note" style={{ marginTop: 8 }}>
+                Cole no Claude.ai, no ChatGPT ou em outro assistente de IA que preferir, para um parecer rápido sobre este lançamento. Se achar útil, cole a resposta no campo de observação abaixo.
+              </div>
               <div className="field" style={{ marginTop: 12 }}>
                 <label>Observação (caso devolva para correção)</label>
                 <textarea value={obs[k] || ""} onChange={(e) => setObs({ ...obs, [k]: e.target.value })} />
