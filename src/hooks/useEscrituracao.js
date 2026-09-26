@@ -8,7 +8,7 @@ import { usePlanoContas } from "./usePlanoContas.js";
 // reaproveitado por Diário, Razão, Balancete, ARE, DRE e Balanço Patrimonial
 // — nenhuma dessas telas precisa recalcular nada por conta própria.
 export function useEscrituracao(turmaId, matricula) {
-  const contas = usePlanoContas();
+  const { contas } = usePlanoContas();
   const [lancamentos, setLancamentos] = useState(null); // null = carregando
 
   useEffect(() => {
