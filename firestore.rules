@@ -125,9 +125,10 @@ service cloud.firestore {
             (podeAgirComoEsteAluno(turmaId, matricula)
               && resource.data.status != 'aprovado'
               && request.resource.data.status in ['rascunho', 'enviado'])
-            // professor só muda status e observação de correção
+            // professor só muda status, observação de correção e o histórico
+            // de correções (registro acumulado de todas as devoluções)
             || (souProfessorDaTurma(turmaId)
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao']));
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes']));
           allow delete: if podeAgirComoEsteAluno(turmaId, matricula) && resource.data.status == 'rascunho';
         }
 
