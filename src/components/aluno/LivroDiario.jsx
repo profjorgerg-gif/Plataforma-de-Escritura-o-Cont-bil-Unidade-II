@@ -1,14 +1,24 @@
 import { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 
-function NovoLancamentoForm({ onSalvar, documentos, contas }) {
-  const [data, setData] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [historico, setHistorico] = useState("");
-  const [partidas, setPartidas] = useState([{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }]);
+// Status em que o próprio aluno ainda pode editar o lançamento:
+// - rascunho: nunca foi enviado
+// - correcao: o professor devolveu para ajustes
+const EDITAVEIS = ["rascunho", "correcao"];
+
+function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamentoExistente }) {
+  const editando = !!lancamentoExistente;
+  const [data, setData] = useState(lancamentoExistente?.data || "");
+  const [documento, setDocumento] = useState(lancamentoExistente?.documento || "");
+  const [historico, setHistorico] = useState(lancamentoExistente?.historico || "");
+  const [partidas, setPartidas] = useState(
+    lancamentoExistente?.partidas?.length
+      ? lancamentoExistente.partidas.map((p) => ({ ...p }))
+      : [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }]
+  );
   const [salvando, setSalvando] = useState(false);
 
   const totalD = partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
@@ -29,8 +39,13 @@ function NovoLancamentoForm({ onSalvar, documentos, contas }) {
 
   return (
     <div className="panel">
-      <div className="panel-head"><h3>Novo lançamento</h3></div>
+      <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Novo lançamento"}</h3></div>
       <div className="panel-body">
+        {editando && lancamentoExistente.status === "correcao" && lancamentoExistente.obsCorrecao && (
+          <div className="helper-note" style={{ marginBottom: 14, borderColor: "var(--red, #c0392b)" }}>
+            <b>Observação do professor:</b> {lancamentoExistente.obsCorrecao}
+          </div>
+        )}
         <div className="grid-2">
           <div className="field"><label>Data</label><input type="date" className="mono" value={data} onChange={(e) => setData(e.target.value)} /></div>
           <div className="field">
@@ -66,8 +81,11 @@ function NovoLancamentoForm({ onSalvar, documentos, contas }) {
           <span>{bate ? "✓ Débito = Crédito" : "✗ Lançamento desequilibrado — não pode ser enviado"}</span>
         </div>
         <div className="btn-row">
+          {editando && <button className="btn secondary" disabled={salvando} onClick={onCancelar}>Cancelar</button>}
           <button className="btn secondary" disabled={salvando} onClick={() => salvar("rascunho")}>Salvar como rascunho</button>
-          <button className="btn" disabled={!bate || !historico || salvando} onClick={() => salvar("enviado")}>Enviar para análise do professor</button>
+          <button className="btn" disabled={!bate || !historico || salvando} onClick={() => salvar("enviado")}>
+            {editando ? "Reenviar para análise do professor" : "Enviar para análise do professor"}
+          </button>
         </div>
       </div>
     </div>
@@ -76,13 +94,34 @@ function NovoLancamentoForm({ onSalvar, documentos, contas }) {
 
 export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [] }) {
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
 
   async function salvar(novo) {
-    await addDoc(collection(db, "turmas", turmaId, "alunos", matricula, "lancamentos"), {
-      ...novo,
-      criadoEm: serverTimestamp(),
-    });
+    if (editando) {
+      await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", editando.id), novo);
+    } else {
+      await addDoc(collection(db, "turmas", turmaId, "alunos", matricula, "lancamentos"), {
+        ...novo,
+        criadoEm: serverTimestamp(),
+      });
+    }
     setMostrarForm(false);
+    setEditando(null);
+  }
+
+  function abrirNovo() {
+    setEditando(null);
+    setMostrarForm(true);
+  }
+
+  function abrirEdicao(l) {
+    setEditando(l);
+    setMostrarForm(true);
+  }
+
+  function cancelar() {
+    setMostrarForm(false);
+    setEditando(null);
   }
 
   return (
@@ -90,23 +129,41 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
       <div className="screen-eyebrow">08 · livro diário</div>
       <h2 className="screen-title">Livro Diário</h2>
       <p className="screen-sub">Registro cronológico dos fatos contábeis da sua empresa didática. Só é enviado para análise quando débitos e créditos coincidem.</p>
-      {!mostrarForm && <button className="btn" style={{ marginBottom: 18 }} onClick={() => setMostrarForm(true)}>+ Novo lançamento</button>}
-      {mostrarForm && <NovoLancamentoForm onSalvar={salvar} documentos={documentos} contas={contas} />}
+      {!mostrarForm && <button className="btn" style={{ marginBottom: 18 }} onClick={abrirNovo}>+ Novo lançamento</button>}
+      {mostrarForm && (
+        <NovoLancamentoForm
+          onSalvar={salvar}
+          onCancelar={cancelar}
+          documentos={documentos}
+          contas={contas}
+          lancamentoExistente={editando}
+        />
+      )}
       <div className="panel">
         <div className="panel-body" style={{ padding: 0 }}>
           <table>
-            <thead><tr><th>Data</th><th>Doc.</th><th>Histórico</th><th>Partidas</th><th className="num">Valor</th><th>Status</th></tr></thead>
+            <thead><tr><th>Data</th><th>Doc.</th><th>Histórico</th><th>Partidas</th><th className="num">Valor</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {lancamentos.slice().reverse().map((l) => (
-                <tr key={l.id}>
-                  <td className="mono">{l.data}</td>
-                  <td className="mono">{l.documento}</td>
-                  <td>{l.historico}</td>
-                  <td>{l.partidas.map((p, i) => <div key={i} className="mono" style={{ fontSize: 12 }}>{(p.tipo === "D" ? "D " : "C ") + p.conta}</div>)}</td>
-                  <td className="num mono">{fmt(l.partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + p.valor, 0))}</td>
-                  <td><StatusBadge status={l.status} /></td>
-                </tr>
-              ))}
+              {lancamentos.slice().reverse().map((l) => {
+                const editavel = EDITAVEIS.includes(l.status);
+                return (
+                  <tr key={l.id}>
+                    <td className="mono">{l.data}</td>
+                    <td className="mono">{l.documento}</td>
+                    <td>{l.historico}</td>
+                    <td>{l.partidas.map((p, i) => <div key={i} className="mono" style={{ fontSize: 12 }}>{(p.tipo === "D" ? "D " : "C ") + p.conta}</div>)}</td>
+                    <td className="num mono">{fmt(l.partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + p.valor, 0))}</td>
+                    <td><StatusBadge status={l.status} /></td>
+                    <td>
+                      {editavel && (
+                        <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => abrirEdicao(l)}>
+                          ✏️ Editar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

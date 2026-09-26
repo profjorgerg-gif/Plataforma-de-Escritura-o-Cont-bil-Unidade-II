@@ -93,6 +93,11 @@ export default function FilaCorrecao({ turmaId }) {
               <StatusBadge status={l.status} />
             </div>
             <div className="panel-body">
+              {l.obsCorrecao && (
+                <div className="helper-note" style={{ marginBottom: 12, borderColor: "var(--red, #c0392b)" }}>
+                  <b>Já devolvido antes, com esta observação:</b> {l.obsCorrecao}
+                </div>
+              )}
               <table>
                 <thead><tr><th>Conta</th><th className="num">Débito</th><th className="num">Crédito</th></tr></thead>
                 <tbody>

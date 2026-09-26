@@ -68,6 +68,7 @@ export default function ManualAluno() {
 
       <Passo n={10} titulo="Livro diário" imagem="manual-aluno-10-livro-diario.png">
         <p>Registre o lançamento de verdade: data, histórico, contas e valores. O sistema só deixa enviar para análise quando Débito = Crédito. Escolha entre <b>salvar como rascunho</b> ou <b>enviar para análise do professor</b>.</p>
+        <p>Se o professor devolver um lançamento (aparece como "Correção necessária", em vermelho), <b>clique no botão "✏️ Editar" ao lado dele na tabela</b> — a observação do professor aparece no topo do formulário, já com os dados preenchidos para você ajustar e reenviar. O ciclo se repete até o professor aprovar.</p>
       </Passo>
 
       <Passo n={11} titulo="Livro razão" imagem="manual-aluno-11-livro-razao.png">
