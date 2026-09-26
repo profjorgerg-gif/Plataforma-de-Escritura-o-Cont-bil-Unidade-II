@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useEscrituracao } from "../../hooks/useEscrituracao.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
+import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { fmt } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
 
@@ -142,11 +144,22 @@ export default function Shell({ usuario, perfil, onSair }) {
   const esc = useEscrituracao(turmaId, matricula);
   const documentos = useDocumentosDaTurma(turmaId);
 
+  // Indicativo no menu: lançamentos com "correção necessária" ainda não
+  // reenviados pelo aluno — enquanto o ciclo aluno/professor não fecha
+  // (status chega a "aprovado"), o item "Livro diário" mostra a contagem.
+  const correcoesPendentesAluno = (esc.lancamentos || []).filter((l) => l.status === "correcao").length;
+
   // --- Professor/admin: turma e aluno selecionados ---
   const turmasDoProfessor = useTurmasDoProfessor(ehProfessorOuAdmin ? usuario.uid : null);
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
   const turmaSelecionada = turmasDoProfessor?.find((t) => t.id === turmaSelecionadaId) || turmasDoProfessor?.[0] || null;
+
+  // Indicativo no menu do professor: lançamentos aguardando a análise dele
+  // (envio inicial ou reenvio depois de uma correção) na turma selecionada.
+  const alunosParaFila = useAlunosDaTurma(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null);
+  const { todos: lancamentosParaFila } = useLancamentosDaTurma(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null, alunosParaFila);
+  const correcoesPendentesProfessor = lancamentosParaFila.filter(({ lancamento }) => lancamento.status === "enviado").length;
 
   function selecionarAlunoEVerHistorico(aluno) {
     setAlunoSelecionado(aluno);
@@ -164,11 +177,22 @@ export default function Shell({ usuario, perfil, onSair }) {
     }
   }
 
-  const menu = emTeste
+  function comBadge(itens, key, contagem) {
+    return itens.map((it) => (it.key === key && contagem > 0 ? { ...it, badge: contagem } : it));
+  }
+
+  let menu = emTeste
     ? MENU_ALUNO
     : papelEfetivo === "aluno"
       ? [...MENU_ALUNO, ...manuaisPara(perfil.papel)]
       : [...MENU_PROFESSOR, ...manuaisPara(perfil.papel)];
+
+  if (papelEfetivo === "aluno") {
+    menu = comBadge(menu, "diario", correcoesPendentesAluno);
+  }
+  if (ehProfessorOuAdmin && !emTeste) {
+    menu = comBadge(menu, "fila", correcoesPendentesProfessor);
+  }
 
   const TELAS_COM_ESCRITURACAO = ["dashboard", "diario", "razao", "balancete", "are", "dre", "bp"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "analise", "classificacao"];
@@ -250,6 +274,7 @@ export default function Shell({ usuario, perfil, onSair }) {
               onClick={() => { setScreen(item.key); setMenuAberto(false); }}
             >
               <span>{item.label}</span>
+              {!!item.badge && <span className="nav-badge">{item.badge}</span>}
             </div>
           ))}
         </div>

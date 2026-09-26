@@ -41,8 +41,23 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
     <div className="panel">
       <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Novo lançamento"}</h3></div>
       <div className="panel-body">
-        {editando && lancamentoExistente.status === "correcao" && lancamentoExistente.obsCorrecao && (
-          <div className="helper-note" style={{ marginBottom: 14, borderColor: "var(--red, #c0392b)" }}>
+        {editando && lancamentoExistente.historicoCorrecoes?.length > 0 && (
+          <div className="helper-note" style={{ marginBottom: 14, borderColor: "var(--red)" }}>
+            <b>Histórico de correções deste lançamento ({lancamentoExistente.historicoCorrecoes.length}):</b>
+            <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
+              {lancamentoExistente.historicoCorrecoes.map((h, i) => (
+                <li key={i} style={{ marginBottom: 4 }}>
+                  <span className="mono" style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                    {new Date(h.em).toLocaleString("pt-BR")}
+                  </span>
+                  {" — "}{h.obs}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {editando && lancamentoExistente.status === "correcao" && !lancamentoExistente.historicoCorrecoes?.length && lancamentoExistente.obsCorrecao && (
+          <div className="helper-note" style={{ marginBottom: 14, borderColor: "var(--red)" }}>
             <b>Observação do professor:</b> {lancamentoExistente.obsCorrecao}
           </div>
         )}

@@ -53,10 +53,15 @@ export default function FilaCorrecao({ turmaId }) {
   async function aprovar(matricula, id) {
     await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", id), { status: "aprovado" });
   }
-  async function devolver(matricula, id) {
+  async function devolver(matricula, id, historicoAtual) {
     const k = chave(matricula, id);
+    const novaObs = obs[k] || "Revisar lançamento.";
+    // Cada devolução vira um novo registro no histórico — nunca sobrescreve
+    // a observação de uma rodada anterior, para que aluno e professor vejam
+    // todo o ciclo de correções, não só a última.
+    const historico = [...(historicoAtual || []), { obs: novaObs, em: new Date().toISOString() }];
     await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", id), {
-      status: "correcao", obsCorrecao: obs[k] || "Revisar lançamento.",
+      status: "correcao", obsCorrecao: novaObs, historicoCorrecoes: historico,
     });
   }
 
@@ -93,9 +98,19 @@ export default function FilaCorrecao({ turmaId }) {
               <StatusBadge status={l.status} />
             </div>
             <div className="panel-body">
-              {l.obsCorrecao && (
-                <div className="helper-note" style={{ marginBottom: 12, borderColor: "var(--red, #c0392b)" }}>
-                  <b>Já devolvido antes, com esta observação:</b> {l.obsCorrecao}
+              {l.historicoCorrecoes?.length > 0 && (
+                <div className="helper-note" style={{ marginBottom: 12, borderColor: "var(--red)" }}>
+                  <b>Histórico de correções deste lançamento ({l.historicoCorrecoes.length}):</b>
+                  <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {l.historicoCorrecoes.map((h, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        <span className="mono" style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                          {new Date(h.em).toLocaleString("pt-BR")}
+                        </span>
+                        {" — "}{h.obs}
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               )}
               <table>
@@ -126,7 +141,7 @@ export default function FilaCorrecao({ turmaId }) {
               </div>
               <div className="btn-row">
                 <button className="btn green" onClick={() => aprovar(aluno.matricula, l.id)}>Aprovar</button>
-                <button className="btn red" onClick={() => devolver(aluno.matricula, l.id)}>Devolver para correção</button>
+                <button className="btn red" onClick={() => devolver(aluno.matricula, l.id, l.historicoCorrecoes)}>Devolver para correção</button>
               </div>
             </div>
           </div>
