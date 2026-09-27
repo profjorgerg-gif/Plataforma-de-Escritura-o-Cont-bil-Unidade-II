@@ -3,7 +3,21 @@ import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp } from 
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 
-export default function ClassificacaoContabil({ turmaId, matricula, documentos, contas }) {
+// Aviso pedagógico de coerência: se o aluno já indicou na Análise Fiscal
+// deste mesmo documento que o CFOP/NCM/CST não estava correto, vale lembrar
+// de refletir esse ajuste aqui — senão a análise fiscal vira só "tabela para
+// cumprir", sem ligação real com a contabilização.
+function avisoCoerenciaFiscal(analise) {
+  if (!analise) return null;
+  const pontos = [];
+  if (analise.cfopCorreto === "nao") pontos.push("CFOP");
+  if (analise.ncmCorreto === "nao") pontos.push("NCM");
+  if (analise.cstCorreto === "nao") pontos.push("CST");
+  if (pontos.length === 0) return null;
+  return `Na Análise Fiscal deste documento você indicou que o ${pontos.join("/")} não estava correto — confira se isso muda alguma conta ou valor da classificação abaixo (ex.: destaque de imposto).`;
+}
+
+export default function ClassificacaoContabil({ turmaId, matricula, documentos, contas, onUsarNoLancamento }) {
   const [documento, setDocumento] = useState("");
   const [fato, setFato] = useState("");
   const [contaDebito, setContaDebito] = useState("");
@@ -12,6 +26,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
   const [historico, setHistorico] = useState("");
   const [tratamento, setTratamento] = useState("");
   const [classificacoes, setClassificacoes] = useState([]);
+  const [analiseDoDocumento, setAnaliseDoDocumento] = useState(null);
 
   useEffect(() => {
     if (!turmaId || !matricula) return;
@@ -19,6 +34,18 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
     const unsub = onSnapshot(ref, (snap) => setClassificacoes(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return unsub;
   }, [turmaId, matricula]);
+
+  // Confere a Análise Fiscal já salva pelo próprio aluno para o documento
+  // escolhido, só para o aviso de coerência acima — não impede nada.
+  useEffect(() => {
+    if (!turmaId || !matricula || !documento) { setAnaliseDoDocumento(null); return; }
+    const unsub = onSnapshot(doc(db, "turmas", turmaId, "alunos", matricula, "analisesFiscais", documento), (snap) => {
+      setAnaliseDoDocumento(snap.exists() ? snap.data() : null);
+    });
+    return unsub;
+  }, [turmaId, matricula, documento]);
+
+  const avisoFiscal = avisoCoerenciaFiscal(analiseDoDocumento);
 
   async function salvar() {
     if (!fato.trim() || !contaDebito || !contaCredito || !valor) return;
@@ -51,6 +78,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
             </div>
             <div className="field"><label>Valor</label><input className="mono" type="number" value={valor} onChange={(e) => setValor(e.target.value)} /></div>
           </div>
+          {avisoFiscal && <div className="aviso-pedagogico">⚠ {avisoFiscal}</div>}
           <div className="field"><label>Fato contábil identificado</label><textarea value={fato} onChange={(e) => setFato(e.target.value)} placeholder="O que aconteceu, em suas palavras — ex.: compra de mercadorias a prazo" /></div>
           <div className="grid-2">
             <div className="field">
@@ -89,7 +117,16 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
                     <td className="mono">{c.contaCredito}</td>
                     <td className="num mono">{fmt(c.valor)}</td>
                     <td><span className={"status " + (c.status === "lançada" ? "aprovado" : "rascunho")}>{c.status}</span></td>
-                    <td>{c.status === "pendente" && <button className="btn secondary" onClick={() => marcarLancada(c.id)}>marcar como lançada no Diário</button>}</td>
+                    <td>
+                      {c.status === "pendente" && (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {onUsarNoLancamento && (
+                            <button className="btn secondary" onClick={() => onUsarNoLancamento(c)}>usar no lançamento</button>
+                          )}
+                          <button className="btn secondary" onClick={() => marcarLancada(c.id)}>marcar como lançada no Diário</button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -97,7 +134,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
           )}
         </div>
       </div>
-      <div className="helper-note">Use os dados desta classificação para preencher as partidas do lançamento na etapa seguinte (Livro Diário).</div>
+      <div className="helper-note">Clique em "usar no lançamento" para levar esta classificação pronta para o Livro Diário — a data e o histórico ainda podem ser ajustados lá antes de enviar.</div>
     </>
   );
 }

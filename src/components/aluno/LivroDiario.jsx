@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
@@ -9,17 +9,42 @@ import { StatusBadge } from "../shared/UI.jsx";
 // - correcao: o professor devolveu para ajustes
 const EDITAVEIS = ["rascunho", "correcao"];
 
-function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamentoExistente }) {
+// Aviso pedagógico (nunca bloqueia o envio): compara o lado escolhido (D/C)
+// com a natureza da conta (já cadastrada no Plano de Contas) para chamar
+// atenção do aluno quando parecer uma troca de débito/crédito — o erro mais
+// comum de quem está começando.
+function avisoNaturezaPartida(conta, tipo) {
+  if (!conta || !conta.natureza) return null;
+  const ladoEsperado = conta.natureza === "devedora" ? "D" : "C";
+  if (tipo === ladoEsperado) return null;
+  const ladoEscolhido = tipo === "D" ? "débito" : "crédito";
+  return `"${conta.nome}" costuma ter natureza ${conta.natureza} — confira se faz sentido lançá-la a ${ladoEscolhido} aqui.`;
+}
+
+// Aviso pedagógico de regime de competência: se a data do lançamento cai num
+// mês/ano diferente do da emissão do documento de origem, vale reconferir se
+// o fato não deveria ser reconhecido no período do documento.
+function avisoCompetencia(dataLancamento, docSelecionado) {
+  if (!dataLancamento || !docSelecionado?.data) return null;
+  if (dataLancamento.slice(0, 7) === docSelecionado.data.slice(0, 7)) return null;
+  return `A data deste lançamento (${dataLancamento}) é de um mês diferente da emissão do documento de origem (${docSelecionado.data}) — pelo regime de competência, confira se o fato deveria ser reconhecido no período do documento.`;
+}
+
+function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamentoExistente, valoresIniciais }) {
   const editando = !!lancamentoExistente;
-  const [data, setData] = useState(lancamentoExistente?.data || "");
-  const [documento, setDocumento] = useState(lancamentoExistente?.documento || "");
-  const [historico, setHistorico] = useState(lancamentoExistente?.historico || "");
+  const base = lancamentoExistente || valoresIniciais || {};
+  const [data, setData] = useState(base.data || "");
+  const [documento, setDocumento] = useState(base.documento || "");
+  const [historico, setHistorico] = useState(base.historico || "");
   const [partidas, setPartidas] = useState(
-    lancamentoExistente?.partidas?.length
-      ? lancamentoExistente.partidas.map((p) => ({ ...p }))
+    base.partidas?.length
+      ? base.partidas.map((p) => ({ ...p }))
       : [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }]
   );
   const [salvando, setSalvando] = useState(false);
+
+  const docSelecionado = documentos.find((d) => d.id === documento);
+  const avisoData = avisoCompetencia(data, docSelecionado);
 
   const totalD = partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
   const totalC = partidas.filter((p) => p.tipo === "C").reduce((s, p) => s + (Number(p.valor) || 0), 0);
@@ -46,6 +71,11 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
     <div className="panel">
       <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Novo lançamento"}</h3></div>
       <div className="panel-body">
+        {!editando && valoresIniciais && (
+          <div className="helper-note" style={{ marginBottom: 14 }}>
+            Lançamento pré-preenchido a partir da classificação contábil que você salvou. Confira a data e o histórico e complete o que faltar antes de enviar.
+          </div>
+        )}
         {editando && lancamentoExistente.historicoCorrecoes?.length > 0 && (
           <div className="helper-note" style={{ marginBottom: 14, borderColor: "var(--red)" }}>
             <b>Histórico de correções deste lançamento ({lancamentoExistente.historicoCorrecoes.length}):</b>
@@ -76,24 +106,32 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
             </select>
           </div>
         </div>
+        {avisoData && <div className="aviso-pedagogico">⚠ {avisoData}</div>}
         <div className="field"><label>Histórico</label><textarea value={historico} onChange={(e) => setHistorico(e.target.value)} /></div>
         <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Partidas</label>
         <div style={{ marginTop: 8 }}>
-          {partidas.map((p, i) => (
-            <div key={i} className="partida-row">
-              <select value={p.conta} onChange={(e) => updatePartida(i, "conta", e.target.value)}>
-                <option value="">Selecione a conta</option>
-                {contas.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nome}</option>)}
-              </select>
-              <select value={p.tipo} onChange={(e) => updatePartida(i, "tipo", e.target.value)}>
-                <option value="D">Débito</option>
-                <option value="C">Crédito</option>
-              </select>
-              <input className="mono" placeholder="Valor" type="number" value={p.valor} onChange={(e) => updatePartida(i, "valor", e.target.value)} />
-              <div className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>{p.tipo === "D" ? "a débito" : "a crédito"}</div>
-              {partidas.length > 2 ? <button className="remove-partida" onClick={() => removePartida(i)}>×</button> : <span />}
-            </div>
-          ))}
+          {partidas.map((p, i) => {
+            const contaSel = contas.find((c) => c.codigo === p.conta);
+            const avisoNatureza = avisoNaturezaPartida(contaSel, p.tipo);
+            return (
+              <Fragment key={i}>
+                <div className="partida-row">
+                  <select value={p.conta} onChange={(e) => updatePartida(i, "conta", e.target.value)}>
+                    <option value="">Selecione a conta</option>
+                    {contas.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nome}</option>)}
+                  </select>
+                  <select value={p.tipo} onChange={(e) => updatePartida(i, "tipo", e.target.value)}>
+                    <option value="D">Débito</option>
+                    <option value="C">Crédito</option>
+                  </select>
+                  <input className="mono" placeholder="Valor" type="number" value={p.valor} onChange={(e) => updatePartida(i, "valor", e.target.value)} />
+                  <div className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>{p.tipo === "D" ? "a débito" : "a crédito"}</div>
+                  {partidas.length > 2 ? <button className="remove-partida" onClick={() => removePartida(i)}>×</button> : <span />}
+                </div>
+                {avisoNatureza && <div className="aviso-pedagogico" style={{ marginTop: -4 }}>⚠ {avisoNatureza}</div>}
+              </Fragment>
+            );
+          })}
         </div>
         <button className="btn secondary" style={{ marginTop: 6 }} onClick={addPartida}>+ adicionar partida</button>
         <div className={"balance-check " + (bate ? "ok" : "bad")}>
@@ -112,10 +150,29 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
   );
 }
 
-export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [] }) {
+export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [], rascunhoDeClassificacao, onRascunhoConsumido }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
+  const [valoresIniciais, setValoresIniciais] = useState(null); // pré-preenchimento vindo da Classificação Contábil
   const [historicoAberto, setHistoricoAberto] = useState({}); // id -> bool
+
+  // Quando o aluno clica em "usar esta classificação no lançamento" na tela
+  // de Classificação Contábil, chegamos aqui já com o formulário pré-cheio —
+  // evita redigitar tudo de novo e mantém a ligação entre as duas etapas.
+  useEffect(() => {
+    if (!rascunhoDeClassificacao) return;
+    setEditando(null);
+    setValoresIniciais({
+      documento: rascunhoDeClassificacao.documento || "",
+      historico: rascunhoDeClassificacao.historico || rascunhoDeClassificacao.fato || "",
+      partidas: [
+        { conta: rascunhoDeClassificacao.contaDebito || "", tipo: "D", valor: rascunhoDeClassificacao.valor ?? "" },
+        { conta: rascunhoDeClassificacao.contaCredito || "", tipo: "C", valor: rascunhoDeClassificacao.valor ?? "" },
+      ],
+    });
+    setMostrarForm(true);
+    onRascunhoConsumido?.();
+  }, [rascunhoDeClassificacao]);
 
   async function salvar(novo) {
     if (editando) {
@@ -128,21 +185,25 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     }
     setMostrarForm(false);
     setEditando(null);
+    setValoresIniciais(null);
   }
 
   function abrirNovo() {
     setEditando(null);
+    setValoresIniciais(null);
     setMostrarForm(true);
   }
 
   function abrirEdicao(l) {
     setEditando(l);
+    setValoresIniciais(null);
     setMostrarForm(true);
   }
 
   function cancelar() {
     setMostrarForm(false);
     setEditando(null);
+    setValoresIniciais(null);
   }
 
   function alternarHistorico(id) {
@@ -162,6 +223,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
           documentos={documentos}
           contas={contas}
           lancamentoExistente={editando}
+          valoresIniciais={valoresIniciais}
         />
       )}
       <div className="panel">
