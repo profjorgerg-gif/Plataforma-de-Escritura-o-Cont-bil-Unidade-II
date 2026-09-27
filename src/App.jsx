@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  onAuthStateChanged, signInWithPopup, signOut,
+  onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword, signOut,
 } from "firebase/auth";
 import {
   doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs,
@@ -10,33 +10,51 @@ import TelaAcesso from "./components/layout/TelaAcesso.jsx";
 import TelaConfirmarMatricula from "./components/layout/TelaConfirmarMatricula.jsx";
 import Shell from "./components/layout/Shell.jsx";
 
-// Fluxo real de autenticação, substituindo o "login demonstrativo" do protótipo:
+// Fluxo real de autenticação — dois caminhos separados, escolhidos na
+// TelaAcesso ("Aluno(a)" ou "Professor(a)"):
 //
-//   1. TelaAcesso        → signInWithPopup(auth, googleProvider)
-//   2. onAuthStateChanged → carrega ou CRIA users/{uid} (ver nota abaixo)
-//   3. matriculaConfirmada == false → TelaConfirmarMatricula
-//   4. matriculaConfirmada == true  → Shell (o app propriamente dito)
+//   ALUNO:     signInWithPopup(Google) → onAuthStateChanged → CRIA
+//              users/{uid} automaticamente (papel "aluno") se não existir →
+//              TelaConfirmarMatricula (1ª vez) → Shell.
+//   PROFESSOR: signInWithEmailAndPassword (e-mail + senha só do professor,
+//              nunca via conta Google) → onAuthStateChanged → o documento
+//              users/{uid} TEM que já existir, criado manualmente pelo
+//              professor no Console Firebase com papel "professor" — nunca
+//              é criado automaticamente aqui. Isso é o que garante que
+//              ninguém "vira professor" sozinho: só quem sabe a senha
+//              específica dessa conta (que não é a conta Google de
+//              ninguém) chega nessa tela, e mesmo assim só entra se o
+//              documento já foi preparado à mão.
 //
-// A criação do documento users/{uid} acontece aqui mesmo, no cliente —
-// sem Cloud Function, para não depender do plano Blaze (pago). Isso é
-// seguro porque a regra do Firestore (allow create em /users/{uid}) só
-// permite criar com papel "aluno", matriculaConfirmada: false — nunca como
-// professor/admin. Promover alguém a professor é manual, uma vez, direto
-// no Console: Firestore → Dados → users → o documento da pessoa → trocar
-// "papel" para "professor" e "matriculaConfirmada" para true.
+// A criação do documento do ALUNO acontece no cliente, sem Cloud Function
+// (plano Spark, sem custo) — segura porque a regra do Firestore (allow
+// create em /users/{uid}) só permite criar com papel "aluno".
 
 export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [usuario, setUsuario] = useState(null); // objeto do Firebase Auth
   const [perfil, setPerfil] = useState(null); // users/{uid} do Firestore
+  const [avisoAcesso, setAvisoAcesso] = useState(""); // mensagem para a TelaAcesso (ex.: erro de login)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUsuario(u);
       if (u) {
+        const viaSenha = u.providerData.some((p) => p.providerId === "password");
         const ref = doc(db, "users", u.uid);
         let snap = await getDoc(ref);
         if (!snap.exists()) {
+          if (viaSenha) {
+            // Conta de professor sem documento preparado no Firestore —
+            // nunca criar automaticamente aqui. Desloga e avisa.
+            setAvisoAcesso(
+              "Esta conta de professor ainda não foi configurada no Firestore. " +
+              `Crie o documento em users/${u.uid} com papel "professor" e matriculaConfirmada: true.`
+            );
+            await signOut(auth);
+            setCarregando(false);
+            return;
+          }
           await setDoc(ref, {
             nome: u.displayName || "",
             email: (u.email || "").toLowerCase(),
@@ -58,8 +76,26 @@ export default function App() {
   }, []);
 
   async function entrarComGoogle() {
+    setAvisoAcesso("");
     await signInWithPopup(auth, googleProvider);
     // onAuthStateChanged cuida do resto.
+  }
+
+  async function entrarComEmailSenha(email, senha) {
+    setAvisoAcesso("");
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+      // onAuthStateChanged cuida do resto.
+    } catch (e) {
+      const mensagens = {
+        "auth/invalid-credential": "E-mail ou senha incorretos.",
+        "auth/invalid-email": "E-mail inválido.",
+        "auth/user-not-found": "Não existe uma conta de professor com esse e-mail.",
+        "auth/wrong-password": "Senha incorreta.",
+        "auth/too-many-requests": "Muitas tentativas — aguarde um pouco e tente de novo.",
+      };
+      setAvisoAcesso(mensagens[e.code] || "Não foi possível entrar: " + (e.message || e.code));
+    }
   }
 
   async function sair() {
@@ -87,7 +123,7 @@ export default function App() {
   }
 
   if (!usuario) {
-    return <TelaAcesso onEntrar={entrarComGoogle} />;
+    return <TelaAcesso onEntrarGoogle={entrarComGoogle} onEntrarProfessor={entrarComEmailSenha} aviso={avisoAcesso} />;
   }
 
   if (!perfil) {

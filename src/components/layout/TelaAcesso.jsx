@@ -1,43 +1,121 @@
-// Tela de acesso — Opção 2 (Institucional), aprovada pelo professor.
-// Porta o visual do protótipo; o botão agora dispara o login Google de verdade
-// (a função onEntrar vem do App.jsx, via signInWithPopup).
+import { useState } from "react";
 
-export default function TelaAcesso({ onEntrar }) {
+// Tela de acesso — dois perfis, dois mecanismos de login diferentes:
+//
+//   Aluno(a)     → "Continuar com Google" (signInWithPopup), como sempre foi.
+//   Professor(a) → e-mail + senha (signInWithEmailAndPassword), uma conta
+//                  própria do professor, sem nenhuma relação com contas
+//                  Google — assim, mesmo num computador da escola com uma
+//                  sessão Google qualquer aberta/cacheada, nenhum aluno
+//                  chega ao modo professor sem saber essa senha específica.
+//
+// Cores/estilo escuro deliberadamente diferentes da tela de aluno/institucional
+// anterior — pedido específico do professor, aprovado por mockup.
+
+const CORES = {
+  bg: "#0E1B15",
+  card: "#152420",
+  cardBorder: "#2A3D34",
+  accent: "#D9A44E",
+  accentInk: "#241A08",
+  heading: "#F3EEE1",
+  sub: "#9FB3A8",
+  label: "#7FA3B0",
+  inputBg: "#0E1B15",
+  inputBorder: "#2A3D34",
+  inputText: "#EDE8DC",
+  danger: "#E0776B",
+};
+
+function CampoTexto({ label, ...props }) {
   return (
-    <div style={{ minHeight: "100vh", width: "100%", background: "#EEF1EF", color: "#1B1F1D", fontFamily: "'IBM Plex Sans', system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
-      <div style={{ height: 6, width: "100%", display: "flex" }}>
-        <div style={{ flex: 1, background: "#0B5D3B" }} />
-        <div style={{ flex: 1, background: "#F4F4F0" }} />
-        <div style={{ flex: 1, background: "#B4272B" }} />
-      </div>
+    <div style={{ marginBottom: 14, textAlign: "left" }}>
+      {label && <label style={{ display: "block", fontSize: 12, color: CORES.sub, marginBottom: 6 }}>{label}</label>}
+      <input
+        {...props}
+        style={{
+          width: "100%", boxSizing: "border-box", padding: "13px 14px",
+          background: CORES.inputBg, border: `1px solid ${CORES.inputBorder}`, borderRadius: 8,
+          color: CORES.inputText, fontSize: 14.5, outline: "none",
+        }}
+      />
+    </div>
+  );
+}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "20px 24px", borderBottom: "1px solid #D7DEDA", background: "#ffffff" }}>
-        <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#0B5D3B", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" stroke="#ffffff" strokeWidth="1.6" />
-            <path d="M8 11h8M8 15h5" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.02em" }}>CEDUP HERMANN HERING</div>
-          <div style={{ fontSize: 12, color: "#5C6660" }}>Secretaria de Estado da Educação de Santa Catarina</div>
-        </div>
-      </div>
+export default function TelaAcesso({ onEntrarGoogle, onEntrarProfessor, aviso }) {
+  const [perfil, setPerfil] = useState("aluno"); // "aluno" | "professor"
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [entrando, setEntrando] = useState(false);
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40, boxSizing: "border-box" }}>
-        <div style={{ width: 440, maxWidth: "100%", background: "#ffffff", border: "1px solid #D7DEDA", boxShadow: "0 8px 28px rgba(20,30,24,0.08)", padding: "44px 40px", boxSizing: "border-box" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.1em", color: "#5C6660", textTransform: "uppercase", marginBottom: 10 }}>
-            Portal do Aluno e do Professor
+  async function handleEntrarProfessor(e) {
+    e.preventDefault();
+    if (!email || !senha) return;
+    setEntrando(true);
+    await onEntrarProfessor(email.trim(), senha);
+    setEntrando(false);
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", width: "100%", background: CORES.bg,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24, boxSizing: "border-box",
+      fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+    }}>
+      <div style={{
+        width: 460, maxWidth: "100%", background: CORES.card, border: `1px solid ${CORES.cardBorder}`,
+        borderTop: `3px solid ${CORES.accent}`, borderRadius: 10, padding: "38px 36px", boxSizing: "border-box",
+      }}>
+        <h1 style={{ margin: "0 0 8px 0", fontFamily: "'Lora', Georgia, serif", fontSize: 26, fontWeight: 600, color: CORES.heading }}>
+          Entrar na plataforma
+        </h1>
+        <p style={{ margin: "0 0 26px 0", fontSize: 14.5, color: CORES.sub }}>
+          Acesse com sua conta para continuar seus estudos.
+        </p>
+
+        <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: CORES.label, marginBottom: 10 }}>
+          Perfil de acesso
+        </div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+          {[{ id: "aluno", label: "Aluno(a)" }, { id: "professor", label: "Professor(a)" }].map((op) => {
+            const ativo = perfil === op.id;
+            return (
+              <button
+                key={op.id}
+                onClick={() => setPerfil(op.id)}
+                style={{
+                  flex: 1, padding: "16px 10px", borderRadius: 8, cursor: "pointer",
+                  fontSize: 14.5, fontWeight: 600,
+                  background: ativo ? CORES.accent : "transparent",
+                  color: ativo ? CORES.accentInk : CORES.sub,
+                  border: `1px solid ${ativo ? CORES.accent : CORES.cardBorder}`,
+                }}
+              >
+                {op.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {aviso && (
+          <div style={{
+            marginBottom: 18, padding: "10px 12px", borderRadius: 6,
+            background: "rgba(224,119,107,0.12)", border: `1px solid ${CORES.danger}`,
+            color: CORES.danger, fontSize: 13, lineHeight: 1.5,
+          }}>
+            {aviso}
           </div>
-          <h1 style={{ margin: "0 0 14px 0", fontFamily: "'Lora', Georgia, serif", fontSize: 26, fontWeight: 600, lineHeight: 1.3, color: "#0B2A1C" }}>
-            Escrituração Contábil — Contabilidade Intermediária
-          </h1>
-          <p style={{ margin: "0 0 30px 0", fontSize: 14.5, color: "#4A544E", lineHeight: 1.65 }}>
-            Utilize sua conta Google institucional para acessar. Alunos confirmam a matrícula no primeiro acesso.
-          </p>
+        )}
+
+        {perfil === "aluno" && (
           <button
-            onClick={onEntrar}
-            style={{ width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14, minHeight: 50, background: "#0B5D3B", border: "none", color: "#ffffff", fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 15, fontWeight: 600, cursor: "pointer" }}
+            onClick={onEntrarGoogle}
+            style={{
+              width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+              padding: 14, minHeight: 50, borderRadius: 8, background: "#1E3229", border: `1px solid ${CORES.cardBorder}`,
+              color: CORES.heading, fontSize: 15, fontWeight: 600, cursor: "pointer",
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
@@ -47,14 +125,29 @@ export default function TelaAcesso({ onEntrar }) {
             </svg>
             Continuar com Google
           </button>
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #E6EAE7", fontSize: 12.5, color: "#6B746E", lineHeight: 1.6 }}>
-            Acesso institucional. Em caso de dúvidas, procure a secretaria ou o professor responsável pela disciplina.
-          </div>
-        </div>
-      </div>
+        )}
 
-      <div style={{ padding: "14px 20px", fontSize: 11.5, color: "#7C857F", textAlign: "center", borderTop: "1px solid #D7DEDA" }}>
-        Governo do Estado de Santa Catarina — Rede Estadual de Educação Profissional
+        {perfil === "professor" && (
+          <form onSubmit={handleEntrarProfessor}>
+            <CampoTexto label="E-mail" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <CampoTexto label="Senha" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <button
+              type="submit"
+              disabled={entrando || !email || !senha}
+              style={{
+                width: "100%", boxSizing: "border-box", padding: 14, minHeight: 50, borderRadius: 8,
+                background: CORES.accent, border: "none", color: CORES.accentInk, fontSize: 15, fontWeight: 700,
+                cursor: entrando ? "default" : "pointer", opacity: entrando || !email || !senha ? 0.7 : 1,
+              }}
+            >
+              {entrando ? "Entrando…" : "Entrar"}
+            </button>
+          </form>
+        )}
+
+        <div style={{ marginTop: 22, fontSize: 12, color: CORES.sub, textAlign: "center" }}>
+          Turma 3º Ano · Técnico em Contabilidade
+        </div>
       </div>
     </div>
   );
