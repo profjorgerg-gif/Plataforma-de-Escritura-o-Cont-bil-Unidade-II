@@ -1,17 +1,44 @@
+// Imagens reais já disponíveis em /public/manual — as demais etapas continuam
+// mostrando o placeholder tracejado até que uma captura seja enviada.
+const IMAGENS_DISPONIVEIS = new Set([
+  "manual-aluno-03-meu-progresso.png",
+  "manual-aluno-04-empresa-didatica.png",
+  "manual-aluno-05-documentos-fiscais.png",
+  "manual-aluno-06-digitacao-nfe.png",
+  "manual-aluno-07-analise-fiscal.png",
+  "manual-aluno-08-plano-contas.png",
+  "manual-aluno-09-classificacao-contabil.png",
+  "manual-aluno-10-livro-diario.png",
+  "manual-aluno-11-livro-razao.png",
+  "manual-aluno-12-balancete.png",
+  "manual-aluno-13-are.png",
+  "manual-aluno-14-dre.png",
+  "manual-aluno-15-balanco-patrimonial.png",
+]);
+
 function Passo({ n, titulo, children, imagem }) {
+  const temImagem = IMAGENS_DISPONIVEIS.has(imagem);
   return (
     <div className="panel" style={{ marginBottom: 16 }}>
       <div className="panel-head"><h3>{n}. {titulo}</h3></div>
       <div className="panel-body">
         <div style={{ marginBottom: 14 }}>{children}</div>
-        <div style={{
-          border: "1px dashed var(--line-strong)", borderRadius: 4, padding: "18px 16px",
-          textAlign: "center", color: "var(--ink-faint)", background: "var(--paper-deep)",
-        }}>
-          <div style={{ fontSize: 20, marginBottom: 4 }}>📷</div>
-          <div style={{ fontSize: 13 }}>Espaço para imagem desta etapa</div>
-          <div className="mono" style={{ fontSize: 11.5, marginTop: 4 }}>arquivo sugerido: {imagem}</div>
-        </div>
+        {temImagem ? (
+          <img
+            src={`/manual/${imagem}`}
+            alt={`Tela de "${titulo}" no sistema`}
+            style={{ width: "100%", borderRadius: 4, border: "1px solid var(--line-strong)", display: "block" }}
+          />
+        ) : (
+          <div style={{
+            border: "1px dashed var(--line-strong)", borderRadius: 4, padding: "18px 16px",
+            textAlign: "center", color: "var(--ink-faint)", background: "var(--paper-deep)",
+          }}>
+            <div style={{ fontSize: 20, marginBottom: 4 }}>📷</div>
+            <div style={{ fontSize: 13 }}>Espaço para imagem desta etapa</div>
+            <div className="mono" style={{ fontSize: 11.5, marginTop: 4 }}>arquivo sugerido: {imagem}</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -94,7 +121,7 @@ export default function ManualAluno() {
 
       <Passo n={16} titulo="Acompanhando correções e nota" imagem="manual-aluno-16-correcoes-nota.png">
         <p>Em "Meu progresso", a seção <b>Correções recebidas</b> mostra a observação do professor sempre que um lançamento seu foi devolvido.</p>
-        <p>Depois que o professor liberar, a seção <b>Minha nota</b> mostra a nota final já decomposta em três partes: <b>completude do ciclo</b> (quantos documentos você terminou do início ao fim, calculado sozinho), <b>qualidade técnica</b> (a avaliação do professor sobre seu raciocínio contábil) e <b>autonomia</b> (quantas rodadas de correção em média você precisou até ser aprovado — errar e corrigir não derruba muito essa parte). Se houver desconto por atraso, ele aparece separado, já aplicado na nota final.</p>
+        <p>Depois que o professor liberar, a seção <b>Minha nota</b> mostra a nota final já decomposta em três partes, cada uma como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5): <b>completude do ciclo</b> (até 4,5 pontos — quantos documentos você terminou do início ao fim, calculado sozinho), <b>qualidade técnica</b> (até 3,5 pontos — a avaliação do professor sobre seu raciocínio contábil) e <b>autonomia</b> (até 2,0 pontos — quantas rodadas de correção em média você precisou até ser aprovado; errar e corrigir não derruba muito essa parte). Somando os três chega-se à nota final. Se houver desconto por atraso, ele aparece separado, já aplicado no resultado.</p>
       </Passo>
 
       <div className="helper-note">Dúvidas sobre o conteúdo contábil em si (qual conta usar, se um CFOP está certo) são parte do exercício — o sistema não responde por você. Procure o professor.</div>
