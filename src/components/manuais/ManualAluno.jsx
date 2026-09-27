@@ -31,11 +31,12 @@ export default function ManualAluno() {
       </div>
 
       <Passo n={1} titulo="Entrar no sistema" imagem="manual-aluno-01-login.png">
-        <p>Acesse o site e clique em <b>Continuar com Google</b>. Use sua conta Google institucional.</p>
+        <p>Acesse o site e clique em <b>Continuar com Google</b>. Use sua conta Google institucional — é sempre a mesma conta que fica ligada à sua matrícula, do primeiro até o último acesso.</p>
       </Passo>
 
-      <Passo n={2} titulo="Confirmar a matrícula (só no primeiro acesso)" imagem="manual-aluno-02-confirmar-matricula.png">
-        <p>Digite exatamente a matrícula que o professor informou. Sua <b>empresa didática</b> é criada automaticamente nesse momento. Nos próximos acessos essa tela não aparece mais.</p>
+      <Passo n={2} titulo="Confirmar a matrícula (a cada acesso)" imagem="manual-aluno-02-confirmar-matricula.png">
+        <p>No primeiro login, digite exatamente a matrícula que o professor informou — sua <b>empresa didática</b> é criada automaticamente nesse momento.</p>
+        <p>Nos acessos seguintes, o sistema pede a matrícula de novo, toda vez que você entrar — é só uma confirmação rápida, não um novo cadastro, e serve para garantir que ninguém continue usando sua conta aberta num computador da escola.</p>
       </Passo>
 
       <Passo n={3} titulo="Meu progresso" imagem="manual-aluno-03-meu-progresso.png">
