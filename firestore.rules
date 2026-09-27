@@ -163,6 +163,17 @@ service cloud.firestore {
       allow read, write: if souAdmin();
     }
 
+    // ---------- configuração (senha extra do professor, etc.) ----------
+    // Só quem JÁ tem papel "professor"/"admin" (promoção sempre manual, no
+    // Console) consegue LER este documento — um aluno não consegue nem
+    // buscar a senha para tentar adivinhar. A senha em si é só uma camada
+    // extra de fricção por cima dessa promoção manual, não a barreira real.
+    // Escrita só direto no Console (bypassa as regras), por isso "if false".
+    match /configuracao/{id} {
+      allow read: if signedIn() && (souProfessor() || souAdmin());
+      allow write: if false;
+    }
+
     // ---------- plano de contas (institucional, compartilhado) ----------
     match /planoContas/{codigo} {
       allow read: if signedIn();
