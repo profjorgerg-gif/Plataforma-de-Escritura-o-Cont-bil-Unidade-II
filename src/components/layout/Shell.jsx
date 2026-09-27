@@ -5,7 +5,12 @@ import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
-import { fmt } from "../../lib/contabil.js";
+import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
+import { useTurma } from "../../hooks/useTurma.js";
+import {
+  fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
+  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
+} from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
 
 import EmpresaDidatica from "../aluno/EmpresaDidatica.jsx";
@@ -134,7 +139,37 @@ function ChecklistProgresso({ documentos, progresso, lancamentos }) {
   );
 }
 
-function TelaDashboardAluno({ identificacao, esc, documentos, progresso }) {
+// Mostra a nota da Unidade II decomposta nos três componentes da rubrica,
+// não só um número seco — o aluno vê exatamente o que pesou em cada parte.
+// Só aparece quando o professor já liberou (mesma regra de sempre).
+function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
+  if (!registro || !registro.notaLiberada) return null;
+
+  const completudePct = documentos ? completudeCiclo(documentos, progresso.digitacoes, progresso.analises, progresso.classificacoes, lancamentos) : null;
+  const autonomiaPct = autonomiaCorrecoes(lancamentos);
+  const desconto = turma ? descontoEfetivo(registro, turma) : (registro.desconto || 0);
+  const notaFinal = notaFinalPonderada({ completudePct, qualidadeNota: registro.nota, autonomiaPct, desconto });
+  const prazo = turma ? prazoEfetivo(registro, turma) : null;
+  const dias = turma ? diasAtraso(registro.dataEntrega, prazo) : 0;
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>Minha nota — Unidade II</h3></div>
+      <div className="panel-body">
+        <div className="kpi-row">
+          <div className="kpi"><div className="kpi-label">Completude do ciclo ({Math.round(PESOS_RUBRICA.completude * 100)}%)</div><div className="kpi-value mono">{completudePct === null ? "—" : completudePct + "%"}</div></div>
+          <div className="kpi"><div className="kpi-label">Qualidade técnica ({Math.round(PESOS_RUBRICA.qualidade * 100)}%)</div><div className="kpi-value mono">{registro.nota ?? "—"}</div></div>
+          <div className="kpi"><div className="kpi-label">Autonomia ({Math.round(PESOS_RUBRICA.autonomia * 100)}%)</div><div className="kpi-value mono">{autonomiaPct === null ? "—" : autonomiaPct + "%"}</div></div>
+          <div className="kpi ok"><div className="kpi-label">Nota final</div><div className="kpi-value mono">{notaFinal === null ? "—" : fmt(notaFinal)}</div></div>
+        </div>
+        {dias > 0 && <div className="helper-note">Desconto de {fmt(desconto)} ponto(s) já aplicado na nota final, por {dias} dia(s) de atraso em relação ao prazo ({fmtData(prazo)}).</div>}
+        <div className="helper-note">Completude e autonomia são calculadas automaticamente a partir do que você já fez no sistema; a qualidade técnica é a avaliação do seu professor sobre o raciocínio contábil.</div>
+      </div>
+    </div>
+  );
+}
+
+function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registro, turma }) {
   const { lancamentos, dre, bp } = esc;
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
   const pendentes = lancamentos.filter((l) => l.status === "enviado").length;
@@ -155,6 +190,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso }) {
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
         <div className="panel-body">R$ {fmt(dre.resultadoExercicio)}</div>
       </div>
+      <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {documentos && <ChecklistProgresso documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
     </>
   );
@@ -197,6 +233,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   const esc = useEscrituracao(turmaId, matricula);
   const documentos = useDocumentosDaTurma(turmaId);
   const progresso = useProgressoAluno(turmaId, matricula);
+  const meuRegistro = useMeuRegistroDeAluno(turmaId, matricula);
+  const minhaTurma = useTurma(turmaId);
 
   // Indicativo no menu: lançamentos com "correção necessária" ainda não
   // reenviados pelo aluno — enquanto o ciclo aluno/professor não fecha
@@ -265,7 +303,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && TELAS_COM_DOCUMENTOS.includes(screen) && documentos === null) {
     tela = <div className="empty-state">Carregando documentos da turma…</div>;
   } else if (papelEfetivo === "aluno" && screen === "dashboard") {
-    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} />;
+    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} registro={meuRegistro} turma={minhaTurma} />;
   } else if (papelEfetivo === "aluno" && screen === "empresa") {
     tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
   } else if (papelEfetivo === "aluno" && screen === "documentos") {
