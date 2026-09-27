@@ -166,6 +166,15 @@ export default function Shell({ usuario, perfil, onSair }) {
   const [screen, setScreen] = useState(ehProfessorOuAdmin ? "painel" : "dashboard");
   const [menuAberto, setMenuAberto] = useState(false);
 
+  // Classificação → Livro diário: ao clicar em "usar no lançamento" na tela
+  // de Classificação Contábil, guardamos aqui a classificação escolhida e
+  // trocamos direto para a tela do Diário, que consome e limpa este estado.
+  const [rascunhoDeClassificacao, setRascunhoDeClassificacao] = useState(null);
+  function usarClassificacaoNoLancamento(classificacao) {
+    setRascunhoDeClassificacao(classificacao);
+    setScreen("diario");
+  }
+
   // --- Modo de teste (só existe para professor/admin) ---
   const [testeAtivo, setTesteAtivo] = useState(null); // { turmaId, matricula, nome } | null
   const emTeste = ehProfessorOuAdmin && !!testeAtivo;
@@ -268,9 +277,19 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {
-    tela = <ClassificacaoContabil turmaId={turmaId} matricula={matricula} documentos={documentos} contas={esc.contas} />;
+    tela = <ClassificacaoContabil turmaId={turmaId} matricula={matricula} documentos={documentos} contas={esc.contas} onUsarNoLancamento={usarClassificacaoNoLancamento} />;
   } else if (papelEfetivo === "aluno" && screen === "diario") {
-    tela = <LivroDiario turmaId={turmaId} matricula={matricula} lancamentos={esc.lancamentos} contas={esc.contas} documentos={documentos} />;
+    tela = (
+      <LivroDiario
+        turmaId={turmaId}
+        matricula={matricula}
+        lancamentos={esc.lancamentos}
+        contas={esc.contas}
+        documentos={documentos}
+        rascunhoDeClassificacao={rascunhoDeClassificacao}
+        onRascunhoConsumido={() => setRascunhoDeClassificacao(null)}
+      />
+    );
   } else if (papelEfetivo === "aluno" && screen === "razao") {
     tela = <LivroRazao razao={esc.razao} />;
   } else if (papelEfetivo === "aluno" && screen === "balancete") {
