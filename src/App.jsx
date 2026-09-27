@@ -8,6 +8,7 @@ import {
 import { auth, db, googleProvider } from "./firebase.js";
 import TelaAcesso from "./components/layout/TelaAcesso.jsx";
 import TelaConfirmarMatricula from "./components/layout/TelaConfirmarMatricula.jsx";
+import ConfirmarAcessoAluno from "./components/layout/ConfirmarAcessoAluno.jsx";
 import Shell from "./components/layout/Shell.jsx";
 
 // Fluxo real de autenticação — dois caminhos separados, escolhidos na
@@ -15,7 +16,9 @@ import Shell from "./components/layout/Shell.jsx";
 //
 //   ALUNO:     signInWithPopup(Google) → onAuthStateChanged → CRIA
 //              users/{uid} automaticamente (papel "aluno") se não existir →
-//              TelaConfirmarMatricula (1ª vez) → Shell.
+//              TelaConfirmarMatricula (só na 1ª vez, vincula a matrícula ao
+//              uid) → ConfirmarAcessoAluno (TODA vez depois disso, pede a
+//              mesma matrícula de novo como confirmação de entrada) → Shell.
 //   PROFESSOR: signInWithEmailAndPassword (e-mail + senha só do professor,
 //              nunca via conta Google) → onAuthStateChanged → o documento
 //              users/{uid} TEM que já existir, criado manualmente pelo
@@ -35,10 +38,15 @@ export default function App() {
   const [usuario, setUsuario] = useState(null); // objeto do Firebase Auth
   const [perfil, setPerfil] = useState(null); // users/{uid} do Firestore
   const [avisoAcesso, setAvisoAcesso] = useState(""); // mensagem para a TelaAcesso (ex.: erro de login)
+  // Gate de "digite sua matrícula" a cada login do aluno (pedido do
+  // professor) — não é persistido em lugar nenhum, é só do React, por isso
+  // volta a pedir a cada novo login (reseta sempre que o uid muda).
+  const [acessoAlunoConfirmado, setAcessoAlunoConfirmado] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUsuario(u);
+      setAcessoAlunoConfirmado(false);
       if (u) {
         const viaSenha = u.providerData.some((p) => p.providerId === "password");
         const ref = doc(db, "users", u.uid);
@@ -132,6 +140,20 @@ export default function App() {
 
   if (perfil.papel === "aluno" && !perfil.matriculaConfirmada) {
         return <TelaConfirmarMatricula usuario={usuario} onConfirmar={confirmarMatricula} onSair={sair} />;
+  }
+
+  // Depois de já ter matrícula vinculada, o aluno ainda confirma a matrícula
+  // de novo A CADA login (gate só de fricção, a permissão real continua
+  // vindo do uid nas regras do Firestore).
+  if (perfil.papel === "aluno" && perfil.matriculaConfirmada && !acessoAlunoConfirmado) {
+    return (
+      <ConfirmarAcessoAluno
+        usuario={usuario}
+        matriculaEsperada={perfil.matricula}
+        onConfirmar={() => setAcessoAlunoConfirmado(true)}
+        onSair={sair}
+      />
+    );
   }
 
   return <Shell usuario={usuario} perfil={perfil} onSair={sair} />;
