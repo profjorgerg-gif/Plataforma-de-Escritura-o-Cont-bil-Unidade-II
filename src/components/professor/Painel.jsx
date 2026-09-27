@@ -4,8 +4,13 @@ import { db } from "../../firebase.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
+import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
+import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
 import { Kpi } from "../shared/UI.jsx";
-import { prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, fmt } from "../../lib/contabil.js";
+import {
+  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, fmt,
+  completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, PESOS_RUBRICA,
+} from "../../lib/contabil.js";
 
 // Agrega as devoluções da turma inteira por conta usada nos lançamentos que
 // já precisaram de correção — dá ao professor um retrato do que vale reforçar
@@ -30,6 +35,8 @@ export default function Painel({ turma }) {
   const alunos = useAlunosDaTurma(turma?.id);
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const { contas } = usePlanoContas();
+  const documentos = useDocumentosDaTurma(turma?.id);
+  const progressoTurma = useProgressoTurma(turma?.id, alunos);
   const pendentes = todos.filter(({ lancamento }) => lancamento.status === "enviado");
   const emCorrecao = todos.filter(({ lancamento }) => lancamento.status === "correcao");
   const aprovadosTotal = todos.filter(({ lancamento }) => lancamento.status === "aprovado").length;
@@ -130,7 +137,9 @@ export default function Painel({ turma }) {
       <div className="panel">
         <div className="panel-head"><h3>Avaliação — Nota da Unidade II</h3></div>
         <div className="panel-body">
-          <div className="helper-note">Uma nota única por aluno para o ciclo completo da Unidade II. Desconto de pontualidade é calculado automaticamente a partir da política da turma (editável em Turmas), mas pode ser sobrescrito aqui. O aluno só vê a nota final depois de liberada.</div>
+          <div className="helper-note">
+            A nota final combina três componentes: <b>completude do ciclo</b> ({Math.round(PESOS_RUBRICA.completude * 100)}%, automático — % de documentos com as 4 etapas concluídas), <b>qualidade técnica</b> ({Math.round(PESOS_RUBRICA.qualidade * 100)}%, manual — seu julgamento sobre a coerência do raciocínio contábil) e <b>autonomia</b> ({Math.round(PESOS_RUBRICA.autonomia * 100)}%, automático — quanto menos rodadas de correção em média). O desconto por atraso continua sendo aplicado por fora, no final. Digite apenas a nota de <b>qualidade técnica</b> — os outros dois componentes e a nota final são calculados sozinhos. O aluno só vê tudo isso depois de liberada.
+          </div>
           {!turma.prazoUnidadeII && <div className="balance-check bad" style={{ marginBottom: 14 }}>Nenhum prazo definido para esta turma ainda — configure em Turmas.</div>}
 
           {prorrogando && alunoProrrogando && (
@@ -156,7 +165,9 @@ export default function Painel({ turma }) {
             <thead>
               <tr>
                 <th>Aluno</th><th>Prazo</th><th>Entrega</th><th className="num">Atraso</th>
-                <th className="num">Nota bruta</th><th className="num">Desconto</th><th className="num">Final</th><th>Status</th><th></th>
+                <th className="num">Completude</th><th className="num">Autonomia</th>
+                <th className="num">Qualidade técnica</th><th className="num">Desconto</th>
+                <th className="num">Nota final</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -164,13 +175,24 @@ export default function Painel({ turma }) {
                 const prazo = prazoEfetivo(a, turma);
                 const dias = diasAtraso(a.dataEntrega, prazo);
                 const desconto = descontoEfetivo(a, turma);
-                const notaFinal = a.nota === null || a.nota === undefined ? null : Math.max(0, a.nota - desconto);
+                const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
+                const completudePct = completudeCiclo(
+                  documentos,
+                  progressoTurma.digitacoesPorMatricula[a.matricula],
+                  progressoTurma.analisesPorMatricula[a.matricula],
+                  progressoTurma.classificacoesPorMatricula[a.matricula],
+                  lancsAluno
+                );
+                const autonomiaPct = autonomiaCorrecoes(lancsAluno);
+                const notaFinal = notaFinalPonderada({ completudePct, qualidadeNota: a.nota, autonomiaPct, desconto });
                 return (
                   <tr key={a.matricula}>
                     <td>{a.nome}</td>
                     <td><span className="mono">{fmtData(prazo)}</span>{a.prazoIndividual && <span className="tag-pill" style={{ marginLeft: 6 }}>individual</span>}</td>
                     <td className="mono">{fmtData(a.dataEntrega)}</td>
                     <td className="num mono">{dias > 0 ? dias + "d" : "—"}</td>
+                    <td className="num mono">{completudePct === null ? "—" : completudePct + "%"}</td>
+                    <td className="num mono">{autonomiaPct === null ? "—" : autonomiaPct + "%"}</td>
                     <td><input type="number" min={0} max={10} step={0.1} className="mono" style={{ width: 70, padding: "5px 6px" }} value={a.nota ?? ""} onChange={(e) => setNota(a.matricula, e.target.value)} /></td>
                     <td>
                       <input type="number" min={0} step={0.1} className="mono" style={{ width: 60, padding: "5px 6px" }} value={desconto} onChange={(e) => setDesconto(a.matricula, e.target.value)} />
