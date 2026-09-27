@@ -1,16 +1,12 @@
 import { useState } from "react";
 
-// Tela de acesso — dois perfis, dois mecanismos de login diferentes:
-//
-//   Aluno(a)     → "Continuar com Google" (signInWithPopup), como sempre foi.
-//   Professor(a) → e-mail + senha (signInWithEmailAndPassword), uma conta
-//                  própria do professor, sem nenhuma relação com contas
-//                  Google — assim, mesmo num computador da escola com uma
-//                  sessão Google qualquer aberta/cacheada, nenhum aluno
-//                  chega ao modo professor sem saber essa senha específica.
-//
-// Cores/estilo escuro deliberadamente diferentes da tela de aluno/institucional
-// anterior — pedido específico do professor, aprovado por mockup.
+// Tela de acesso — visual escuro aprovado por mockup. O seletor "Perfil de
+// acesso" é só para ajustar a mensagem mostrada (o papel de verdade vem do
+// Firestore, não do que a pessoa clica aqui): tanto aluno quanto professor
+// entram com "Continuar com Google". A diferença real acontece DEPOIS do
+// login — App.jsx pede a matrícula de novo (aluno) ou uma senha extra
+// (professor/admin) a cada acesso, ver ConfirmarAcessoAluno e
+// ConfirmarSenhaProfessor.
 
 const CORES = {
   bg: "#0E1B15",
@@ -21,41 +17,10 @@ const CORES = {
   heading: "#F3EEE1",
   sub: "#9FB3A8",
   label: "#7FA3B0",
-  inputBg: "#0E1B15",
-  inputBorder: "#2A3D34",
-  inputText: "#EDE8DC",
-  danger: "#E0776B",
 };
 
-function CampoTexto({ label, ...props }) {
-  return (
-    <div style={{ marginBottom: 14, textAlign: "left" }}>
-      {label && <label style={{ display: "block", fontSize: 12, color: CORES.sub, marginBottom: 6 }}>{label}</label>}
-      <input
-        {...props}
-        style={{
-          width: "100%", boxSizing: "border-box", padding: "13px 14px",
-          background: CORES.inputBg, border: `1px solid ${CORES.inputBorder}`, borderRadius: 8,
-          color: CORES.inputText, fontSize: 14.5, outline: "none",
-        }}
-      />
-    </div>
-  );
-}
-
-export default function TelaAcesso({ onEntrarGoogle, onEntrarProfessor, aviso }) {
-  const [perfil, setPerfil] = useState("aluno"); // "aluno" | "professor"
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [entrando, setEntrando] = useState(false);
-
-  async function handleEntrarProfessor(e) {
-    e.preventDefault();
-    if (!email || !senha) return;
-    setEntrando(true);
-    await onEntrarProfessor(email.trim(), senha);
-    setEntrando(false);
-  }
+export default function TelaAcesso({ onEntrarGoogle }) {
+  const [perfil, setPerfil] = useState("aluno"); // "aluno" | "professor" — só ajusta o texto
 
   return (
     <div style={{
@@ -98,52 +63,28 @@ export default function TelaAcesso({ onEntrarGoogle, onEntrarProfessor, aviso })
           })}
         </div>
 
-        {aviso && (
-          <div style={{
-            marginBottom: 18, padding: "10px 12px", borderRadius: 6,
-            background: "rgba(224,119,107,0.12)", border: `1px solid ${CORES.danger}`,
-            color: CORES.danger, fontSize: 13, lineHeight: 1.5,
-          }}>
-            {aviso}
+        {perfil === "professor" && (
+          <div style={{ fontSize: 13, color: CORES.sub, marginBottom: 18, lineHeight: 1.5 }}>
+            Depois do Google, uma senha adicional será pedida para entrar no Painel do Professor.
           </div>
         )}
 
-        {perfil === "aluno" && (
-          <button
-            onClick={onEntrarGoogle}
-            style={{
-              width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-              padding: 14, minHeight: 50, borderRadius: 8, background: "#1E3229", border: `1px solid ${CORES.cardBorder}`,
-              color: CORES.heading, fontSize: 15, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
-              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
-              <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
-              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
-            </svg>
-            Continuar com Google
-          </button>
-        )}
-
-        {perfil === "professor" && (
-          <form onSubmit={handleEntrarProfessor}>
-            <CampoTexto label="E-mail" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <CampoTexto label="Senha" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
-            <button
-              type="submit"
-              disabled={entrando || !email || !senha}
-              style={{
-                width: "100%", boxSizing: "border-box", padding: 14, minHeight: 50, borderRadius: 8,
-                background: CORES.accent, border: "none", color: CORES.accentInk, fontSize: 15, fontWeight: 700,
-                cursor: entrando ? "default" : "pointer", opacity: entrando || !email || !senha ? 0.7 : 1,
-              }}
-            >
-              {entrando ? "Entrando…" : "Entrar"}
-            </button>
-          </form>
-        )}
+        <button
+          onClick={onEntrarGoogle}
+          style={{
+            width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+            padding: 14, minHeight: 50, borderRadius: 8, background: "#1E3229", border: `1px solid ${CORES.cardBorder}`,
+            color: CORES.heading, fontSize: 15, fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
+          </svg>
+          Continuar com Google
+        </button>
 
         <div style={{ marginTop: 22, fontSize: 12, color: CORES.sub, textAlign: "center" }}>
           Turma 3º Ano · Técnico em Contabilidade

@@ -1,68 +1,52 @@
 import { useEffect, useState } from "react";
 import {
-  onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword, signOut,
+  onAuthStateChanged, signInWithPopup, signOut,
 } from "firebase/auth";
 import {
-  doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs,
+  doc, getDoc, setDoc, updateDoc,
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase.js";
 import TelaAcesso from "./components/layout/TelaAcesso.jsx";
 import TelaConfirmarMatricula from "./components/layout/TelaConfirmarMatricula.jsx";
 import ConfirmarAcessoAluno from "./components/layout/ConfirmarAcessoAluno.jsx";
+import ConfirmarSenhaProfessor from "./components/layout/ConfirmarSenhaProfessor.jsx";
 import Shell from "./components/layout/Shell.jsx";
 
-// Fluxo real de autenticação — dois caminhos separados, escolhidos na
-// TelaAcesso ("Aluno(a)" ou "Professor(a)"):
+// Fluxo real de autenticação — TODO MUNDO entra com a mesma conta Google
+// (signInWithPopup); o que muda depois é o papel salvo em users/{uid}:
 //
-//   ALUNO:     signInWithPopup(Google) → onAuthStateChanged → CRIA
-//              users/{uid} automaticamente (papel "aluno") se não existir →
-//              TelaConfirmarMatricula (só na 1ª vez, vincula a matrícula ao
-//              uid) → ConfirmarAcessoAluno (TODA vez depois disso, pede a
-//              mesma matrícula de novo como confirmação de entrada) → Shell.
-//   PROFESSOR: signInWithEmailAndPassword (e-mail + senha só do professor,
-//              nunca via conta Google) → onAuthStateChanged → o documento
-//              users/{uid} TEM que já existir, criado manualmente pelo
-//              professor no Console Firebase com papel "professor" — nunca
-//              é criado automaticamente aqui. Isso é o que garante que
-//              ninguém "vira professor" sozinho: só quem sabe a senha
-//              específica dessa conta (que não é a conta Google de
-//              ninguém) chega nessa tela, e mesmo assim só entra se o
-//              documento já foi preparado à mão.
-//
-// A criação do documento do ALUNO acontece no cliente, sem Cloud Function
-// (plano Spark, sem custo) — segura porque a regra do Firestore (allow
-// create em /users/{uid}) só permite criar com papel "aluno".
+//   1. signInWithPopup(Google) → onAuthStateChanged → CRIA users/{uid}
+//      automaticamente como papel "aluno" se o documento ainda não existir
+//      (client-side, sem Cloud Function — seguro porque a regra do
+//      Firestore só permite criar com papel "aluno"; virar professor/admin
+//      é sempre manual, uma vez, direto no Console).
+//   2. ALUNO: TelaConfirmarMatricula (só na 1ª vez, vincula a matrícula ao
+//      uid) → depois disso, TODA vez que entra, ConfirmarAcessoAluno pede a
+//      mesma matrícula de novo, como confirmação extra (protege contra
+//      alguém continuar numa sessão Google esquecida aberta no computador
+//      da escola).
+//   3. PROFESSOR/ADMIN: TODA vez que entra, ConfirmarSenhaProfessor pede uma
+//      senha guardada em configuracao/professor — mesma ideia de proteção
+//      extra, só que com uma senha em vez da matrícula.
 
 export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [usuario, setUsuario] = useState(null); // objeto do Firebase Auth
   const [perfil, setPerfil] = useState(null); // users/{uid} do Firestore
-  const [avisoAcesso, setAvisoAcesso] = useState(""); // mensagem para a TelaAcesso (ex.: erro de login)
-  // Gate de "digite sua matrícula" a cada login do aluno (pedido do
-  // professor) — não é persistido em lugar nenhum, é só do React, por isso
-  // volta a pedir a cada novo login (reseta sempre que o uid muda).
+  // Gates de confirmação por sessão — nunca persistidos, por isso voltam a
+  // pedir a cada novo login (resetados sempre que o uid muda).
   const [acessoAlunoConfirmado, setAcessoAlunoConfirmado] = useState(false);
+  const [acessoProfessorConfirmado, setAcessoProfessorConfirmado] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUsuario(u);
       setAcessoAlunoConfirmado(false);
+      setAcessoProfessorConfirmado(false);
       if (u) {
-        const viaSenha = u.providerData.some((p) => p.providerId === "password");
         const ref = doc(db, "users", u.uid);
         let snap = await getDoc(ref);
         if (!snap.exists()) {
-          if (viaSenha) {
-            // Conta de professor sem documento preparado no Firestore —
-            // nunca criar automaticamente aqui. Desloga e avisa.
-            setAvisoAcesso(
-              "Esta conta de professor ainda não foi configurada no Firestore. " +
-              `Crie o documento em users/${u.uid} com papel "professor" e matriculaConfirmada: true.`
-            );
-            await signOut(auth);
-            setCarregando(false);
-            return;
-          }
           await setDoc(ref, {
             nome: u.displayName || "",
             email: (u.email || "").toLowerCase(),
@@ -84,26 +68,8 @@ export default function App() {
   }, []);
 
   async function entrarComGoogle() {
-    setAvisoAcesso("");
     await signInWithPopup(auth, googleProvider);
     // onAuthStateChanged cuida do resto.
-  }
-
-  async function entrarComEmailSenha(email, senha) {
-    setAvisoAcesso("");
-    try {
-      await signInWithEmailAndPassword(auth, email, senha);
-      // onAuthStateChanged cuida do resto.
-    } catch (e) {
-      const mensagens = {
-        "auth/invalid-credential": "E-mail ou senha incorretos.",
-        "auth/invalid-email": "E-mail inválido.",
-        "auth/user-not-found": "Não existe uma conta de professor com esse e-mail.",
-        "auth/wrong-password": "Senha incorreta.",
-        "auth/too-many-requests": "Muitas tentativas — aguarde um pouco e tente de novo.",
-      };
-      setAvisoAcesso(mensagens[e.code] || "Não foi possível entrar: " + (e.message || e.code));
-    }
   }
 
   async function sair() {
@@ -131,7 +97,7 @@ export default function App() {
   }
 
   if (!usuario) {
-    return <TelaAcesso onEntrarGoogle={entrarComGoogle} onEntrarProfessor={entrarComEmailSenha} aviso={avisoAcesso} />;
+    return <TelaAcesso onEntrarGoogle={entrarComGoogle} />;
   }
 
   if (!perfil) {
@@ -139,18 +105,28 @@ export default function App() {
   }
 
   if (perfil.papel === "aluno" && !perfil.matriculaConfirmada) {
-        return <TelaConfirmarMatricula usuario={usuario} onConfirmar={confirmarMatricula} onSair={sair} />;
+    return <TelaConfirmarMatricula usuario={usuario} onConfirmar={confirmarMatricula} onSair={sair} />;
   }
 
-  // Depois de já ter matrícula vinculada, o aluno ainda confirma a matrícula
-  // de novo A CADA login (gate só de fricção, a permissão real continua
-  // vindo do uid nas regras do Firestore).
+  // Depois de já ter matrícula vinculada, o aluno confirma a matrícula de
+  // novo A CADA login.
   if (perfil.papel === "aluno" && perfil.matriculaConfirmada && !acessoAlunoConfirmado) {
     return (
       <ConfirmarAcessoAluno
         usuario={usuario}
         matriculaEsperada={perfil.matricula}
         onConfirmar={() => setAcessoAlunoConfirmado(true)}
+        onSair={sair}
+      />
+    );
+  }
+
+  // Professor/admin confirma uma senha extra A CADA login.
+  if ((perfil.papel === "professor" || perfil.papel === "admin") && !acessoProfessorConfirmado) {
+    return (
+      <ConfirmarSenhaProfessor
+        usuario={usuario}
+        onConfirmar={() => setAcessoProfessorConfirmado(true)}
         onSair={sair}
       />
     );
