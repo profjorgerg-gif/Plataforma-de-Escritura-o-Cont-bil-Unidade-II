@@ -95,8 +95,61 @@ function estatisticasAluno(matricula, dadosAlunos){
   };
 }
 
+// --------------------------------------------------------------------------
+// Rubrica de avaliação da Unidade II — três componentes, cada um em 0-10:
+//   1. Completude do ciclo (peso 45%) — automático, calculado a partir do
+//      checklist por documento (Digitação → Análise fiscal → Classificação
+//      → Livro diário aprovado), o mesmo dado que já alimenta o checklist
+//      visual em "Meu progresso".
+//   2. Qualidade técnica (peso 35%) — manual, é o julgamento do professor
+//      sobre a coerência do raciocínio contábil; continua sendo o campo
+//      "nota" já existente, só que agora representa só esta fatia, não a
+//      nota inteira.
+//   3. Autonomia (peso 20%) — automático, quanto menos rodadas de correção
+//      em média um lançamento precisou até ser aprovado, maior a autonomia.
+//      Sem lançamentos ainda, não penaliza (fica neutro em 10).
+// O desconto por atraso continua sendo aplicado por fora, no final, como já
+// era feito — juntar "pontualidade" dentro da rubrica ponderada duplicaria
+// a penalidade que o desconto automático já aplica.
+const PESOS_RUBRICA = { completude: 0.45, qualidade: 0.35, autonomia: 0.20 };
+
+function completudeCiclo(documentos, digitacoes, analises, classificacoes, lancamentos){
+  if(!documentos || documentos.length === 0) return null;
+  let completos = 0;
+  documentos.forEach((d) => {
+    const digitado = !!(digitacoes && digitacoes[d.id]);
+    const analisado = analises && analises[d.id]?.status === "enviado";
+    const classificado = (classificacoes||[]).some((c) => c.documento === d.id);
+    const lancado = (lancamentos||[]).some((l) => l.documento === d.id && l.status === "aprovado");
+    if(digitado && analisado && classificado && lancado) completos++;
+  });
+  return Math.round((completos / documentos.length) * 100); // 0-100
+}
+
+function autonomiaCorrecoes(lancamentos){
+  const lista = lancamentos || [];
+  if(lista.length === 0) return null; // ainda não deu para avaliar
+  const totalRodadas = lista.reduce((s,l) => s + (l.historicoCorrecoes?.length || 0), 0);
+  const mediaPorLancamento = totalRodadas / lista.length;
+  // cada rodada de correção, em média, reduz 25 pontos (de 100) — errar e
+  // corrigir faz parte do aprendizado, por isso o peso final desse
+  // componente é só 20%, não uma punição pesada.
+  return Math.max(0, Math.round(100 - mediaPorLancamento * 25)); // 0-100
+}
+
+function notaFinalPonderada({ completudePct, qualidadeNota, autonomiaPct, desconto }){
+  if(qualidadeNota === null || qualidadeNota === undefined || qualidadeNota === "") return null;
+  const completude10 = completudePct === null || completudePct === undefined ? 0 : completudePct / 10;
+  const autonomia10 = autonomiaPct === null || autonomiaPct === undefined ? 10 : autonomiaPct / 10;
+  const bruta = completude10 * PESOS_RUBRICA.completude
+    + Number(qualidadeNota) * PESOS_RUBRICA.qualidade
+    + autonomia10 * PESOS_RUBRICA.autonomia;
+  return Math.max(0, bruta - (Number(desconto) || 0));
+}
+
 export {
   contaInfo, lancamentosAprovados, calcularRazao, saldoConta, calcularBalancete,
   calcularDRE, calcularBP, fmt, prazoEfetivo, diasAtraso, fmtData,
   descontoSugerido, descontoEfetivo, estatisticasAluno,
+  PESOS_RUBRICA, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
 };
