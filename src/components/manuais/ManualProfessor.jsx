@@ -54,8 +54,14 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>6. Avaliação</h3></div>
         <div className="panel-body">
-          <p>A nota da Unidade II é <b>única por aluno</b> — não é uma média de lançamentos. Você atribui a nota bruta olhando o conjunto do trabalho (Painel do Professor → Avaliação). O desconto por atraso é calculado sozinho a partir da política definida em Turmas, mas você pode sempre sobrescrever.</p>
-          <p>A nota só aparece para o aluno depois que você clicar em <b>liberar</b>. Prorrogações individuais de prazo (para um aluno específico) também ficam nessa tela, com histórico preservado.</p>
+          <p>A nota da Unidade II é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação:</p>
+          <ul style={{ margin: "0 0 12px", paddingLeft: 20, lineHeight: 1.9 }}>
+            <li><b>Completude do ciclo (45%, automático)</b> — % de documentos liberados em que o aluno concluiu as 4 etapas (Digitação → Análise fiscal → Classificação → Lançamento aprovado).</li>
+            <li><b>Qualidade técnica (35%, manual)</b> — o único campo que você preenche: seu julgamento sobre a coerência do raciocínio contábil, olhando classificações e justificativas.</li>
+            <li><b>Autonomia (20%, automático)</b> — quanto menos rodadas de correção em média cada lançamento precisou até ser aprovado. Errar e corrigir não zera essa parte — o peso é propositalmente pequeno.</li>
+          </ul>
+          <p>O desconto por atraso continua sendo aplicado por fora, no final, calculado sozinho a partir da política definida em Turmas (mas você pode sempre sobrescrever).</p>
+          <p>Tudo isso só aparece para o aluno (decomposto, não só o número final) depois que você clicar em <b>liberar</b>. Prorrogações individuais de prazo (para um aluno específico) também ficam nessa tela, com histórico preservado.</p>
         </div>
       </div>
 

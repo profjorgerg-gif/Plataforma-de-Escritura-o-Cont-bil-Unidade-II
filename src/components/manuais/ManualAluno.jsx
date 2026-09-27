@@ -93,7 +93,8 @@ export default function ManualAluno() {
       </Passo>
 
       <Passo n={16} titulo="Acompanhando correções e nota" imagem="manual-aluno-16-correcoes-nota.png">
-        <p>Em "Meu progresso", a seção <b>Correções recebidas</b> mostra a observação do professor sempre que um lançamento seu foi devolvido. A <b>nota da Unidade II</b> só aparece depois que o professor liberar.</p>
+        <p>Em "Meu progresso", a seção <b>Correções recebidas</b> mostra a observação do professor sempre que um lançamento seu foi devolvido.</p>
+        <p>Depois que o professor liberar, a seção <b>Minha nota</b> mostra a nota final já decomposta em três partes: <b>completude do ciclo</b> (quantos documentos você terminou do início ao fim, calculado sozinho), <b>qualidade técnica</b> (a avaliação do professor sobre seu raciocínio contábil) e <b>autonomia</b> (quantas rodadas de correção em média você precisou até ser aprovado — errar e corrigir não derruba muito essa parte). Se houver desconto por atraso, ele aparece separado, já aplicado na nota final.</p>
       </Passo>
 
       <div className="helper-note">Dúvidas sobre o conteúdo contábil em si (qual conta usar, se um CFOP está certo) são parte do exercício — o sistema não responde por você. Procure o professor.</div>
