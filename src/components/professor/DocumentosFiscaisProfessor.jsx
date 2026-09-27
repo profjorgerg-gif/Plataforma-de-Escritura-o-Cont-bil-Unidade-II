@@ -7,16 +7,42 @@ import { fmt } from "../../lib/contabil.js";
 
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
+// Modelos prontos para agilizar o cadastro de exercícios novos — só
+// pré-preenchem natureza, CFOP e um item de exemplo (edite os NCM/CST/valores
+// reais do exercício); o professor não precisa mais começar sempre do zero.
+const MODELOS_DOCUMENTO = [
+  {
+    key: "venda", label: "Venda de mercadorias", direcao: "saida",
+    natureza: "Venda de mercadorias", cfop: "5102",
+    itens: [{ ...blankItemDoc(), descricao: "Mercadoria para revenda", cfop: "5102" }],
+  },
+  {
+    key: "compra", label: "Compra de mercadorias", direcao: "entrada",
+    natureza: "Compra de mercadorias para revenda", cfop: "1102",
+    itens: [{ ...blankItemDoc(), descricao: "Mercadoria para revenda", cfop: "1102" }],
+  },
+  {
+    key: "devolucao-venda", label: "Devolução de venda", direcao: "entrada",
+    natureza: "Devolução de venda de mercadorias", cfop: "1202",
+    itens: [{ ...blankItemDoc(), descricao: "Mercadoria devolvida pelo cliente", cfop: "1202" }],
+  },
+  {
+    key: "devolucao-compra", label: "Devolução de compra", direcao: "saida",
+    natureza: "Devolução de compra de mercadorias", cfop: "5202",
+    itens: [{ ...blankItemDoc(), descricao: "Mercadoria devolvida ao fornecedor", cfop: "5202" }],
+  },
+];
+
 function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const [numero, setNumero] = useState(inicial?.numero || "");
   const [serie, setSerie] = useState("1");
   const [direcao, setDirecao] = useState(inicial?.direcao || "saida");
-  const [natureza, setNatureza] = useState("");
-  const [cfop, setCfop] = useState("");
+  const [natureza, setNatureza] = useState(inicial?.natureza || "");
+  const [cfop, setCfop] = useState(inicial?.cfop || "");
   const [data, setData] = useState("");
   const [emitenteNome, setEmitenteNome] = useState("");
   const [destinatarioNome, setDestinatarioNome] = useState("");
-  const [itens, setItens] = useState([blankItemDoc()]);
+  const [itens, setItens] = useState(inicial?.itens?.length ? inicial.itens.map((it) => ({ ...it })) : [blankItemDoc()]);
   const [icmsValor, setIcmsValor] = useState("");
   const [pisValor, setPisValor] = useState("");
   const [cofinsValor, setCofinsValor] = useState("");
@@ -61,7 +87,9 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
         <div className="helper-note">
           {inicial?.arquivoNome
             ? "Importado do arquivo " + inicial.arquivoNome + " — o número e a direção vieram do nome do arquivo; confira e complete os demais campos olhando o PDF."
-            : "O PDF em si não é anexado aqui — o que você digita abaixo vira o gabarito contra o qual a digitação do aluno é conferida."}
+            : inicial?.natureza
+              ? `Modelo "${inicial.natureza}" aplicado — natureza, CFOP e um item de exemplo já vieram preenchidos. Ajuste NCM/CST, quantidades e valores para o exercício real antes de salvar.`
+              : "O PDF em si não é anexado aqui — o que você digita abaixo vira o gabarito contra o qual a digitação do aluno é conferida."}
         </div>
         <div className="grid-2">
           <div className="field"><label>Número</label><input className="mono" value={numero} onChange={(e) => setNumero(e.target.value)} disabled={editando} /></div>
@@ -122,7 +150,17 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
 export default function DocumentosFiscaisProfessor({ turma }) {
   const catalogo = useCatalogoDocumentos();
   const [criando, setCriando] = useState(false);
+  const [modeloInicial, setModeloInicial] = useState(null);
   const [editandoDoc, setEditandoDoc] = useState(null);
+
+  function iniciarDeModelo(modelo) {
+    setModeloInicial(modelo ? { direcao: modelo.direcao, natureza: modelo.natureza, cfop: modelo.cfop, itens: modelo.itens.map((it) => ({ ...it })) } : null);
+    setCriando(true);
+  }
+  function cancelarCriacao() {
+    setCriando(false);
+    setModeloInicial(null);
+  }
   const [importando, setImportando] = useState(false);
   const [resumoImportacao, setResumoImportacao] = useState(null);
 
@@ -176,13 +214,21 @@ export default function DocumentosFiscaisProfessor({ turma }) {
       <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome} — o preenchimento dos dados (CFOP, itens, impostos) é feito pelo aluno, em "Digitação da NF-e". Você só precisa preencher aqui se quiser deixar um gabarito para conferência automática.</p>
 
       {!criando && !editandoDoc && (
-        <div className="btn-row" style={{ marginBottom: 16 }}>
-          <button className="btn" onClick={() => setCriando(true)}>+ Novo documento</button>
+        <div className="btn-row" style={{ marginBottom: 8 }}>
+          <button className="btn" onClick={() => iniciarDeModelo(null)}>+ Novo documento (em branco)</button>
           <label className="btn secondary" style={{ cursor: "pointer" }}>
             {importando ? "Importando…" : "Importar ZIP de PDFs"}
             <input type="file" accept=".zip" style={{ display: "none" }} disabled={importando}
               onChange={(e) => { if (e.target.files[0]) importarZip(e.target.files[0]); e.target.value = ""; }} />
           </label>
+        </div>
+      )}
+      {!criando && !editandoDoc && (
+        <div className="btn-row" style={{ marginBottom: 16, flexWrap: "wrap" }}>
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", alignSelf: "center" }}>ou começar de um modelo:</span>
+          {MODELOS_DOCUMENTO.map((m) => (
+            <button key={m.key} className="btn secondary" onClick={() => iniciarDeModelo(m)}>📄 {m.label}</button>
+          ))}
         </div>
       )}
 
@@ -192,7 +238,14 @@ export default function DocumentosFiscaisProfessor({ turma }) {
         </div>
       )}
 
-      {criando && <NovoDocumentoForm idsExistentes={catalogo.map((d) => d.id)} onCancelar={() => setCriando(false)} onCriar={async (novo) => { await salvarDocumento(novo); setCriando(false); }} />}
+      {criando && (
+        <NovoDocumentoForm
+          idsExistentes={catalogo.map((d) => d.id)}
+          inicial={modeloInicial}
+          onCancelar={cancelarCriacao}
+          onCriar={async (novo) => { await salvarDocumento(novo); cancelarCriacao(); }}
+        />
+      )}
       {editandoDoc && (
         <NovoDocumentoForm
           key={editandoDoc.id}

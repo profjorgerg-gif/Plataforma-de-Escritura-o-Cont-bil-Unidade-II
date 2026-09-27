@@ -42,7 +42,7 @@ export default function ManualOperacao() {
         <div className="panel-head"><h3>5. Limitações conhecidas</h3></div>
         <div className="panel-body">
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9 }}>
-            <li>Não há Cloud Functions em produção (para evitar o plano pago Blaze) — a criação de perfil no primeiro login acontece no próprio app, protegida por regra de segurança, e a análise de lançamento por IA ainda não tem uma versão sem custo implementada.</li>
+            <li>Não há Cloud Functions em produção (para evitar o plano pago Blaze) — a criação de perfil no primeiro login acontece no próprio app, protegida por regra de segurança. A análise de lançamento por IA também não depende de Cloud Function: o professor monta e copia um prompt (botão "📋 Copiar prompt para IA" na Fila de Correção) e cola manualmente no Claude.ai ou no ChatGPT — zero custo, zero chave de API guardada no sistema.</li>
             <li>Backup é manual: cada usuário baixa os próprios dados em <code className="mono">.json</code> pelo botão "Baixar backup" — não há rotina automática.</li>
             <li>O app foi desenhado para computador; funciona em celular, mas não foi testado exaustivamente nesse formato.</li>
           </ul>

@@ -4,6 +4,7 @@ import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
+import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { fmt } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
 
@@ -91,7 +92,49 @@ function manuaisPara(papel) {
   return [];
 }
 
-function TelaDashboardAluno({ identificacao, esc }) {
+// ✓ / — indicando se aquela etapa já foi feita para o documento, na ordem
+// certa do exercício (Digitação → Análise fiscal → Classificação → Diário).
+// Ajuda quem trava sem saber "o que falta fazer agora" para aquele documento.
+function ChecklistProgresso({ documentos, progresso, lancamentos }) {
+  const { digitacoes, analises, classificacoes } = progresso;
+  const carregando = documentos === null || digitacoes === null || analises === null || classificacoes === null;
+
+  if (carregando) return null;
+  if (documentos.length === 0) return null;
+
+  function marca(feito) { return feito ? <span style={{ color: "var(--green)" }}>✓</span> : <span style={{ color: "var(--ink-faint)" }}>—</span>; }
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>Checklist por documento</h3></div>
+      <div className="panel-body" style={{ padding: 0 }}>
+        <table>
+          <thead><tr><th>Documento</th><th className="num">1. Digitação</th><th className="num">2. Análise fiscal</th><th className="num">3. Classificação</th><th className="num">4. Livro diário</th></tr></thead>
+          <tbody>
+            {documentos.map((d) => {
+              const digitado = !!digitacoes[d.id];
+              const analisado = analises[d.id]?.status === "enviado";
+              const classificado = classificacoes.some((c) => c.documento === d.id);
+              const lancado = lancamentos.some((l) => l.documento === d.id);
+              return (
+                <tr key={d.id}>
+                  <td className="mono">{d.id}</td>
+                  <td className="num">{marca(digitado)}</td>
+                  <td className="num">{marca(analisado)}</td>
+                  <td className="num">{marca(classificado)}</td>
+                  <td className="num">{marca(lancado)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="helper-note" style={{ margin: "0 16px 16px" }}>Siga a ordem das colunas para cada documento — cada etapa usa os dados da anterior.</div>
+    </div>
+  );
+}
+
+function TelaDashboardAluno({ identificacao, esc, documentos, progresso }) {
   const { lancamentos, dre, bp } = esc;
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
   const pendentes = lancamentos.filter((l) => l.status === "enviado").length;
@@ -112,6 +155,7 @@ function TelaDashboardAluno({ identificacao, esc }) {
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
         <div className="panel-body">R$ {fmt(dre.resultadoExercicio)}</div>
       </div>
+      {documentos && <ChecklistProgresso documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
     </>
   );
 }
@@ -143,6 +187,7 @@ export default function Shell({ usuario, perfil, onSair }) {
 
   const esc = useEscrituracao(turmaId, matricula);
   const documentos = useDocumentosDaTurma(turmaId);
+  const progresso = useProgressoAluno(turmaId, matricula);
 
   // Indicativo no menu: lançamentos com "correção necessária" ainda não
   // reenviados pelo aluno — enquanto o ciclo aluno/professor não fecha
@@ -211,7 +256,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && TELAS_COM_DOCUMENTOS.includes(screen) && documentos === null) {
     tela = <div className="empty-state">Carregando documentos da turma…</div>;
   } else if (papelEfetivo === "aluno" && screen === "dashboard") {
-    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} />;
+    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} />;
   } else if (papelEfetivo === "aluno" && screen === "empresa") {
     tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
   } else if (papelEfetivo === "aluno" && screen === "documentos") {

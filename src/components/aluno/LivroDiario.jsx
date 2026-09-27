@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
@@ -33,7 +33,12 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
 
   async function salvar(status) {
     setSalvando(true);
-    await onSalvar({ data, documento, historico, partidas: partidas.filter((p) => p.conta && p.valor), status });
+    const dados = { data, documento, historico, partidas: partidas.filter((p) => p.conta && p.valor), status };
+    // Marca o instante do envio (envio inicial ou reenvio após correção) —
+    // é o que a Fila de Correção usa para mostrar "enviado há X" e priorizar
+    // quem está esperando análise há mais tempo.
+    if (status === "enviado") dados.enviadoEm = serverTimestamp();
+    await onSalvar(dados);
     setSalvando(false);
   }
 
@@ -110,6 +115,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
 export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [] }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
+  const [historicoAberto, setHistoricoAberto] = useState({}); // id -> bool
 
   async function salvar(novo) {
     if (editando) {
@@ -139,6 +145,10 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setEditando(null);
   }
 
+  function alternarHistorico(id) {
+    setHistoricoAberto((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
   return (
     <>
       <div className="screen-eyebrow">08 · livro diário</div>
@@ -161,22 +171,48 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
             <tbody>
               {lancamentos.slice().reverse().map((l) => {
                 const editavel = EDITAVEIS.includes(l.status);
+                const temHistorico = l.historicoCorrecoes?.length > 0;
                 return (
-                  <tr key={l.id}>
-                    <td className="mono">{l.data}</td>
-                    <td className="mono">{l.documento}</td>
-                    <td>{l.historico}</td>
-                    <td>{l.partidas.map((p, i) => <div key={i} className="mono" style={{ fontSize: 12 }}>{(p.tipo === "D" ? "D " : "C ") + p.conta}</div>)}</td>
-                    <td className="num mono">{fmt(l.partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + p.valor, 0))}</td>
-                    <td><StatusBadge status={l.status} /></td>
-                    <td>
-                      {editavel && (
-                        <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => abrirEdicao(l)}>
-                          ✏️ Editar
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                  <Fragment key={l.id}>
+                    <tr>
+                      <td className="mono">{l.data}</td>
+                      <td className="mono">{l.documento}</td>
+                      <td>{l.historico}</td>
+                      <td>{l.partidas.map((p, i) => <div key={i} className="mono" style={{ fontSize: 12 }}>{(p.tipo === "D" ? "D " : "C ") + p.conta}</div>)}</td>
+                      <td className="num mono">{fmt(l.partidas.filter((p) => p.tipo === "D").reduce((s, p) => s + p.valor, 0))}</td>
+                      <td><StatusBadge status={l.status} /></td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {editavel && (
+                            <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => abrirEdicao(l)}>
+                              ✏️ Editar
+                            </button>
+                          )}
+                          {temHistorico && (
+                            <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => alternarHistorico(l.id)}>
+                              🕘 Histórico ({l.historicoCorrecoes.length})
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {temHistorico && historicoAberto[l.id] && (
+                      <tr>
+                        <td colSpan={7} style={{ background: "var(--paper-deep)" }}>
+                          <ol style={{ margin: "6px 0", paddingLeft: 18 }}>
+                            {l.historicoCorrecoes.map((h, i) => (
+                              <li key={i} style={{ marginBottom: 4 }}>
+                                <span className="mono" style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                                  {new Date(h.em).toLocaleString("pt-BR")}
+                                </span>
+                                {" — "}{h.obs}
+                              </li>
+                            ))}
+                          </ol>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

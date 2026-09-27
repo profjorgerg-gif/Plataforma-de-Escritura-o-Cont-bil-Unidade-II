@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
@@ -39,16 +39,64 @@ Avalie se a classificação contábil (contas escolhidas, natureza débito/créd
 Se estiver tudo certo, diga em poucas palavras o que o aluno acertou. Se houver inconsistência, aponte o que reconsiderar sem revelar a conta ou o lançamento corretos — apenas oriente.`;
 }
 
+// Instante de referência do envio, para ordenar a fila e mostrar "há quanto
+// tempo": enviadoEm (gravado a cada envio/reenvio) com fallback para
+// criadoEm, para lançamentos antigos que ainda não tinham esse campo.
+function millisDoEnvio(l) {
+  if (l.enviadoEm?.toMillis) return l.enviadoEm.toMillis();
+  if (l.criadoEm?.toMillis) return l.criadoEm.toMillis();
+  return 0;
+}
+
+function tempoDesde(timestamp) {
+  if (!timestamp?.toDate) return null;
+  const min = Math.floor((Date.now() - timestamp.toDate().getTime()) / 60000);
+  if (min < 1) return "agora mesmo";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d} dia${d > 1 ? "s" : ""}`;
+}
+
 export default function FilaCorrecao({ turmaId }) {
   const { contas } = usePlanoContas();
   const alunos = useAlunosDaTurma(turmaId);
   const catalogo = useCatalogoDocumentos();
   const { todos } = useLancamentosDaTurma(turmaId, alunos);
-  const fila = todos.filter(({ lancamento }) => lancamento.status === "enviado");
+  // Mais antigo primeiro — quem está esperando análise há mais tempo aparece
+  // no topo da fila.
+  const fila = todos
+    .filter(({ lancamento }) => lancamento.status === "enviado")
+    .sort((a, b) => millisDoEnvio(a.lancamento) - millisDoEnvio(b.lancamento));
   const [obs, setObs] = useState({});
   const [copiado, setCopiado] = useState({}); // chave -> true por alguns segundos, feedback visual
+  const [extras, setExtras] = useState({}); // chave -> { aberto, carregando, analise, classificacoes }
 
   function chave(matricula, id) { return matricula + "-" + id; }
+
+  // Busca (sob demanda, só ao expandir) a análise fiscal e as classificações
+  // contábeis que o aluno registrou para o MESMO documento deste lançamento —
+  // assim o professor vê o raciocínio completo sem trocar de tela. Usa
+  // getDoc/getDocs (não onSnapshot) porque é consultado uma vez por card
+  // aberto, não precisa ficar "ao vivo".
+  async function alternarDetalhes(k, l, aluno) {
+    if (extras[k]) {
+      setExtras((prev) => ({ ...prev, [k]: { ...prev[k], aberto: !prev[k].aberto } }));
+      return;
+    }
+    setExtras((prev) => ({ ...prev, [k]: { aberto: true, carregando: true } }));
+    let analise = null, classificacoes = [];
+    if (l.documento) {
+      const analiseSnap = await getDoc(doc(db, "turmas", turmaId, "alunos", aluno.matricula, "analisesFiscais", l.documento));
+      analise = analiseSnap.exists() ? analiseSnap.data() : null;
+      const classifSnap = await getDocs(collection(db, "turmas", turmaId, "alunos", aluno.matricula, "classificacoes"));
+      classificacoes = classifSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((c) => c.documento === l.documento);
+    }
+    setExtras((prev) => ({ ...prev, [k]: { aberto: true, carregando: false, analise, classificacoes } }));
+  }
 
   async function aprovar(matricula, id) {
     await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", id), { status: "aprovado" });
@@ -94,6 +142,14 @@ export default function FilaCorrecao({ turmaId }) {
               <div>
                 <div className="aluno-chip">👤 {aluno.nome} <span className="mono">· matrícula {aluno.matricula}</span></div>
                 <h3 style={{ margin: 0 }}>{l.data} · {l.documento} — {l.historico}</h3>
+                <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 4 }}>
+                  {l.enviadoEm?.toDate ? "enviado " + tempoDesde(l.enviadoEm) : ""}
+                  {l.historicoCorrecoes?.length > 0 && (
+                    <span style={{ color: "var(--red)", fontWeight: 700, marginLeft: l.enviadoEm?.toDate ? 10 : 0 }}>
+                      🔁 reenvio — correção nº {l.historicoCorrecoes.length}
+                    </span>
+                  )}
+                </div>
               </div>
               <StatusBadge status={l.status} />
             </div>
@@ -125,6 +181,59 @@ export default function FilaCorrecao({ turmaId }) {
                   ))}
                 </tbody>
               </table>
+
+              <button
+                className="btn secondary"
+                style={{ marginTop: 12 }}
+                onClick={() => alternarDetalhes(k, l, aluno)}
+              >
+                {extras[k]?.aberto ? "▲ Ocultar" : "🔍 Ver"} análise fiscal e classificação deste documento
+              </button>
+
+              {extras[k]?.aberto && (
+                <div className="panel" style={{ marginTop: 10, background: "var(--paper-deep)" }}>
+                  <div className="panel-body">
+                    {extras[k].carregando && <div className="empty-state">Carregando…</div>}
+                    {!extras[k].carregando && !l.documento && (
+                      <div className="helper-note">Este lançamento não tem documento de origem vinculado.</div>
+                    )}
+                    {!extras[k].carregando && l.documento && (
+                      <>
+                        <h4 style={{ marginTop: 0 }}>Análise fiscal — {l.documento}</h4>
+                        {!extras[k].analise && <div className="helper-note" style={{ marginBottom: 14 }}>O aluno ainda não enviou a análise fiscal deste documento.</div>}
+                        {extras[k].analise && (
+                          <div className="grid-2" style={{ marginBottom: 14 }}>
+                            <div className="field"><label>CFOP correto?</label><div>{extras[k].analise.cfopCorreto || "—"}{extras[k].analise.cfopSugerido ? " (sugerido: " + extras[k].analise.cfopSugerido + ")" : ""}</div></div>
+                            <div className="field"><label>NCM correto?</label><div>{extras[k].analise.ncmCorreto || "—"}</div></div>
+                            <div className="field"><label>CST correto?</label><div>{extras[k].analise.cstCorreto || "—"}</div></div>
+                            <div className="field"><label>Status</label><div><StatusBadge status={extras[k].analise.status === "enviado" ? "aprovado" : "rascunho"} /></div></div>
+                            <div className="field" style={{ gridColumn: "1 / -1" }}><label>Justificativa</label><div>{extras[k].analise.justificativa || "—"}</div></div>
+                          </div>
+                        )}
+                        <h4>Classificação contábil vinculada</h4>
+                        {extras[k].classificacoes.length === 0 && <div className="helper-note">Nenhuma classificação registrada para este documento.</div>}
+                        {extras[k].classificacoes.length > 0 && (
+                          <table>
+                            <thead><tr><th>Fato</th><th>Débito</th><th>Crédito</th><th className="num">Valor</th><th>Histórico</th></tr></thead>
+                            <tbody>
+                              {extras[k].classificacoes.map((c) => (
+                                <tr key={c.id}>
+                                  <td>{c.fato}</td>
+                                  <td className="mono">{c.contaDebito}</td>
+                                  <td className="mono">{c.contaCredito}</td>
+                                  <td className="num mono">{fmt(c.valor)}</td>
+                                  <td>{c.historico}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="btn-row" style={{ marginTop: 12 }}>
                 <button className="btn secondary" onClick={() => copiarPromptIA({ ...l, _matricula: aluno.matricula })}>
                   {copiado[k] ? "✓ copiado!" : "📋 Copiar prompt para IA"}
