@@ -312,7 +312,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
     <>
       <div className="screen-eyebrow">documentos fiscais</div>
       <h2 className="screen-title">Documentos disponibilizados</h2>
-      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome} — o preenchimento dos dados (CFOP, itens, impostos) é feito pelo aluno, em "Digitação da NF-e". Você só precisa preencher aqui se quiser deixar um gabarito para conferência automática.</p>
+      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome} — o preenchimento dos dados (CFOP, itens, impostos) é feito pelo aluno, em "Digitação e análise fiscal". Você só precisa preencher aqui se quiser deixar um gabarito para conferência automática.</p>
 
       {!criando && !editandoDoc && (
         <div className="btn-row" style={{ marginBottom: 8 }}>
@@ -335,7 +335,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
 
       {resumoImportacao && (
         <div className={"balance-check " + (resumoImportacao.erro ? "bad" : "ok")}>
-          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Já pode liberar para a turma — os alunos preenchem os dados na Digitação da NF-e.`}
+          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Já pode liberar para a turma — os alunos preenchem os dados em "Digitação e análise fiscal".`}
         </div>
       )}
 

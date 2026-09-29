@@ -66,7 +66,7 @@ export default function ManualAluno() {
       </Passo>
 
       <Passo n={3} titulo="Meu progresso" imagem="manual-aluno-03-meu-progresso.png">
-        <p>É a tela inicial. Mostra quantos lançamentos você tem aprovados, pendentes ou com correção, se o Balanço já fecha, o prazo da unidade e o botão <b>Entregar atividade</b>.</p>
+        <p>É a tela inicial. Mostra quatro números: lançamentos <b>aprovados</b>, <b>aguardando correção</b>, <b>com correção necessária</b> e se o <b>Balanço já fecha</b>. Logo abaixo vem o resultado do exercício (parcial), o checklist de progresso por documento e, quando o professor liberar, o painel <b>Minha nota</b>.</p>
       </Passo>
 
       <Passo n={4} titulo="Empresa didática" imagem="manual-aluno-04-empresa-didatica.png">
@@ -83,7 +83,7 @@ export default function ManualAluno() {
       </Passo>
 
       <Passo n={7} titulo="Plano de contas" imagem="manual-aluno-07-plano-contas.png">
-        <p>Consulte as contas disponíveis por código, nome ou grupo. Use a busca para achar mais rápido.</p>
+        <p>Consulte as contas disponíveis por código, nome ou subgrupo. Use a busca para achar mais rápido.</p>
       </Passo>
 
       <Passo n={8} titulo="Classificação contábil" imagem="manual-aluno-08-classificacao-contabil.png">
@@ -115,9 +115,9 @@ export default function ManualAluno() {
         <p>Ativo, Passivo e Patrimônio Líquido, calculados a partir dos mesmos lançamentos. Clique numa conta para rastrear a origem do saldo. Uma mensagem confirma se Ativo = Passivo + PL.</p>
       </Passo>
 
-      <Passo n={15} titulo="Acompanhando correções e nota" imagem="manual-aluno-15-correcoes-nota.png">
-        <p>Em "Meu progresso", a seção <b>Correções recebidas</b> mostra a observação do professor sempre que um lançamento seu foi devolvido.</p>
-        <p>Depois que o professor liberar, a seção <b>Minha nota</b> mostra a nota final já decomposta em três partes, cada uma como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5): <b>completude do ciclo</b> (até 4,5 pontos — quantos documentos você terminou do início ao fim, calculado sozinho), <b>qualidade técnica</b> (até 3,5 pontos — a avaliação do professor sobre seu raciocínio contábil) e <b>autonomia</b> (até 2,0 pontos — quantas rodadas de correção em média você precisou até ser aprovado; errar e corrigir não derruba muito essa parte). Somando os três chega-se à nota final. Se houver desconto por atraso, ele aparece separado, já aplicado no resultado.</p>
+      <Passo n={15} titulo="Acompanhando sua nota" imagem="manual-aluno-15-correcoes-nota.png">
+        <p>Se o professor devolver um lançamento, a observação dele não aparece em "Meu progresso" — ela vem no próprio <b>Livro diário</b> (Passo 9), junto do lançamento marcado como "Correção necessária".</p>
+        <p>Depois que o professor liberar, o painel <b>Minha nota</b> aparece em "Meu progresso" com quatro indicadores: <b>completude do ciclo</b> (peso 45%, em %, quantos documentos você terminou do início ao fim — calculado sozinho), <b>qualidade técnica</b> (peso 35%, é a nota de 0 a 10 que o professor atribuiu ao seu raciocínio contábil), <b>autonomia</b> (peso 20%, em %, quanto menos rodadas de correção em média você precisou até ser aprovado, maior o valor) e a <b>nota final</b>, de 0 a 10, que junta os três pesos. Se houver desconto por atraso, ele já vem aplicado na nota final, e aparece explicado abaixo do painel.</p>
       </Passo>
 
       <div className="helper-note">Dúvidas sobre o conteúdo contábil em si (qual conta usar, se um CFOP está certo) são parte do exercício — o sistema não responde por você. Procure o professor.</div>
