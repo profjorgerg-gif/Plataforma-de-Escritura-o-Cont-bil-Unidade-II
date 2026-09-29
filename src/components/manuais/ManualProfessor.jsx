@@ -30,6 +30,7 @@ export default function ManualProfessor() {
         <div className="panel-body">
           <p>Em <b>Documentos fiscais</b>, cadastre cada NF-e didática (número, itens, impostos, totais) — isso vira o "gabarito" contra o qual a digitação do aluno é conferida. Dá para cadastrar um por vez, partir de um dos <b>modelos prontos</b> (venda, compra, devolução) para agilizar, ou importar vários de uma vez via <b>ZIP de PDFs</b> (os arquivos entram como rascunho, aguardando você completar os dados).</p>
           <p>Um documento só aparece para os alunos depois de você clicar em <b>liberar para a turma</b> — o catálogo é compartilhado entre turmas, mas a liberação é por turma.</p>
+          <p>Ao importar por ZIP, o sistema só lê o <b>nome do arquivo</b> (número e direção) — os itens e valores ficam em branco. Para preenchê-los sem digitar tudo de novo, abra "preencher gabarito" no documento importado e use o bloco <b>Gerar gabarito com IA</b>: copie o prompt pronto, cole numa IA de sua própria conta (Claude.ai, ChatGPT etc.) anexando o PDF original, e cole o JSON de resposta de volta no sistema — os campos vêm preenchidos, mas continuam editáveis, então você sempre revisa antes de salvar. Como nenhuma chave de IA fica guardada no sistema, isso continua funcionando no plano gratuito do Firebase.</p>
         </div>
       </div>
 
@@ -54,11 +55,11 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>6. Avaliação</h3></div>
         <div className="panel-body">
-          <p>A nota da Unidade II é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação:</p>
+          <p>A nota da Unidade II é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação. Cada componente aparece como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5) — não em porcentagem nem solto de 0 a 10 — para que o peso e o resultado apareçam juntos, e os três valores somados batam visivelmente com a nota final:</p>
           <ul style={{ margin: "0 0 12px", paddingLeft: 20, lineHeight: 1.9 }}>
-            <li><b>Completude do ciclo (45%, automático)</b> — % de documentos liberados em que o aluno concluiu as 4 etapas (Digitação → Análise fiscal → Classificação → Lançamento aprovado).</li>
-            <li><b>Qualidade técnica (35%, manual)</b> — o único campo que você preenche: seu julgamento sobre a coerência do raciocínio contábil, olhando classificações e justificativas.</li>
-            <li><b>Autonomia (20%, automático)</b> — quanto menos rodadas de correção em média cada lançamento precisou até ser aprovado. Errar e corrigir não zera essa parte — o peso é propositalmente pequeno.</li>
+            <li><b>Completude do ciclo (até 4,5 pontos, automático)</b> — proporcional ao % de documentos liberados em que o aluno concluiu as 4 etapas (Digitação → Análise fiscal → Classificação → Lançamento aprovado).</li>
+            <li><b>Qualidade técnica (até 3,5 pontos, manual)</b> — o único campo que você preenche, de 0 a 10: seu julgamento sobre a coerência do raciocínio contábil, olhando classificações e justificativas.</li>
+            <li><b>Autonomia (até 2,0 pontos, automático)</b> — proporcional a quanto menos rodadas de correção em média cada lançamento precisou até ser aprovado. Errar e corrigir não zera essa parte — o peso é propositalmente pequeno.</li>
           </ul>
           <p>O desconto por atraso continua sendo aplicado por fora, no final, calculado sozinho a partir da política definida em Turmas (mas você pode sempre sobrescrever).</p>
           <p>Tudo isso só aparece para o aluno (decomposto, não só o número final) depois que você clicar em <b>liberar</b>. Prorrogações individuais de prazo (para um aluno específico) também ficam nessa tela, com histórico preservado.</p>
