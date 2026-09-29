@@ -43,6 +43,174 @@ function aplicarJSONGabaritoIA(texto) {
   return dados;
 }
 
+// GABARITO POR IA — EM LOTE: mesmo princípio do prompt individual acima,
+// mas cobrindo de uma vez todos os documentos que ainda não têm gabarito.
+// O professor anexa o ZIP (ou os PDFs separados) numa IA de sua própria
+// conta e cola de volta um ARRAY com um objeto por nota — cada um é casado
+// com o documento certo do catálogo pelo par (número, direção), não pelo
+// nome do arquivo, porque a IA nem sempre repete o nome do arquivo original
+// exatamente.
+function montarPromptGabaritoLoteIA(docsPendentes) {
+  const lista = docsPendentes.map((d) => `- ${d.arquivoNome || d.numero || d.id} (Nº ${d.numero || "?"}, ${d.direcao === "entrada" ? "entrada" : "saída"})`).join("\n");
+  return `Você vai extrair os dados de várias Notas Fiscais (NF-e) didáticas em PDF para eu usar como gabarito num sistema de ensino de Contabilidade Intermediária.
+
+Anexe a este prompt todos os PDFs abaixo (pode anexar o ZIP inteiro com todos os arquivos, ou cada PDF separadamente):
+${lista}
+
+Para CADA nota da lista, extraia os dados reais do PDF correspondente. No final, devolva SOMENTE um ARRAY JSON — um objeto por nota, na formatação exata abaixo, sem texto antes ou depois, sem bloco de código. Use ponto como separador decimal (nunca vírgula). Preencha "numero" com o número da nota exatamente como aparece no PDF (só dígitos) e "direcao" com "entrada" ou "saida", para eu conseguir casar cada gabarito com o documento certo:
+
+[
+  {
+    "numero": "000000",
+    "direcao": "entrada",
+    "serie": "1",
+    "natureza": "texto da natureza da operação, exatamente como aparece na nota",
+    "cfop": "0000",
+    "data": "AAAA-MM-DD",
+    "emitenteNome": "nome de quem emitiu a nota",
+    "destinatarioNome": "nome de quem recebeu a nota",
+    "itens": [
+      { "descricao": "...", "ncm": "........", "cst": "..", "cfop": "0000", "unidade": "UN", "qtd": 0, "valorUnit": 0.00 }
+    ],
+    "impostos": { "icms": 0.00, "pis": 0.00, "cofins": 0.00, "cbs": 0.00, "ibs": 0.00 },
+    "freteSeguroOutras": 0.00
+  }
+]
+
+Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" de cada nota, na mesma ordem em que aparecem. Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais de cada nota. Confira que o array tem exatamente um objeto para cada uma das ${docsPendentes.length} notas listadas acima antes de devolver a resposta.`;
+}
+
+// Converte um item do lote (formato solto vindo da IA) para o mesmo formato
+// usado internamente pelo formulário individual (NovoDocumentoForm.criar).
+function normalizarDocumentoLote(item) {
+  const itens = (item.itens || []).map((it) => ({
+    codigo: "", descricao: it.descricao || "", ncm: it.ncm || "", cst: it.cst || "",
+    cfop: it.cfop ? String(it.cfop) : "", unidade: it.unidade || "UN",
+    qtd: Number(it.qtd) || 0, valorUnit: Number(it.valorUnit) || 0,
+  }));
+  const itensCalc = itens.map((it) => ({ ...it, total: it.qtd * it.valorUnit }));
+  const totalProdutos = itensCalc.reduce((s, it) => s + it.total, 0);
+  const freteSeguroOutras = Number(item.freteSeguroOutras) || 0;
+  const valorTotal = totalProdutos + freteSeguroOutras;
+  const direcao = item.direcao === "entrada" ? "entrada" : "saida";
+  return {
+    numero: String(item.numero || "").trim(), serie: item.serie ? String(item.serie) : "1", tipo: "NF-e",
+    direcao, natureza: item.natureza || "", cfop: item.cfop ? String(item.cfop) : "", data: item.data || "",
+    emitente: { nome: direcao === "entrada" ? (item.emitenteNome || "") : "Empresa didática (turma)" },
+    destinatario: { nome: direcao === "saida" ? (item.destinatarioNome || "") : "Empresa didática (turma)" },
+    itens: itensCalc,
+    impostos: {
+      icms: { valor: Number(item.impostos?.icms) || 0, contabilizado: true }, ipi: { valor: 0, contabilizado: true },
+      pis: { valor: Number(item.impostos?.pis) || 0, contabilizado: true }, cofins: { valor: Number(item.impostos?.cofins) || 0, contabilizado: true },
+      cbs: { valor: Number(item.impostos?.cbs) || 0, contabilizado: false }, ibs: { valor: Number(item.impostos?.ibs) || 0, contabilizado: false },
+    },
+    totais: { produtos: totalProdutos, desconto: 0, frete: freteSeguroOutras, seguro: 0, outras: 0, total: valorTotal },
+    transportador: { nome: "", cnpj: "", placaUf: "", volumes: "", pesoBrutoLiquido: "", freteContaDe: "" },
+    valorTotal, completo: itensCalc.length > 0,
+  };
+}
+
+// Painel de importação em lote — some sozinho quando não há documento
+// pendente de gabarito.
+function ImportarGabaritoLoteIA({ docsPendentes, onAplicar }) {
+  const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [copiado, setCopiado] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const [erro, setErro] = useState("");
+  const [aplicando, setAplicando] = useState(false);
+
+  if (docsPendentes.length === 0) return null;
+
+  async function copiarPrompt() {
+    const prompt = montarPromptGabaritoLoteIA(docsPendentes);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 3000);
+    } catch (e) {
+      window.prompt("Não copiou automaticamente — selecione e copie manualmente (Ctrl+C):", prompt);
+    }
+  }
+
+  function carregarArquivo(file) {
+    const reader = new FileReader();
+    reader.onload = () => setTexto(String(reader.result || ""));
+    reader.readAsText(file, "utf-8");
+  }
+
+  async function aplicar() {
+    setErro(""); setResultado(null); setAplicando(true);
+    try {
+      const limpo = texto.trim().replace(/^```(json)?/i, "").replace(/```$/, "").trim();
+      const dados = JSON.parse(limpo);
+      if (!Array.isArray(dados) || dados.length === 0) throw new Error("O JSON precisa ser um array com pelo menos um documento.");
+      let aplicados = 0;
+      const naoEncontrados = [];
+      for (const item of dados) {
+        const numero = String(item.numero || "").trim();
+        const direcao = item.direcao === "entrada" ? "entrada" : "saida";
+        const alvo = docsPendentes.find((d) => d.numero === numero && d.direcao === direcao);
+        if (!alvo) { naoEncontrados.push(`Nº ${numero || "?"} (${direcao})`); continue; }
+        const normalizado = normalizarDocumentoLote(item);
+        await setDoc(doc(db, "documentosFiscais", alvo.id), { ...normalizado, id: alvo.id, arquivoNome: alvo.arquivoNome || null });
+        aplicados++;
+      }
+      setResultado({ aplicados, total: dados.length, naoEncontrados });
+      if (aplicados > 0) onAplicar();
+    } catch (e) {
+      setErro("Não consegui aplicar esse JSON (" + e.message + "). Confira se colou a resposta completa, sem texto extra.");
+    }
+    setAplicando(false);
+  }
+
+  return (
+    <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel-head">
+        <h3>Preencher gabaritos em lote com IA ({docsPendentes.length} pendente{docsPendentes.length > 1 ? "s" : ""})</h3>
+      </div>
+      <div className="panel-body">
+        {!aberto ? (
+          <button className="btn secondary" onClick={() => setAberto(true)}>Preencher todos de uma vez com IA</button>
+        ) : (
+          <>
+            <div className="helper-note">
+              Copie o prompt, cole numa IA de sua própria conta (Claude.ai, ChatGPT etc.) e anexe os PDFs (ou o ZIP inteiro) dos {docsPendentes.length} documento(s) pendente(s) listados no prompt. A IA devolve um array JSON com todos; cole a resposta abaixo ou suba como arquivo .txt/.json. Cada gabarito continua conferido por você — revise o catálogo depois de aplicar.
+            </div>
+            <div className="btn-row" style={{ marginTop: 10 }}>
+              <button className="btn secondary" onClick={copiarPrompt}>{copiado ? "✓ copiado!" : "📋 Copiar prompt para todos os pendentes"}</button>
+              <a className="btn secondary" href="https://claude.ai" target="_blank" rel="noopener noreferrer">Abrir Claude.ai ↗</a>
+              <a className="btn secondary" href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a>
+            </div>
+            <div className="field" style={{ marginTop: 12 }}>
+              <label>Colar aqui o JSON (array) devolvido pela IA — ou subir como arquivo</label>
+              <textarea rows={6} className="mono" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder='[ {"numero": "000000", "direcao": "entrada", ...}, ... ]' />
+            </div>
+            <div className="btn-row">
+              <label className="btn secondary" style={{ cursor: "pointer" }}>
+                Carregar arquivo .txt/.json
+                <input type="file" accept=".txt,.json" style={{ display: "none" }}
+                  onChange={(e) => { if (e.target.files[0]) carregarArquivo(e.target.files[0]); e.target.value = ""; }} />
+              </label>
+              <button className="btn" onClick={aplicar} disabled={!texto.trim() || aplicando}>{aplicando ? "Aplicando…" : "Aplicar gabaritos"}</button>
+              <button className="btn secondary" onClick={() => { setAberto(false); setTexto(""); setResultado(null); setErro(""); }}>Fechar</button>
+            </div>
+            {erro && <div className="balance-check bad" style={{ marginTop: 8 }}>{erro}</div>}
+            {resultado && (
+              <div className={"balance-check " + (resultado.aplicados > 0 ? "ok" : "bad")} style={{ marginTop: 8 }}>
+                {resultado.aplicados} de {resultado.total} gabarito(s) aplicado(s).
+                {resultado.naoEncontrados.length > 0 && (
+                  <> Não encontrei documento pendente correspondente a: {resultado.naoEncontrados.join(", ")} — confira se o número/direção batem com o catálogo.</>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Modelos prontos para agilizar o cadastro de exercícios novos — só
 // pré-preenchem natureza, CFOP e um item de exemplo (edite os NCM/CST/valores
 // reais do exercício); o professor não precisa mais começar sempre do zero.
@@ -265,7 +433,8 @@ export default function DocumentosFiscaisProfessor({ turma }) {
   const [importando, setImportando] = useState(false);
   const [resumoImportacao, setResumoImportacao] = useState(null);
 
-  async function toggleLiberado(docId, liberado) {
+  async function toggleLiberado(docId, liberado, completo) {
+    if (!liberado && !completo) return; // trava: não libera documento sem gabarito completo
     await updateDoc(doc(db, "turmas", turma.id), {
       documentosIds: liberado ? arrayRemove(docId) : arrayUnion(docId),
     });
@@ -312,7 +481,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
     <>
       <div className="screen-eyebrow">documentos fiscais</div>
       <h2 className="screen-title">Documentos disponibilizados</h2>
-      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e libere para a turma {turma.nome} — o preenchimento dos dados (CFOP, itens, impostos) é feito pelo aluno, em "Digitação e análise fiscal". Você só precisa preencher aqui se quiser deixar um gabarito para conferência automática.</p>
+      <p className="screen-sub">Catálogo de NF-e didáticas. Cadastre um documento (ou importe vários via ZIP) e complete o gabarito (CFOP, itens, NCM/CST, valores) antes de liberar para a turma {turma.nome} — o aluno digita os dados no seu próprio formulário, em "Digitação e análise fiscal", mas a conferência automática da digitação e toda a etapa de Análise fiscal (CFOP/NCM/CST/valor que ele julga) dependem do gabarito que você cadastra aqui. Um documento sem gabarito completo não pode ser liberado.</p>
 
       {!criando && !editandoDoc && (
         <div className="btn-row" style={{ marginBottom: 8 }}>
@@ -335,8 +504,12 @@ export default function DocumentosFiscaisProfessor({ turma }) {
 
       {resumoImportacao && (
         <div className={"balance-check " + (resumoImportacao.erro ? "bad" : "ok")}>
-          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Já pode liberar para a turma — os alunos preenchem os dados em "Digitação e análise fiscal".`}
+          {resumoImportacao.erro || `${resumoImportacao.importados} documento(s) importado(s) de ${resumoImportacao.total} PDF(s) no ZIP${resumoImportacao.ignorados ? " · " + resumoImportacao.ignorados + " ignorado(s)" : ""}. Eles chegam sem gabarito — abra "preencher gabarito" em cada um (ou use o botão de IA) antes de liberar para a turma.`}
         </div>
+      )}
+
+      {!criando && !editandoDoc && (
+        <ImportarGabaritoLoteIA docsPendentes={catalogo.filter((d) => !d.completo)} onAplicar={() => {}} />
       )}
 
       {criando && (
@@ -371,11 +544,19 @@ export default function DocumentosFiscaisProfessor({ turma }) {
                       <td className="mono">{d.numero ? "Nº " + d.numero : (d.arquivoNome || d.id)}</td>
                       <td>{d.direcao === "entrada" ? "Entrada" : "Saída"}</td>
                       <td>{(d.direcao === "entrada" ? d.emitente?.nome : d.destinatario?.nome) || "—"}</td>
-                      <td>{d.completo ? <span className="tag-pill">preenchido</span> : <span className="status rascunho">sem gabarito — ok liberar assim</span>}</td>
+                      <td>{d.completo ? <span className="tag-pill">preenchido</span> : <span className="status rascunho">sem gabarito — preencha antes de liberar</span>}</td>
                       <td><span className={"status " + (liberado ? "aprovado" : "rascunho")}>{liberado ? "liberado" : "não liberado"}</span></td>
                       <td>
-                        <button className={liberado ? "btn red" : "btn green"} style={{ marginRight: 8 }} onClick={() => toggleLiberado(d.id, liberado)}>{liberado ? "remover da turma" : "liberar para a turma"}</button>
-                        <button className="btn secondary" onClick={() => setEditandoDoc(d)}>{d.completo ? "editar" : "preencher gabarito (opcional)"}</button>
+                        <button
+                          className={liberado ? "btn red" : "btn green"}
+                          style={{ marginRight: 8 }}
+                          disabled={!liberado && !d.completo}
+                          title={!liberado && !d.completo ? "Preencha o gabarito antes de liberar este documento" : undefined}
+                          onClick={() => toggleLiberado(d.id, liberado, d.completo)}
+                        >
+                          {liberado ? "remover da turma" : "liberar para a turma"}
+                        </button>
+                        <button className="btn secondary" onClick={() => setEditandoDoc(d)}>{d.completo ? "editar" : "preencher gabarito"}</button>
                       </td>
                     </tr>
                   );

@@ -17,7 +17,18 @@ function avisoCoerenciaFiscal(analise) {
   return `Na Análise Fiscal deste documento você indicou que o ${pontos.join("/")} não estava correto — confira se isso muda alguma conta ou valor da classificação abaixo (ex.: destaque de imposto).`;
 }
 
-export default function ClassificacaoContabil({ turmaId, matricula, documentos, contas, onUsarNoLancamento }) {
+// Um documento só entra na lista de classificação depois que o aluno
+// terminou a Digitação e a Análise fiscal dele — classificar antes disso
+// seria decidir a conta contábil sem ainda saber qual foi a operação.
+function documentoProntoParaClassificar(docId, progresso) {
+  if (!progresso) return false;
+  const { digitacoes, analises } = progresso;
+  const digitado = !!(digitacoes && digitacoes[docId]);
+  const analisado = analises && analises[docId]?.status === "enviado";
+  return digitado && analisado;
+}
+
+export default function ClassificacaoContabil({ turmaId, matricula, documentos, progresso, contas, onUsarNoLancamento }) {
   const [documento, setDocumento] = useState("");
   const [fato, setFato] = useState("");
   const [contaDebito, setContaDebito] = useState("");
@@ -46,6 +57,8 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
   }, [turmaId, matricula, documento]);
 
   const avisoFiscal = avisoCoerenciaFiscal(analiseDoDocumento);
+  const documentosProntos = (documentos || []).filter((d) => documentoProntoParaClassificar(d.id, progresso));
+  const carregandoProgresso = progresso && (progresso.digitacoes === null || progresso.analises === null);
 
   async function salvar() {
     if (!fato.trim() || !contaDebito || !contaCredito || !valor) return;
@@ -65,6 +78,9 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
       <div className="screen-eyebrow">07 · classificação contábil</div>
       <h2 className="screen-title">Classificação do fato contábil</h2>
       <p className="screen-sub">Depois de analisar o documento, identifique o fato contábil e a classificação antes de lançar no Diário. O sistema disponibiliza o Plano de Contas, mas não indica a conta correta.</p>
+      {!carregandoProgresso && documentosProntos.length === 0 && (
+        <div className="helper-note">Nenhum documento disponível ainda para classificar. Complete a Digitação e a Análise fiscal (envie a análise, não só salve o rascunho) de pelo menos um documento em "Digitação e análise fiscal" antes de classificar.</div>
+      )}
       <div className="panel">
         <div className="panel-head"><h3>Nova classificação</h3></div>
         <div className="panel-body">
@@ -73,7 +89,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
               <label>Documento de origem</label>
               <select value={documento} onChange={(e) => setDocumento(e.target.value)}>
                 <option value="">— sem documento —</option>
-                {documentos.map((d) => <option key={d.id} value={d.id}>Nº {d.numero}</option>)}
+                {documentosProntos.map((d) => <option key={d.id} value={d.id}>Nº {d.numero}</option>)}
               </select>
             </div>
             <div className="field"><label>Valor</label><input className="mono" type="number" value={valor} onChange={(e) => setValor(e.target.value)} /></div>

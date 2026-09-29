@@ -316,7 +316,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {
-    tela = <ClassificacaoContabil turmaId={turmaId} matricula={matricula} documentos={documentos} contas={esc.contas} onUsarNoLancamento={usarClassificacaoNoLancamento} />;
+    tela = <ClassificacaoContabil turmaId={turmaId} matricula={matricula} documentos={documentos} progresso={progresso} contas={esc.contas} onUsarNoLancamento={usarClassificacaoNoLancamento} />;
   } else if (papelEfetivo === "aluno" && screen === "diario") {
     tela = (
       <LivroDiario
