@@ -8,15 +8,14 @@ import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
 import { useTurma } from "../../hooks/useTurma.js";
 import {
-  fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
-  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
+  fmt, completudeCiclo, autonomiaCorrecoes, rubricaDetalhada,
+  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo,
 } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
 
 import EmpresaDidatica from "../aluno/EmpresaDidatica.jsx";
 import DocumentosFiscais from "../aluno/DocumentosFiscais.jsx";
-import DigitacaoNFe from "../aluno/DigitacaoNFe.jsx";
-import AnaliseFiscal from "../aluno/AnaliseFiscal.jsx";
+import DigitacaoAnaliseFiscal from "../aluno/DigitacaoAnaliseFiscal.jsx";
 import PlanoContas from "../aluno/PlanoContas.jsx";
 import ClassificacaoContabil from "../aluno/ClassificacaoContabil.jsx";
 import LivroDiario from "../aluno/LivroDiario.jsx";
@@ -40,7 +39,10 @@ import ManualOperacao from "../manuais/ManualOperacao.jsx";
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
 //
-// LADO DO ALUNO: completo — todas as 13 telas ligadas ao Firestore.
+// LADO DO ALUNO: completo — todas as 12 telas ligadas ao Firestore
+// (Digitação da NF-e e Análise fiscal foram fundidas numa só tela em
+// 2026-09-28: nunca trocaram dados entre si, só compartilhavam o mesmo PDF
+// de referência — ver nota em DigitacaoAnaliseFiscal.jsx).
 // LADO DO PROFESSOR: completo — Painel (+ Avaliação embutida), Turmas
 // (+ importação de alunos via PDF), Fila de Correção, Histórico do aluno,
 // Documentos Fiscais (+ ZIP), Plano de Contas, Modo de teste.
@@ -61,8 +63,7 @@ const MENU_ALUNO = [
   { key: "dashboard", label: "Meu progresso" },
   { key: "empresa", label: "Empresa didática" },
   { key: "documentos", label: "Documentos fiscais" },
-  { key: "digitacao", label: "Digitação da NF-e" },
-  { key: "analise", label: "Análise fiscal" },
+  { key: "digitacao", label: "Digitação e análise fiscal" },
   { key: "plano", label: "Plano de contas" },
   { key: "classificacao", label: "Classificação contábil" },
   { key: "diario", label: "Livro diário" },
@@ -115,6 +116,8 @@ function ChecklistProgresso({ documentos, progresso, lancamentos }) {
       <div className="panel-body" style={{ padding: 0 }}>
         <table>
           <thead><tr><th>Documento</th><th className="num">1. Digitação</th><th className="num">2. Análise fiscal</th><th className="num">3. Classificação</th><th className="num">4. Livro diário</th></tr></thead>
+          {/* Colunas 1 e 2 são preenchidas na mesma tela ("Digitação e análise fiscal"), mas continuam sendo dois registros
+              independentes no Firestore — por isso seguem marcadas separadamente aqui. */}
           <tbody>
             {documentos.map((d) => {
               const digitado = !!digitacoes[d.id];
@@ -134,7 +137,7 @@ function ChecklistProgresso({ documentos, progresso, lancamentos }) {
           </tbody>
         </table>
       </div>
-      <div className="helper-note" style={{ margin: "0 16px 16px" }}>Siga a ordem das colunas para cada documento — cada etapa usa os dados da anterior.</div>
+      <div className="helper-note" style={{ margin: "0 16px 16px" }}>Siga a ordem das colunas como sequência de estudo para cada documento. Nem toda coluna usa os dados da anterior: a Classificação só é avisada se você sinalizou algo incorreto na Análise fiscal, e o Lançamento pode vir pronto da Classificação — a Digitação é um exercício à parte.</div>
     </div>
   );
 }
@@ -148,7 +151,7 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
   const completudePct = documentos ? completudeCiclo(documentos, progresso.digitacoes, progresso.analises, progresso.classificacoes, lancamentos) : null;
   const autonomiaPct = autonomiaCorrecoes(lancamentos);
   const desconto = turma ? descontoEfetivo(registro, turma) : (registro.desconto || 0);
-  const notaFinal = notaFinalPonderada({ completudePct, qualidadeNota: registro.nota, autonomiaPct, desconto });
+  const rubrica = rubricaDetalhada({ completudePct, qualidadeNota: registro.nota, autonomiaPct, desconto });
   const prazo = turma ? prazoEfetivo(registro, turma) : null;
   const dias = turma ? diasAtraso(registro.dataEntrega, prazo) : 0;
 
@@ -157,10 +160,10 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
       <div className="panel-head"><h3>Minha nota — Unidade II</h3></div>
       <div className="panel-body">
         <div className="kpi-row">
-          <div className="kpi"><div className="kpi-label">Completude do ciclo ({Math.round(PESOS_RUBRICA.completude * 100)}%)</div><div className="kpi-value mono">{completudePct === null ? "—" : completudePct + "%"}</div></div>
-          <div className="kpi"><div className="kpi-label">Qualidade técnica ({Math.round(PESOS_RUBRICA.qualidade * 100)}%)</div><div className="kpi-value mono">{registro.nota ?? "—"}</div></div>
-          <div className="kpi"><div className="kpi-label">Autonomia ({Math.round(PESOS_RUBRICA.autonomia * 100)}%)</div><div className="kpi-value mono">{autonomiaPct === null ? "—" : autonomiaPct + "%"}</div></div>
-          <div className="kpi ok"><div className="kpi-label">Nota final</div><div className="kpi-value mono">{notaFinal === null ? "—" : fmt(notaFinal)}</div></div>
+          <div className="kpi"><div className="kpi-label">Completude do ciclo</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosCompletude) + " / " + fmt(rubrica.maxCompletude) : "—"}</div></div>
+          <div className="kpi"><div className="kpi-label">Qualidade técnica</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosQualidade) + " / " + fmt(rubrica.maxQualidade) : "—"}</div></div>
+          <div className="kpi"><div className="kpi-label">Autonomia</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosAutonomia) + " / " + fmt(rubrica.maxAutonomia) : "—"}</div></div>
+          <div className="kpi ok"><div className="kpi-label">Nota final</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.notaFinal) : "—"}</div></div>
         </div>
         {dias > 0 && <div className="helper-note">Desconto de {fmt(desconto)} ponto(s) já aplicado na nota final, por {dias} dia(s) de atraso em relação ao prazo ({fmtData(prazo)}).</div>}
         <div className="helper-note">Completude e autonomia são calculadas automaticamente a partir do que você já fez no sistema; a qualidade técnica é a avaliação do seu professor sobre o raciocínio contábil.</div>
@@ -287,7 +290,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   }
 
   const TELAS_COM_ESCRITURACAO = ["dashboard", "diario", "razao", "balancete", "are", "dre", "bp"];
-  const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "analise", "classificacao"];
+  const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
   if (screen === "manual-aluno") {
@@ -309,9 +312,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "documentos") {
     tela = <DocumentosFiscais documentos={documentos} />;
   } else if (papelEfetivo === "aluno" && screen === "digitacao") {
-    tela = <DigitacaoNFe turmaId={turmaId} matricula={matricula} documentos={documentos} />;
-  } else if (papelEfetivo === "aluno" && screen === "analise") {
-    tela = <AnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
+    tela = <DigitacaoAnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {

@@ -4,16 +4,15 @@ const IMAGENS_DISPONIVEIS = new Set([
   "manual-aluno-03-meu-progresso.png",
   "manual-aluno-04-empresa-didatica.png",
   "manual-aluno-05-documentos-fiscais.png",
-  "manual-aluno-06-digitacao-nfe.png",
-  "manual-aluno-07-analise-fiscal.png",
-  "manual-aluno-08-plano-contas.png",
-  "manual-aluno-09-classificacao-contabil.png",
-  "manual-aluno-10-livro-diario.png",
-  "manual-aluno-11-livro-razao.png",
-  "manual-aluno-12-balancete.png",
-  "manual-aluno-13-are.png",
-  "manual-aluno-14-dre.png",
-  "manual-aluno-15-balanco-patrimonial.png",
+  "manual-aluno-06-digitacao-analise-fiscal.png",
+  "manual-aluno-07-plano-contas.png",
+  "manual-aluno-08-classificacao-contabil.png",
+  "manual-aluno-09-livro-diario.png",
+  "manual-aluno-10-livro-razao.png",
+  "manual-aluno-11-balancete.png",
+  "manual-aluno-12-are.png",
+  "manual-aluno-13-dre.png",
+  "manual-aluno-14-balanco-patrimonial.png",
 ]);
 
 function Passo({ n, titulo, children, imagem }) {
@@ -78,48 +77,45 @@ export default function ManualAluno() {
         <p>Lista as NF-e que o professor liberou para a sua turma. É o ponto de partida de cada exercício novo.</p>
       </Passo>
 
-      <Passo n={6} titulo="Digitação da NF-e" imagem="manual-aluno-06-digitacao-nfe.png">
-        <p>Escolha o documento e digite os dados exatamente como aparecem no PDF do professor: número, itens, impostos, totais. Use <b>Conferir digitação</b> para checar se os valores batem, e <b>Salvar digitação</b> para gravar.</p>
+      <Passo n={6} titulo="Digitação e análise fiscal" imagem="manual-aluno-06-digitacao-analise-fiscal.png">
+        <p><b>1. Digitação:</b> escolha o documento e digite os dados exatamente como aparecem no PDF do professor: número, itens, impostos, totais. Use <b>Conferir digitação</b> para checar se os valores batem, e <b>Salvar digitação</b> para gravar.</p>
+        <p><b>2. Análise fiscal:</b> logo abaixo, na mesma tela, julgue se o CFOP, o NCM e o CST da nota estão corretos para aquela operação, e justifique sua resposta. O sistema não indica a resposta certa em nenhuma das duas etapas — isso é parte do exercício. As duas etapas usam o mesmo documento, mas são registradas separadamente: a Análise não lê o que você digitou na Digitação, ela mostra sempre os dados cadastrados pelo professor.</p>
       </Passo>
 
-      <Passo n={7} titulo="Análise fiscal" imagem="manual-aluno-07-analise-fiscal.png">
-        <p>Julgue se o CFOP, o NCM e o CST da nota estão corretos para aquela operação, e justifique sua resposta. O sistema não indica a resposta certa — isso é parte do exercício.</p>
-      </Passo>
-
-      <Passo n={8} titulo="Plano de contas" imagem="manual-aluno-08-plano-contas.png">
+      <Passo n={7} titulo="Plano de contas" imagem="manual-aluno-07-plano-contas.png">
         <p>Consulte as contas disponíveis por código, nome ou grupo. Use a busca para achar mais rápido.</p>
       </Passo>
 
-      <Passo n={9} titulo="Classificação contábil" imagem="manual-aluno-09-classificacao-contabil.png">
+      <Passo n={8} titulo="Classificação contábil" imagem="manual-aluno-08-classificacao-contabil.png">
         <p>Identifique o fato contábil e escolha a conta a debitar e a creditar antes de formalizar o lançamento no Diário.</p>
       </Passo>
 
-      <Passo n={10} titulo="Livro diário" imagem="manual-aluno-10-livro-diario.png">
+      <Passo n={9} titulo="Livro diário" imagem="manual-aluno-09-livro-diario.png">
         <p>Registre o lançamento de verdade: data, histórico, contas e valores. O sistema só deixa enviar para análise quando Débito = Crédito. Escolha entre <b>salvar como rascunho</b> ou <b>enviar para análise do professor</b>.</p>
         <p>Se o professor devolver um lançamento (aparece como "Correção necessária", em vermelho), <b>clique no botão "✏️ Editar" ao lado dele na tabela</b> — a observação do professor aparece no topo do formulário, já com os dados preenchidos para você ajustar e reenviar. O ciclo se repete até o professor aprovar.</p>
       </Passo>
 
-      <Passo n={11} titulo="Livro razão" imagem="manual-aluno-11-livro-razao.png">
+      <Passo n={10} titulo="Livro razão" imagem="manual-aluno-10-livro-razao.png">
         <p>Mostra o histórico de movimentos de cada conta, já somado a partir dos lançamentos aprovados.</p>
       </Passo>
 
-      <Passo n={12} titulo="Balancete" imagem="manual-aluno-12-balancete.png">
+      <Passo n={11} titulo="Balancete" imagem="manual-aluno-11-balancete.png">
         <p>Confirma se o total de débitos bate com o total de créditos de todas as contas juntas.</p>
       </Passo>
 
-      <Passo n={13} titulo="ARE — Apuração do Resultado" imagem="manual-aluno-13-are.png">
+      <Passo n={12} titulo="ARE — Apuração do Resultado" imagem="manual-aluno-12-are.png">
         <p>Mostra receitas, deduções, custos e despesas levando ao resultado do período.</p>
       </Passo>
 
-      <Passo n={14} titulo="DRE" imagem="manual-aluno-14-dre.png">
+      <Passo n={13} titulo="DRE" imagem="manual-aluno-13-dre.png">
         <p>A Demonstração do Resultado completa. Clique em qualquer linha para ver quais lançamentos formaram aquele valor.</p>
       </Passo>
 
-      <Passo n={15} titulo="Balanço patrimonial" imagem="manual-aluno-15-balanco-patrimonial.png">
+      <Passo n={14} titulo="Balanço patrimonial" imagem="manual-aluno-14-balanco-patrimonial.png">
         <p>Ativo, Passivo e Patrimônio Líquido, calculados a partir dos mesmos lançamentos. Clique numa conta para rastrear a origem do saldo. Uma mensagem confirma se Ativo = Passivo + PL.</p>
       </Passo>
 
-      <Passo n={16} titulo="Acompanhando correções e nota" imagem="manual-aluno-16-correcoes-nota.png">
+      <Passo n={15} titulo="Acompanhando correções e nota" imagem="manual-aluno-15-correcoes-nota.png">
         <p>Em "Meu progresso", a seção <b>Correções recebidas</b> mostra a observação do professor sempre que um lançamento seu foi devolvido.</p>
         <p>Depois que o professor liberar, a seção <b>Minha nota</b> mostra a nota final já decomposta em três partes, cada uma como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5): <b>completude do ciclo</b> (até 4,5 pontos — quantos documentos você terminou do início ao fim, calculado sozinho), <b>qualidade técnica</b> (até 3,5 pontos — a avaliação do professor sobre seu raciocínio contábil) e <b>autonomia</b> (até 2,0 pontos — quantas rodadas de correção em média você precisou até ser aprovado; errar e corrigir não derruba muito essa parte). Somando os três chega-se à nota final. Se houver desconto por atraso, ele aparece separado, já aplicado no resultado.</p>
       </Passo>
