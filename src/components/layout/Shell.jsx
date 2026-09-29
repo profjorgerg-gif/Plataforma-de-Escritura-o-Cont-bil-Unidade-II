@@ -8,8 +8,8 @@ import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
 import { useTurma } from "../../hooks/useTurma.js";
 import {
-  fmt, completudeCiclo, autonomiaCorrecoes, rubricaDetalhada,
-  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo,
+  fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
+  prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
 } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
 
@@ -151,7 +151,7 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
   const completudePct = documentos ? completudeCiclo(documentos, progresso.digitacoes, progresso.analises, progresso.classificacoes, lancamentos) : null;
   const autonomiaPct = autonomiaCorrecoes(lancamentos);
   const desconto = turma ? descontoEfetivo(registro, turma) : (registro.desconto || 0);
-  const rubrica = rubricaDetalhada({ completudePct, qualidadeNota: registro.nota, autonomiaPct, desconto });
+  const notaFinal = notaFinalPonderada({ completudePct, qualidadeNota: registro.nota, autonomiaPct, desconto });
   const prazo = turma ? prazoEfetivo(registro, turma) : null;
   const dias = turma ? diasAtraso(registro.dataEntrega, prazo) : 0;
 
@@ -160,10 +160,10 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
       <div className="panel-head"><h3>Minha nota — Unidade II</h3></div>
       <div className="panel-body">
         <div className="kpi-row">
-          <div className="kpi"><div className="kpi-label">Completude do ciclo</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosCompletude) + " / " + fmt(rubrica.maxCompletude) : "—"}</div></div>
-          <div className="kpi"><div className="kpi-label">Qualidade técnica</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosQualidade) + " / " + fmt(rubrica.maxQualidade) : "—"}</div></div>
-          <div className="kpi"><div className="kpi-label">Autonomia</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.pontosAutonomia) + " / " + fmt(rubrica.maxAutonomia) : "—"}</div></div>
-          <div className="kpi ok"><div className="kpi-label">Nota final</div><div className="kpi-value mono">{rubrica ? fmt(rubrica.notaFinal) : "—"}</div></div>
+          <div className="kpi"><div className="kpi-label">Completude do ciclo ({Math.round(PESOS_RUBRICA.completude * 100)}%)</div><div className="kpi-value mono">{completudePct === null ? "—" : completudePct + "%"}</div></div>
+          <div className="kpi"><div className="kpi-label">Qualidade técnica ({Math.round(PESOS_RUBRICA.qualidade * 100)}%)</div><div className="kpi-value mono">{registro.nota ?? "—"}</div></div>
+          <div className="kpi"><div className="kpi-label">Autonomia ({Math.round(PESOS_RUBRICA.autonomia * 100)}%)</div><div className="kpi-value mono">{autonomiaPct === null ? "—" : autonomiaPct + "%"}</div></div>
+          <div className="kpi ok"><div className="kpi-label">Nota final</div><div className="kpi-value mono">{notaFinal === null ? "—" : fmt(notaFinal)}</div></div>
         </div>
         {dias > 0 && <div className="helper-note">Desconto de {fmt(desconto)} ponto(s) já aplicado na nota final, por {dias} dia(s) de atraso em relação ao prazo ({fmtData(prazo)}).</div>}
         <div className="helper-note">Completude e autonomia são calculadas automaticamente a partir do que você já fez no sistema; a qualidade técnica é a avaliação do seu professor sobre o raciocínio contábil.</div>
