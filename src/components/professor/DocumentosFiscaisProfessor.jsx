@@ -7,6 +7,42 @@ import { fmt } from "../../lib/contabil.js";
 
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
+// GABARITO POR IA — mesmo princípio já usado na Fila de correção: sem Cloud
+// Function, sem custo, sem chave secreta. O sistema não lê o PDF sozinho —
+// ele monta um prompt, o professor cola numa IA de sua própria conta
+// (Claude.ai, ChatGPT etc.), anexando o PDF que já tem no computador, e cola
+// o JSON de volta aqui. Os campos vêm todos editáveis antes de salvar, então
+// um eventual erro de leitura da IA é sempre revisado por você antes de virar
+// gabarito de verdade.
+function montarPromptGabaritoIA(numero, direcao, arquivoNome) {
+  return `Você vai extrair os dados de uma Nota Fiscal (NF-e) didática em PDF para eu usar como gabarito num sistema de ensino de Contabilidade Intermediária.
+
+Anexe a este prompt o arquivo "${arquivoNome}" (NF-e nº ${numero}, ${direcao === "entrada" ? "entrada" : "saída"}) e devolva SOMENTE um JSON válido — sem texto antes ou depois, sem bloco de código — no formato exato abaixo. Preencha com os dados reais da nota, usando ponto como separador decimal (nunca vírgula):
+
+{
+  "serie": "1",
+  "natureza": "texto da natureza da operação, exatamente como aparece na nota",
+  "cfop": "0000",
+  "data": "AAAA-MM-DD",
+  "emitenteNome": "nome de quem emitiu a nota",
+  "destinatarioNome": "nome de quem recebeu a nota",
+  "itens": [
+    { "descricao": "...", "ncm": "........", "cst": "..", "cfop": "0000", "unidade": "UN", "qtd": 0, "valorUnit": 0.00 }
+  ],
+  "impostos": { "icms": 0.00, "pis": 0.00, "cofins": 0.00, "cbs": 0.00, "ibs": 0.00 },
+  "freteSeguroOutras": 0.00
+}
+
+Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" da nota, na mesma ordem em que aparecem. Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais da nota.`;
+}
+
+function aplicarJSONGabaritoIA(texto) {
+  const limpo = texto.trim().replace(/^```(json)?/i, "").replace(/```$/, "").trim();
+  const dados = JSON.parse(limpo);
+  if (!Array.isArray(dados.itens) || dados.itens.length === 0) throw new Error("O JSON não trouxe nenhum item em \"itens\".");
+  return dados;
+}
+
 // Modelos prontos para agilizar o cadastro de exercícios novos — só
 // pré-preenchem natureza, CFOP e um item de exemplo (edite os NCM/CST/valores
 // reais do exercício); o professor não precisa mais começar sempre do zero.
@@ -50,7 +86,47 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const [ibsValor, setIbsValor] = useState("");
   const [freteSeguroOutras, setFreteSeguroOutras] = useState("0");
   const [erro, setErro] = useState("");
+  const [jsonIA, setJsonIA] = useState("");
+  const [erroIA, setErroIA] = useState("");
+  const [copiadoIA, setCopiadoIA] = useState(false);
   const editando = !!inicial?.idExistente;
+
+  async function copiarPromptIA() {
+    const prompt = montarPromptGabaritoIA(inicial.numero, inicial.direcao, inicial.arquivoNome);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiadoIA(true);
+      setTimeout(() => setCopiadoIA(false), 3000);
+    } catch (e) {
+      window.prompt("Não copiou automaticamente — selecione e copie manualmente (Ctrl+C):", prompt);
+    }
+  }
+
+  function aplicarJSON() {
+    setErroIA("");
+    try {
+      const dados = aplicarJSONGabaritoIA(jsonIA);
+      if (dados.serie) setSerie(String(dados.serie));
+      if (dados.natureza) setNatureza(dados.natureza);
+      if (dados.cfop) setCfop(String(dados.cfop));
+      if (dados.data) setData(dados.data);
+      if (direcao === "entrada" && dados.emitenteNome) setEmitenteNome(dados.emitenteNome);
+      if (direcao === "saida" && dados.destinatarioNome) setDestinatarioNome(dados.destinatarioNome);
+      setItens(dados.itens.map((it) => ({
+        codigo: "", descricao: it.descricao || "", ncm: it.ncm || "", cst: it.cst || "",
+        cfop: it.cfop ? String(it.cfop) : "", unidade: it.unidade || "UN",
+        qtd: it.qtd ?? "", valorUnit: it.valorUnit ?? "",
+      })));
+      if (dados.impostos?.icms !== undefined) setIcmsValor(String(dados.impostos.icms));
+      if (dados.impostos?.pis !== undefined) setPisValor(String(dados.impostos.pis));
+      if (dados.impostos?.cofins !== undefined) setCofinsValor(String(dados.impostos.cofins));
+      if (dados.impostos?.cbs !== undefined) setCbsValor(String(dados.impostos.cbs));
+      if (dados.impostos?.ibs !== undefined) setIbsValor(String(dados.impostos.ibs));
+      if (dados.freteSeguroOutras !== undefined) setFreteSeguroOutras(String(dados.freteSeguroOutras));
+    } catch (e) {
+      setErroIA("Não consegui ler esse JSON (" + e.message + "). Confira se colou a resposta completa e sem texto extra.");
+    }
+  }
 
   function updateItem(i, field, val) { setItens(itens.map((it, idx) => (idx === i ? { ...it, [field]: val } : it))); }
   function addItem() { setItens([...itens, blankItemDoc()]); }
@@ -91,6 +167,31 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
               ? `Modelo "${inicial.natureza}" aplicado — natureza, CFOP e um item de exemplo já vieram preenchidos. Ajuste NCM/CST, quantidades e valores para o exercício real antes de salvar.`
               : "O PDF em si não é anexado aqui — o que você digita abaixo vira o gabarito contra o qual a digitação do aluno é conferida."}
         </div>
+
+        {inicial?.arquivoNome && (
+          <div className="panel" style={{ background: "var(--paper-deep)", marginBottom: 16 }}>
+            <div className="panel-head"><h3>Gerar gabarito com IA (opcional)</h3></div>
+            <div className="panel-body">
+              <div className="helper-note">
+                Copie o prompt, cole numa IA de sua própria conta (Claude.ai, ChatGPT etc.) e anexe o arquivo <b>{inicial.arquivoNome}</b> — o mesmo PDF que estava no ZIP. A IA devolve um JSON; cole a resposta abaixo e clique em "Aplicar". Todos os campos continuam editáveis para você revisar antes de salvar.
+              </div>
+              <div className="btn-row" style={{ marginTop: 10 }}>
+                <button className="btn secondary" onClick={copiarPromptIA}>{copiadoIA ? "✓ copiado!" : "📋 Copiar prompt para IA"}</button>
+                <a className="btn secondary" href="https://claude.ai" target="_blank" rel="noopener noreferrer">Abrir Claude.ai ↗</a>
+                <a className="btn secondary" href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a>
+              </div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label>Colar aqui o JSON devolvido pela IA</label>
+                <textarea rows={5} className="mono" value={jsonIA} onChange={(e) => setJsonIA(e.target.value)} placeholder='{"serie": "1", "natureza": "...", ...}' />
+              </div>
+              <div className="btn-row">
+                <button className="btn" onClick={aplicarJSON} disabled={!jsonIA.trim()}>Aplicar dados extraídos</button>
+              </div>
+              {erroIA && <div className="balance-check bad" style={{ marginTop: 8 }}>{erroIA}</div>}
+            </div>
+          </div>
+        )}
+
         <div className="grid-2">
           <div className="field"><label>Número</label><input className="mono" value={numero} onChange={(e) => setNumero(e.target.value)} disabled={editando} /></div>
           <div className="field"><label>Série</label><input className="mono" value={serie} onChange={(e) => setSerie(e.target.value)} /></div>
