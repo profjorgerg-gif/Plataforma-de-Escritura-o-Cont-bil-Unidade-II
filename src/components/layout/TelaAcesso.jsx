@@ -87,7 +87,7 @@ export default function TelaAcesso({ onEntrarGoogle }) {
         </button>
 
         <div style={{ marginTop: 22, fontSize: 12, color: CORES.sub, textAlign: "center" }}>
-          Turma 3º Ano · Técnico em Contabilidade
+          Técnico em Contabilidade
         </div>
       </div>
     </div>
