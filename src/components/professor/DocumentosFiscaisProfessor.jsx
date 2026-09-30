@@ -239,20 +239,20 @@ const MODELOS_DOCUMENTO = [
 
 function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const [numero, setNumero] = useState(inicial?.numero || "");
-  const [serie, setSerie] = useState("1");
+  const [serie, setSerie] = useState(inicial?.serie ? String(inicial.serie) : "1");
   const [direcao, setDirecao] = useState(inicial?.direcao || "saida");
   const [natureza, setNatureza] = useState(inicial?.natureza || "");
   const [cfop, setCfop] = useState(inicial?.cfop || "");
-  const [data, setData] = useState("");
-  const [emitenteNome, setEmitenteNome] = useState("");
-  const [destinatarioNome, setDestinatarioNome] = useState("");
+  const [data, setData] = useState(inicial?.data || "");
+  const [emitenteNome, setEmitenteNome] = useState(inicial?.emitenteNome || "");
+  const [destinatarioNome, setDestinatarioNome] = useState(inicial?.destinatarioNome || "");
   const [itens, setItens] = useState(inicial?.itens?.length ? inicial.itens.map((it) => ({ ...it })) : [blankItemDoc()]);
-  const [icmsValor, setIcmsValor] = useState("");
-  const [pisValor, setPisValor] = useState("");
-  const [cofinsValor, setCofinsValor] = useState("");
-  const [cbsValor, setCbsValor] = useState("");
-  const [ibsValor, setIbsValor] = useState("");
-  const [freteSeguroOutras, setFreteSeguroOutras] = useState("0");
+  const [icmsValor, setIcmsValor] = useState(inicial?.icmsValor !== undefined ? String(inicial.icmsValor) : "");
+  const [pisValor, setPisValor] = useState(inicial?.pisValor !== undefined ? String(inicial.pisValor) : "");
+  const [cofinsValor, setCofinsValor] = useState(inicial?.cofinsValor !== undefined ? String(inicial.cofinsValor) : "");
+  const [cbsValor, setCbsValor] = useState(inicial?.cbsValor !== undefined ? String(inicial.cbsValor) : "");
+  const [ibsValor, setIbsValor] = useState(inicial?.ibsValor !== undefined ? String(inicial.ibsValor) : "");
+  const [freteSeguroOutras, setFreteSeguroOutras] = useState(inicial?.freteSeguroOutras !== undefined ? String(inicial.freteSeguroOutras) : "0");
   const [erro, setErro] = useState("");
   const [jsonIA, setJsonIA] = useState("");
   const [erroIA, setErroIA] = useState("");
@@ -524,7 +524,17 @@ export default function DocumentosFiscaisProfessor({ turma }) {
         <NovoDocumentoForm
           key={editandoDoc.id}
           idsExistentes={catalogo.map((d) => d.id)}
-          inicial={{ numero: editandoDoc.numero, direcao: editandoDoc.direcao, arquivoNome: editandoDoc.arquivoNome, idExistente: editandoDoc.id }}
+          inicial={{
+            numero: editandoDoc.numero, serie: editandoDoc.serie, direcao: editandoDoc.direcao,
+            natureza: editandoDoc.natureza, cfop: editandoDoc.cfop, data: editandoDoc.data,
+            emitenteNome: editandoDoc.emitente?.nome, destinatarioNome: editandoDoc.destinatario?.nome,
+            itens: editandoDoc.itens,
+            icmsValor: editandoDoc.impostos?.icms?.valor, pisValor: editandoDoc.impostos?.pis?.valor,
+            cofinsValor: editandoDoc.impostos?.cofins?.valor, cbsValor: editandoDoc.impostos?.cbs?.valor,
+            ibsValor: editandoDoc.impostos?.ibs?.valor,
+            freteSeguroOutras: (editandoDoc.totais?.frete || 0) + (editandoDoc.totais?.seguro || 0) + (editandoDoc.totais?.outras || 0),
+            arquivoNome: editandoDoc.arquivoNome, idExistente: editandoDoc.id,
+          }}
           onCancelar={() => setEditandoDoc(null)}
           onCriar={async (atualizado) => { await salvarDocumento(atualizado); setEditandoDoc(null); }}
         />
