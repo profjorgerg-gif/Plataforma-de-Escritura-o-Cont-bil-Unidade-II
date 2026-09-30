@@ -83,6 +83,12 @@ export default function Painel({ turma }) {
       <h2 className="screen-title">Painel do Professor — Unidade II</h2>
       <p className="screen-sub">Visão geral da turma {turma.nome}, lançamentos pendentes e avaliação.</p>
 
+      <div className="btn-row no-print" style={{ marginBottom: 16 }}>
+        <a className="btn secondary" href="https://console.firebase.google.com/project/plataforma-ci-unidade-ii/firestore/usage" target="_blank" rel="noopener noreferrer">
+          📊 Ver uso do Firestore (Console Firebase) ↗
+        </a>
+      </div>
+
       <div className="kpi-row">
         <Kpi label="Alunos na turma" value={alunos.length} />
         <Kpi label="Lançamentos pendentes" value={pendentes.length} tone="warn" />
