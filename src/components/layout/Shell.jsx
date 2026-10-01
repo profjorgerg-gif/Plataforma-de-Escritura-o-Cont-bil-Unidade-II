@@ -35,6 +35,7 @@ import ModoTeste from "../professor/ModoTeste.jsx";
 import ManualAluno from "../manuais/ManualAluno.jsx";
 import ManualProfessor from "../manuais/ManualProfessor.jsx";
 import ManualOperacao from "../manuais/ManualOperacao.jsx";
+import RoteiroAluno from "../manuais/RoteiroAluno.jsx";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
@@ -61,6 +62,7 @@ import ManualOperacao from "../manuais/ManualOperacao.jsx";
 
 const MENU_ALUNO = [
   { key: "dashboard", label: "Meu progresso" },
+  { key: "roteiro", label: "Roteiro do Aluno" },
   { key: "empresa", label: "Empresa didática" },
   { key: "documentos", label: "Documentos fiscais" },
   { key: "digitacao", label: "Digitação e análise fiscal" },
@@ -76,6 +78,7 @@ const MENU_ALUNO = [
 
 const MENU_PROFESSOR = [
   { key: "painel", label: "Painel do professor" },
+  { key: "roteiro", label: "Roteiro do Aluno" },
   { key: "turmas", label: "Turmas" },
   { key: "fila", label: "Fila de correção" },
   { key: "historico", label: "Histórico do aluno" },
@@ -293,7 +296,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
-  if (screen === "manual-aluno") {
+  if (screen === "roteiro") {
+    tela = <RoteiroAluno />;
+  } else if (screen === "manual-aluno") {
     tela = <ManualAluno />;
   } else if (screen === "manual-professor") {
     tela = <ManualProfessor />;
