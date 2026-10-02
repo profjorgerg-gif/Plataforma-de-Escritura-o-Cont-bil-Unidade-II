@@ -37,28 +37,40 @@ export default function App() {
   // pedir a cada novo login (resetados sempre que o uid muda).
   const [acessoAlunoConfirmado, setAcessoAlunoConfirmado] = useState(false);
   const [acessoProfessorConfirmado, setAcessoProfessorConfirmado] = useState(false);
+  // Antes não existia tratamento de erro aqui: se getDoc/setDoc falhasse
+  // (ex.: permissão negada, rede instável), a tela ficava presa para sempre
+  // em "Preparando seu acesso…", sem nenhuma mensagem — impossível saber o
+  // que realmente travou. Agora qualquer falha aparece nesta tela de erro,
+  // com o motivo técnico e um botão para tentar de novo.
+  const [erroAcesso, setErroAcesso] = useState("");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUsuario(u);
       setAcessoAlunoConfirmado(false);
       setAcessoProfessorConfirmado(false);
+      setErroAcesso("");
       if (u) {
-        const ref = doc(db, "users", u.uid);
-        let snap = await getDoc(ref);
-        if (!snap.exists()) {
-          await setDoc(ref, {
-            nome: u.displayName || "",
-            email: (u.email || "").toLowerCase(),
-            papel: "aluno",
-            turmaId: null,
-            matricula: null,
-            matriculaConfirmada: false,
-            criadoEm: new Date().toISOString(),
-          });
-          snap = await getDoc(ref);
+        try {
+          const ref = doc(db, "users", u.uid);
+          let snap = await getDoc(ref);
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              nome: u.displayName || "",
+              email: (u.email || "").toLowerCase(),
+              papel: "aluno",
+              turmaId: null,
+              matricula: null,
+              matriculaConfirmada: false,
+              criadoEm: new Date().toISOString(),
+            });
+            snap = await getDoc(ref);
+          }
+          setPerfil(snap.data());
+        } catch (e) {
+          setErroAcesso((e.message || e.code || "erro desconhecido") + "");
+          setPerfil(null);
         }
-        setPerfil(snap.data());
       } else {
         setPerfil(null);
       }
@@ -66,6 +78,12 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  async function tentarDeNovo() {
+    setErroAcesso("");
+    setCarregando(true);
+    window.location.reload();
+  }
 
   async function entrarComGoogle() {
     await signInWithPopup(auth, googleProvider);
@@ -98,6 +116,35 @@ export default function App() {
 
   if (!usuario) {
     return <TelaAcesso onEntrarGoogle={entrarComGoogle} />;
+  }
+
+  if (erroAcesso) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#EEF1EF", fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
+        <div style={{ width: 460, maxWidth: "100%", background: "#ffffff", border: "1px solid #D7DEDA", boxShadow: "0 8px 28px rgba(20,30,24,0.08)", padding: "40px 36px", boxSizing: "border-box" }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.1em", color: "#5C6660", textTransform: "uppercase", marginBottom: 10 }}>Não foi possível preparar o acesso</div>
+          <h1 style={{ margin: "0 0 10px 0", fontFamily: "'Lora', Georgia, serif", fontSize: 22, fontWeight: 600, color: "#0B2A1C" }}>Algo deu errado</h1>
+          <p style={{ margin: "0 0 14px 0", fontSize: 13.5, color: "#6B746E", lineHeight: 1.6 }}>
+            Tente novamente. Se continuar, mostre esta mensagem ao professor — ela indica o motivo técnico.
+          </p>
+          <div style={{ background: "#FBEAEA", border: "1px solid #E3B4B4", color: "#8A2A2A", padding: "10px 12px", fontSize: 13, marginBottom: 18, wordBreak: "break-word" }}>
+            {erroAcesso}
+          </div>
+          <button
+            onClick={tentarDeNovo}
+            style={{ width: "100%", padding: 14, background: "#0B5D3B", border: "none", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}
+          >
+            Tentar novamente
+          </button>
+          <button
+            onClick={sair}
+            style={{ width: "100%", padding: 10, background: "none", border: "none", color: "#6B746E", fontSize: 13, cursor: "pointer", textDecoration: "underline" }}
+          >
+            Sair / trocar de conta
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!perfil) {
