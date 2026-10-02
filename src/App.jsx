@@ -121,6 +121,16 @@ export default function App() {
       throw new Error("[vínculo] " + (e.message || e.code || "erro desconhecido"));
     }
     try {
+      // Mantém o índice plano de login (matriculas/{matricula}) em sincronia
+      // com turmas/*/alunos/{matricula} — é dele que a tela de confirmação
+      // de matrícula lê, via get() direto (veja TelaConfirmarMatricula.jsx).
+      await updateDoc(doc(db, "matriculas", matricula), {
+        uid: usuario.uid,
+      });
+    } catch (e) {
+      throw new Error("[índice] " + (e.message || e.code || "erro desconhecido"));
+    }
+    try {
       const snap = await getDoc(doc(db, "users", usuario.uid));
       setPerfil(snap.data());
     } catch (e) {

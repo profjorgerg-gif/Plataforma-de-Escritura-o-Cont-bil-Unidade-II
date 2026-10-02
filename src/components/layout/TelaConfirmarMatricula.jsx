@@ -1,30 +1,27 @@
 import { useState } from "react";
-import { collectionGroup, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase.js";
 
 // Tela nova (não existia no protótipo, decidida junto com o fluxo de login):
 // no primeiro acesso, o aluno confirma a matrícula que o professor já
 // cadastrou na turma (Painel do Professor → Turmas → Importar lista / +
-// Adicionar aluno, no protótipo). Aqui isso vira uma busca real no Firestore:
-// um collectionGroup sobre "alunos", filtrando pelo campo "matricula".
+// Adicionar aluno, no protótipo).
 //
-// Requisito de dados: cada documento turmas/{turmaId}/alunos/{matricula}
-// precisa também guardar matricula como CAMPO (duplicando o id do
-// documento) — é o que torna essa busca por collectionGroup possível sem
-// saber de antemão a turma. Isso está anotado no documento de modelo de
-// dados; ajuste lá se decidirem representar de outro jeito.
+// HISTÓRICO (2026-10-02): a versão original fazia um collectionGroup query
+// sobre "alunos" filtrando por matricula, para achar a turma sem o aluno
+// precisar saber de antemão. Isso quebrou em produção: o Firestore nega
+// (permission-denied) um collectionGroup cuja regra depende de get() em
+// outro documento (ex.: souProfessorDaTurma), mesmo quando outra parte da
+// regra já é satisfeita só pelo filtro da query — não há como provar
+// estaticamente que o restante do OR nunca entraria em jogo. Depurado ao
+// vivo com alunos reais travados no primeiro acesso.
 //
-// IMPORTANTE sobre a regra de segurança (2026-10-02): o Firestore só permite
-// que uma regra de leitura olhe um campo do documento (aqui, uid == null)
-// para autorizar uma CONSULTA (não um get de um documento só) se esse mesmo
-// campo também for filtro da própria consulta — senão ele recusa a consulta
-// inteira de cara, mesmo que cada documento retornado individualmente
-// passasse na regra. Por isso o filtro where("uid","==",null) abaixo não é
-// opcional: sem ele, a regra "resource.data.uid == null" em firestore.rules
-// nunca é aceita para este collectionGroup. Como consequência, não dá mais
-// para distinguir aqui "matrícula não encontrada" de "matrícula já vinculada
-// a outra conta" — as duas viram uma busca vazia, e a mensagem de erro
-// abaixo cobre as duas situações.
+// SOLUÇÃO: em vez de buscar dentro de turmas/*/alunos/*, agora existe um
+// índice plano e de baixa sensibilidade em matriculas/{matricula} — só
+// matrícula, turmaId e uid, sem nome nem nota — mantido em sincronia pelo
+// Painel do Professor (Turmas.jsx) e por este próprio fluxo. Um get() direto
+// num documento não tem essa limitação de collectionGroup, então funciona
+// de forma simples e previsível.
 
 export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair }) {
   const [matricula, setMatricula] = useState("");
@@ -36,24 +33,18 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair })
     if (!matricula.trim()) return;
     setCarregando(true);
     try {
-      const q = query(
-        collectionGroup(db, "alunos"),
-        where("matricula", "==", matricula.trim()),
-        where("uid", "==", null)
-      );
       let snap;
       try {
-        snap = await getDocs(q);
+        snap = await getDoc(doc(db, "matriculas", matricula.trim()));
       } catch (e) {
         throw new Error("[busca] " + (e.message || e.code || "erro desconhecido"));
       }
-      if (snap.empty) {
+      if (!snap.exists() || snap.data().uid) {
         setErro("Matrícula não encontrada ou já vinculada a outra conta Google. Confira o número ou procure o professor responsável.");
         setCarregando(false);
         return;
       }
-      const alunoDoc = snap.docs[0];
-      const turmaId = alunoDoc.ref.parent.parent.id;
+      const turmaId = snap.data().turmaId;
       await onConfirmar(matricula.trim(), turmaId);
     } catch (e) {
       // Mostra o motivo técnico direto na tela — geralmente é falta de um

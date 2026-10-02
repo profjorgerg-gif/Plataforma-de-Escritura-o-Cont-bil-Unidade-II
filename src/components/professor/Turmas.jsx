@@ -30,10 +30,14 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
 
   async function adicionarAluno() {
     if (!novoAluno.trim() || !novaMatricula.trim() || !turmaAtual) return;
-    await setDoc(doc(db, "turmas", turmaAtual.id, "alunos", novaMatricula.trim()), {
+    const matricula = novaMatricula.trim();
+    await setDoc(doc(db, "turmas", turmaAtual.id, "alunos", matricula), {
       nome: novoAluno.trim(), uid: null, nota: null, notaLiberada: false,
       prazoIndividual: null, prazoHistorico: [], dataEntrega: null, desconto: 0, descontoManual: false,
     });
+    // Índice plano de login (ver firestore.rules e TelaConfirmarMatricula.jsx)
+    // — só matrícula/turmaId/uid, sem nome nem nota.
+    await setDoc(doc(db, "matriculas", matricula), { turmaId: turmaAtual.id, uid: null });
     setNovoAluno(""); setNovaMatricula("");
   }
 
@@ -64,7 +68,39 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
         prazoIndividual: null, prazoHistorico: [], dataEntrega: null, desconto: 0, descontoManual: false,
       })
     ));
+    // Índice plano de login (ver firestore.rules e TelaConfirmarMatricula.jsx).
+    await Promise.all(novos.map((c) =>
+      setDoc(doc(db, "matriculas", c.matricula), { turmaId: turmaAtual.id, uid: null })
+    ));
     setCandidatos(null);
+  }
+
+  const [sincronizando, setSincronizando] = useState(false);
+  const [resultadoSync, setResultadoSync] = useState("");
+
+  // Migração única: cria matriculas/{matricula} para alunos cadastrados ANTES
+  // dessa coleção existir (2026-10-02). Também corrige o uid se o aluno já
+  // tinha feito o primeiro login antes da migração. Pode ser clicado de novo
+  // sem problema — é idempotente, só grava o que estiver faltando/diferente.
+  async function sincronizarMatriculas() {
+    setSincronizando(true);
+    setResultadoSync("");
+    try {
+      let total = 0;
+      for (const t of turmas || []) {
+        const snap = await getDocs(collection(db, "turmas", t.id, "alunos"));
+        for (const d of snap.docs) {
+          const matricula = d.id;
+          const uid = d.data().uid ?? null;
+          await setDoc(doc(db, "matriculas", matricula), { turmaId: t.id, uid }, { merge: true });
+          total += 1;
+        }
+      }
+      setResultadoSync(`Pronto: ${total} matrícula(s) sincronizada(s) em todas as suas turmas.`);
+    } catch (e) {
+      setResultadoSync("Não foi possível sincronizar agora: " + (e.message || e.code || "erro desconhecido"));
+    }
+    setSincronizando(false);
   }
 
   const [removendo, setRemovendo] = useState(null); // matricula em remoção, ou null
@@ -90,6 +126,7 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
         await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
       }
       await deleteDoc(doc(db, "turmas", turmaAtual.id, "alunos", aluno.matricula));
+      await deleteDoc(doc(db, "matriculas", aluno.matricula));
     } finally {
       setRemovendo(null);
     }
@@ -127,6 +164,23 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
         <div className="panel-body">
           <div className="field"><label>Nome da turma</label><input value={novoNomeTurma} onChange={(e) => setNovoNomeTurma(e.target.value)} /></div>
           <div className="btn-row"><button className="btn secondary" onClick={criarTurma}>+ Criar turma</button></div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginBottom: 22 }}>
+        <div className="panel-head"><h3>Manutenção — primeiro acesso dos alunos</h3></div>
+        <div className="panel-body">
+          <p className="helper-note" style={{ marginBottom: 12 }}>
+            Clique uma vez após atualizar o sistema em 2026-10-02 (correção do primeiro login). Alunos cadastrados
+            antes dessa data precisam deste passo único para conseguir confirmar a matrícula; alunos novos já são
+            cobertos automaticamente ao serem cadastrados. Pode clicar de novo sem problema, a qualquer momento.
+          </p>
+          <div className="btn-row">
+            <button className="btn secondary" disabled={sincronizando} onClick={sincronizarMatriculas}>
+              {sincronizando ? "Sincronizando…" : "Sincronizar matrículas"}
+            </button>
+          </div>
+          {resultadoSync && <div className="helper-note" style={{ marginTop: 10 }}>{resultadoSync}</div>}
         </div>
       </div>
 
