@@ -41,7 +41,12 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair })
         where("matricula", "==", matricula.trim()),
         where("uid", "==", null)
       );
-      const snap = await getDocs(q);
+      let snap;
+      try {
+        snap = await getDocs(q);
+      } catch (e) {
+        throw new Error("[busca] " + (e.message || e.code || "erro desconhecido"));
+      }
       if (snap.empty) {
         setErro("Matrícula não encontrada ou já vinculada a outra conta Google. Confira o número ou procure o professor responsável.");
         setCarregando(false);

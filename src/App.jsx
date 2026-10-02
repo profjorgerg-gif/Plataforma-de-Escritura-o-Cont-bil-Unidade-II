@@ -98,16 +98,34 @@ export default function App() {
     // Verificação mínima do lado do cliente — a regra do Firestore é quem
     // de fato garante que isso só pode ser feito uma vez (uid ainda nulo
     // no documento do aluno) e que só estes três campos mudam.
-    await updateDoc(doc(db, "users", usuario.uid), {
-      matricula,
-      turmaId,
-      matriculaConfirmada: true,
-    });
-    await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula), {
-      uid: usuario.uid,
-    });
-    const snap = await getDoc(doc(db, "users", usuario.uid));
-    setPerfil(snap.data());
+    //
+    // Cada etapa é marcada com uma tag ([perfil]/[vínculo]/[releitura]) no
+    // erro, propositalmente — são três gravações/leituras separadas, cada
+    // uma com sua própria regra de segurança, e sem isso uma falha em
+    // qualquer uma delas aparece com a mesma mensagem genérica na tela
+    // anterior, impossibilitando saber qual delas realmente travou.
+    try {
+      await updateDoc(doc(db, "users", usuario.uid), {
+        matricula,
+        turmaId,
+        matriculaConfirmada: true,
+      });
+    } catch (e) {
+      throw new Error("[perfil] " + (e.message || e.code || "erro desconhecido"));
+    }
+    try {
+      await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula), {
+        uid: usuario.uid,
+      });
+    } catch (e) {
+      throw new Error("[vínculo] " + (e.message || e.code || "erro desconhecido"));
+    }
+    try {
+      const snap = await getDoc(doc(db, "users", usuario.uid));
+      setPerfil(snap.data());
+    } catch (e) {
+      throw new Error("[releitura] " + (e.message || e.code || "erro desconhecido"));
+    }
   }
 
   if (carregando) {
