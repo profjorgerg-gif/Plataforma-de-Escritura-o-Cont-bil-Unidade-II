@@ -13,6 +13,18 @@ import { db } from "../../firebase.js";
 // documento) — é o que torna essa busca por collectionGroup possível sem
 // saber de antemão a turma. Isso está anotado no documento de modelo de
 // dados; ajuste lá se decidirem representar de outro jeito.
+//
+// IMPORTANTE sobre a regra de segurança (2026-10-02): o Firestore só permite
+// que uma regra de leitura olhe um campo do documento (aqui, uid == null)
+// para autorizar uma CONSULTA (não um get de um documento só) se esse mesmo
+// campo também for filtro da própria consulta — senão ele recusa a consulta
+// inteira de cara, mesmo que cada documento retornado individualmente
+// passasse na regra. Por isso o filtro where("uid","==",null) abaixo não é
+// opcional: sem ele, a regra "resource.data.uid == null" em firestore.rules
+// nunca é aceita para este collectionGroup. Como consequência, não dá mais
+// para distinguir aqui "matrícula não encontrada" de "matrícula já vinculada
+// a outra conta" — as duas viram uma busca vazia, e a mensagem de erro
+// abaixo cobre as duas situações.
 
 export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair }) {
   const [matricula, setMatricula] = useState("");
@@ -24,19 +36,18 @@ export default function TelaConfirmarMatricula({ usuario, onConfirmar, onSair })
     if (!matricula.trim()) return;
     setCarregando(true);
     try {
-      const q = query(collectionGroup(db, "alunos"), where("matricula", "==", matricula.trim()));
+      const q = query(
+        collectionGroup(db, "alunos"),
+        where("matricula", "==", matricula.trim()),
+        where("uid", "==", null)
+      );
       const snap = await getDocs(q);
       if (snap.empty) {
-        setErro("Matrícula não encontrada. Confira o número ou procure o professor responsável.");
+        setErro("Matrícula não encontrada ou já vinculada a outra conta Google. Confira o número ou procure o professor responsável.");
         setCarregando(false);
         return;
       }
       const alunoDoc = snap.docs[0];
-      if (alunoDoc.data().uid) {
-        setErro("Essa matrícula já está vinculada a outra conta Google. Procure o professor.");
-        setCarregando(false);
-        return;
-      }
       const turmaId = alunoDoc.ref.parent.parent.id;
       await onConfirmar(matricula.trim(), turmaId);
     } catch (e) {
