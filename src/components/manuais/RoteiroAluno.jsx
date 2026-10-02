@@ -50,19 +50,20 @@ export default function RoteiroAluno() {
         </ul>
       </Secao>
 
-      <Secao
-        titulo="Como usar este roteiro"
-        imagem="roteiro-aluno-01-meu-progresso.png"
-      >
-        <p>Repita os Passos 1 a 6 para cada documento fiscal liberado pelo professor. A tela <b>Meu progresso</b> (abaixo) é o ponto de referência: ela mostra quantos lançamentos você já tem aprovados, aguardando correção ou com correção necessária, e se o Balanço já fecha.</p>
+      <Secao titulo="Como usar este roteiro">
+        <p>Repita os Passos 1 a 6 para cada documento fiscal liberado pelo professor. A tela <b>Meu progresso</b> — que você verá logo depois de entrar, no Passo 1 — é o ponto de referência: ela mostra quantos lançamentos você já tem aprovados, aguardando correção ou com correção necessária, e se o Balanço já fecha.</p>
       </Secao>
 
-      <Secao titulo="Passo 1 — Entrar no sistema" imagem="roteiro-aluno-02-entrar-no-sistema.png">
+      <Secao
+        titulo="Passo 1 — Entrar no sistema"
+        imagem="roteiro-aluno-02-entrar-no-sistema.png"
+        imagem2="roteiro-aluno-01-meu-progresso.png"
+      >
         <ol>
           <li>Acesse o endereço do sistema informado pelo professor.</li>
           <li>Clique em <b>Continuar com Google</b> e entre com sua conta Google (sempre a mesma, do primeiro ao último acesso).</li>
           <li>Digite sua matrícula exatamente como o professor cadastrou. Isso acontece a cada login — é só uma confirmação, não um novo cadastro.</li>
-          <li>Você cai em <b>Meu progresso</b>, a tela inicial. Confira ali quantos lançamentos já tem aprovados.</li>
+          <li>Você cai em <b>Meu progresso</b> (segunda imagem abaixo), a tela inicial. Confira ali quantos lançamentos já tem aprovados.</li>
         </ol>
       </Secao>
 
