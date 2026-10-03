@@ -358,7 +358,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "fila") {
     tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   } else if (ehProfessorOuAdmin && screen === "historico") {
-    tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} />;
+    tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
   } else if (ehProfessorOuAdmin && screen === "documentos") {
     tela = <DocumentosFiscaisProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "plano") {

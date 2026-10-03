@@ -143,7 +143,7 @@ function PainelDocumento({ documento, digitacao, analise, classificacoes, lancam
   );
 }
 
-export default function HistoricoAluno({ turmaId, alunoSelecionado }) {
+export default function HistoricoAluno({ turmaId, alunoSelecionado, onVoltarParaTurmas }) {
   const { carregando, lancamentos, contas } = useEscrituracao(turmaId, alunoSelecionado?.matricula);
   const { digitacoes, analises, classificacoes } = useProgressoAluno(turmaId, alunoSelecionado?.matricula);
   const documentos = useDocumentosDaTurma(turmaId);
@@ -172,6 +172,9 @@ export default function HistoricoAluno({ turmaId, alunoSelecionado }) {
   return (
     <>
       <div className="screen-eyebrow">histórico do aluno</div>
+      <div className="btn-row no-print" style={{ marginBottom: 10 }}>
+        <button className="btn secondary" onClick={onVoltarParaTurmas}>← Voltar para Turmas (escolher outro aluno)</button>
+      </div>
       <h2 className="screen-title">Acompanhamento — {alunoSelecionado.nome}</h2>
       <p className="screen-sub">
         Progresso da empresa didática deste aluno em cada documento fiscal liberado para a turma — digitação e análise
