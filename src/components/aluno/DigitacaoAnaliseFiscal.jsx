@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
+import { useLookupCfop, useLookupNcm } from "../../hooks/useLookupFiscal.js";
+import DicasFiscais from "../shared/DicasFiscais.jsx";
 
 // NOTA DE FUSÃO (2026-09-28): esta tela nasceu da junção de "Digitação da
 // NF-e" e "Análise fiscal do documento", que eram duas telas separadas no
@@ -35,6 +37,8 @@ function blankAnalise() {
 export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos }) {
   const [docSel, setDocSel] = useState(documentos[0]?.id || "");
   const docFiscal = documentos.find((d) => d.id === docSel);
+  const mapaCfop = useLookupCfop();
+  const mapaNcm = useLookupNcm();
 
   // --- 1. digitação ---
   const [form, setForm] = useState(docFiscal ? blankDigitacao(docFiscal) : null);
@@ -164,6 +168,13 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
             ))}
           </div>
           <button className="btn secondary" style={{ marginTop: 2 }} onClick={addItem}>+ adicionar item</button>
+
+          <DicasFiscais
+            mapaCfop={mapaCfop}
+            mapaNcm={mapaNcm}
+            cfops={[form.cfop, ...form.itens.map((it) => it.cfop)]}
+            ncms={form.itens.map((it) => it.ncm)}
+          />
 
           <label style={{ display: "block", marginTop: 18, fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Impostos</label>
           <div className="grid-2" style={{ marginTop: 8 }}>

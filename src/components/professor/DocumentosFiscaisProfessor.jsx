@@ -4,6 +4,8 @@ import { doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firest
 import { db } from "../../firebase.js";
 import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { fmt } from "../../lib/contabil.js";
+import { useLookupCfop, useLookupNcm, buscarCfop } from "../../hooks/useLookupFiscal.js";
+import DicasFiscais from "../shared/DicasFiscais.jsx";
 
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
@@ -258,6 +260,9 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const [erroIA, setErroIA] = useState("");
   const [copiadoIA, setCopiadoIA] = useState(false);
   const editando = !!inicial?.idExistente;
+  const mapaCfop = useLookupCfop();
+  const mapaNcm = useLookupNcm();
+  const dicaCfopHeader = buscarCfop(mapaCfop, cfop);
 
   async function copiarPromptIA() {
     const prompt = montarPromptGabaritoIA(inicial.numero, inicial.direcao, inicial.arquivoNome);
@@ -372,7 +377,28 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
           <div className="field"><label>Data de emissão</label><input type="date" className="mono" value={data} onChange={(e) => setData(e.target.value)} /></div>
         </div>
         <div className="field"><label>Natureza da operação</label><input value={natureza} onChange={(e) => setNatureza(e.target.value)} /></div>
-        <div className="field"><label>CFOP</label><input className="mono" value={cfop} onChange={(e) => setCfop(e.target.value)} /></div>
+        <div className="field">
+          <label>CFOP</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input className="mono" style={{ flex: 1 }} value={cfop} onChange={(e) => setCfop(e.target.value)} />
+            {dicaCfopHeader && (
+              <button
+                type="button"
+                className="btn secondary"
+                style={{ whiteSpace: "nowrap" }}
+                onClick={() => setNatureza(dicaCfopHeader.titulo)}
+                title="Preenche o campo Natureza da operação com o título oficial deste CFOP"
+              >
+                usar como natureza
+              </button>
+            )}
+          </div>
+          {dicaCfopHeader && (
+            <div className="helper-note" style={{ marginTop: 6 }}>
+              <b>CFOP {cfop.trim()}</b> — {dicaCfopHeader.titulo}
+            </div>
+          )}
+        </div>
         {direcao === "entrada"
           ? <div className="field"><label>Emitente (fornecedor)</label><input value={emitenteNome} onChange={(e) => setEmitenteNome(e.target.value)} /></div>
           : <div className="field"><label>Destinatário (cliente)</label><input value={destinatarioNome} onChange={(e) => setDestinatarioNome(e.target.value)} /></div>}
@@ -392,6 +418,14 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
           ))}
         </div>
         <button className="btn secondary" onClick={addItem}>+ adicionar item</button>
+
+        <DicasFiscais
+          mapaCfop={mapaCfop}
+          mapaNcm={mapaNcm}
+          cfops={itens.map((it) => it.cfop)}
+          ncms={itens.map((it) => it.ncm)}
+        />
+
         <label style={{ display: "block", marginTop: 16, fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Impostos e totais</label>
         <div className="grid-2" style={{ marginTop: 8 }}>
           <div>
