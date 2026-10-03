@@ -122,7 +122,7 @@ function PainelDocumento({ documento, digitacao, analise, classificacoes, lancam
         <div>
           <h3 style={{ margin: 0 }}>Nº {documento.numero} — {documento.direcao === "entrada" ? "Entrada" : "Saída"}</h3>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 4 }}>
-            <Marca feito={digitado} /> digitação &nbsp; <Marca feito={analisado} /> análise &nbsp; <Marca feito={classificado} /> classificação &nbsp; <Marca feito={lancado} /> lançamento
+            <Marca feito={digitado} /> 1. digitação &nbsp; <Marca feito={analisado} /> 2. análise fiscal &nbsp; <Marca feito={classificado} /> 3. classificação &nbsp; <Marca feito={lancado} /> 4. lançamento
           </div>
         </div>
         <span style={{ fontSize: 13, color: "var(--ink-faint)" }}>{aberto ? "▲ ocultar" : "▼ ver detalhes"}</span>
