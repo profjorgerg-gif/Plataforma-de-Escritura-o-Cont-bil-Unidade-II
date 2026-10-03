@@ -224,6 +224,15 @@
 
   .partida-row{display:grid; grid-template-columns:2fr 90px 110px 110px 30px; gap:8px; align-items:center; margin-bottom:8px;}
   .partida-row select, .partida-row input{padding:7px 8px; font-size:13px;}
+
+  /* Linha de item (Digitação/Gabarito): os campos ficam soltos no grid, sem
+     a classe .field — sem isto, cada <input> assume a largura padrão do
+     navegador (bem maior que a coluna) e "engole" visualmente as colunas
+     vizinhas (2026-10-03, bug reportado pelo professor). */
+  .item-grid-row input, .item-grid-row select{
+    width:100%; padding:7px 8px; font-size:13px; border:1px solid var(--line-strong); background:var(--paper); color:var(--ink);
+  }
+  .item-grid-row input:disabled{background:var(--paper-deep); color:var(--ink-faint);}
   .remove-partida{background:none; border:none; color:var(--red); cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:16px; line-height:1;}
 
 /* ============================================================

@@ -41,7 +41,7 @@ export default function CampoFiscalAutocomplete({ tipo, value, onChange, dados, 
   }
 
   return (
-    <div style={{ position: "relative", ...style }}>
+    <div style={{ position: "relative", width: "100%", ...style }}>
       <input
         className="mono"
         placeholder={placeholder}
@@ -50,6 +50,7 @@ export default function CampoFiscalAutocomplete({ tipo, value, onChange, dados, 
         onFocus={() => setAberto(true)}
         onBlur={aoDesfocar}
         autoComplete="off"
+        style={{ width: "100%" }}
       />
       {aberto && sugestoes.length > 0 && (
         <div

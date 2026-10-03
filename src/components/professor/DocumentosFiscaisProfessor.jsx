@@ -408,25 +408,22 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
         <div style={{ marginTop: 8 }}>
           {itens.map((it, i) => {
             const dicaNcmItem = buscarNcm(mapaNcm, it.ncm);
-            const dicaCfopItem = buscarCfop(mapaCfop, it.cfop);
             const totalItem = (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0);
             return (
               <div key={i} style={{ marginBottom: 10 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 90px 24px", gap: 6 }}>
+                <div className="item-grid-row" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 60px 70px 90px 90px 24px", gap: 6 }}>
                   <input placeholder="Descrição" value={it.descricao} onChange={(e) => updateItem(i, "descricao", e.target.value)} />
                   <CampoFiscalAutocomplete tipo="ncm" dados={dadosNcm} placeholder="NCM" value={it.ncm} onChange={(v) => updateItem(i, "ncm", v)} />
                   <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => updateItem(i, "cst", e.target.value)} />
-                  <CampoFiscalAutocomplete tipo="cfop" dados={dadosCfop} placeholder="CFOP" value={it.cfop} onChange={(v) => updateItem(i, "cfop", v)} />
                   <input placeholder="Un." value={it.unidade} onChange={(e) => updateItem(i, "unidade", e.target.value)} />
                   <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => updateItem(i, "qtd", e.target.value)} />
                   <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => updateItem(i, "valorUnit", e.target.value)} />
                   <input className="mono" placeholder="Total" value={fmt(totalItem)} disabled title="Calculado: quantidade × valor unitário" />
                   {itens.length > 1 ? <button className="remove-partida" onClick={() => removeItem(i)}>×</button> : <span />}
                 </div>
-                {(dicaNcmItem || dicaCfopItem) && (
+                {dicaNcmItem && (
                   <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginTop: 3, paddingLeft: 2 }}>
-                    {dicaNcmItem && <div><b>Consulta NCM {it.ncm}:</b> {dicaNcmItem.descricao}</div>}
-                    {dicaCfopItem && <div><b>Consulta CFOP {it.cfop}:</b> {dicaCfopItem.titulo}</div>}
+                    <b>Consulta NCM {it.ncm}:</b> {dicaNcmItem.descricao}
                   </div>
                 )}
               </div>
