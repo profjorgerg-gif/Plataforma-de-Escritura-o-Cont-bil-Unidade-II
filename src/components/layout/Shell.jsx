@@ -36,6 +36,7 @@ import ManualAluno from "../manuais/ManualAluno.jsx";
 import ManualProfessor from "../manuais/ManualProfessor.jsx";
 import ManualOperacao from "../manuais/ManualOperacao.jsx";
 import RoteiroAluno from "../manuais/RoteiroAluno.jsx";
+import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
@@ -66,6 +67,7 @@ const MENU_ALUNO = [
   { key: "empresa", label: "Empresa didática" },
   { key: "documentos", label: "Documentos fiscais" },
   { key: "digitacao", label: "Digitação e análise fiscal" },
+  { key: "consulta", label: "Consulta CFOP/NCM" },
   { key: "plano", label: "Plano de contas" },
   { key: "classificacao", label: "Classificação contábil" },
   { key: "diario", label: "Livro diário" },
@@ -83,6 +85,7 @@ const MENU_PROFESSOR = [
   { key: "fila", label: "Fila de correção" },
   { key: "historico", label: "Histórico do aluno" },
   { key: "documentos", label: "Documentos fiscais" },
+  { key: "consulta", label: "Consulta CFOP/NCM" },
   { key: "plano", label: "Plano de contas" },
   { key: "modoteste", label: "Modo de teste" },
 ];
@@ -318,6 +321,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DocumentosFiscais documentos={documentos} />;
   } else if (papelEfetivo === "aluno" && screen === "digitacao") {
     tela = <DigitacaoAnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
+  } else if (papelEfetivo === "aluno" && screen === "consulta") {
+    tela = <ConsultaFiscal />;
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {
@@ -361,6 +366,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
   } else if (ehProfessorOuAdmin && screen === "documentos") {
     tela = <DocumentosFiscaisProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "consulta") {
+    tela = <ConsultaFiscal />;
   } else if (ehProfessorOuAdmin && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={perfil.papel} />;
   }
