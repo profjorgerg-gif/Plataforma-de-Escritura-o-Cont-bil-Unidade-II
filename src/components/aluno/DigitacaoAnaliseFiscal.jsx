@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
-import { useLookupCfop, useLookupNcm } from "../../hooks/useLookupFiscal.js";
-import DicasFiscais from "../shared/DicasFiscais.jsx";
+import { useLookupCfop, useLookupNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
 
 // NOTA DE FUSÃO (2026-09-28): esta tela nasceu da junção de "Digitação da
 // NF-e" e "Análise fiscal do documento", que eram duas telas separadas no
@@ -139,7 +138,13 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           </div>
           <div className="field"><label>Natureza da operação</label><input value={form.natureza} onChange={(e) => setField("natureza", e.target.value)} /></div>
           <div className="grid-2">
-            <div className="field"><label>CFOP</label><input className="mono" value={form.cfop} onChange={(e) => setField("cfop", e.target.value)} /></div>
+            <div className="field">
+              <label>CFOP</label>
+              <input className="mono" value={form.cfop} onChange={(e) => setField("cfop", e.target.value)} />
+              {buscarCfop(mapaCfop, form.cfop) && (
+                <div className="helper-note" style={{ marginTop: 6 }}>Consulta CFOP: {buscarCfop(mapaCfop, form.cfop).titulo}</div>
+              )}
+            </div>
             <div className="field"><label>Data de emissão</label><input type="date" className="mono" value={form.data} onChange={(e) => setField("data", e.target.value)} /></div>
           </div>
           <div className="grid-2">
@@ -154,27 +159,34 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           </div>
           <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Itens</label>
           <div style={{ marginTop: 8 }}>
-            {form.itens.map((it, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 24px", gap: 6, marginBottom: 6 }}>
-                <input placeholder="Descrição" value={it.descricao} onChange={(e) => setItemField(i, "descricao", e.target.value)} />
-                <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => setItemField(i, "ncm", e.target.value)} />
-                <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => setItemField(i, "cst", e.target.value)} />
-                <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => setItemField(i, "cfop", e.target.value)} />
-                <input placeholder="Un." value={it.unidade} onChange={(e) => setItemField(i, "unidade", e.target.value)} />
-                <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => setItemField(i, "qtd", e.target.value)} />
-                <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => setItemField(i, "valorUnit", e.target.value)} />
-                <button className="remove-partida" onClick={() => removeItem(i)}>×</button>
-              </div>
-            ))}
+            {form.itens.map((it, i) => {
+              const dicaNcmItem = buscarNcm(mapaNcm, it.ncm);
+              const dicaCfopItem = buscarCfop(mapaCfop, it.cfop);
+              const totalItem = (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0);
+              return (
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 90px 24px", gap: 6 }}>
+                    <input placeholder="Descrição" value={it.descricao} onChange={(e) => setItemField(i, "descricao", e.target.value)} />
+                    <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => setItemField(i, "ncm", e.target.value)} />
+                    <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => setItemField(i, "cst", e.target.value)} />
+                    <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => setItemField(i, "cfop", e.target.value)} />
+                    <input placeholder="Un." value={it.unidade} onChange={(e) => setItemField(i, "unidade", e.target.value)} />
+                    <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => setItemField(i, "qtd", e.target.value)} />
+                    <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => setItemField(i, "valorUnit", e.target.value)} />
+                    <input className="mono" placeholder="Total" value={fmt(totalItem)} disabled title="Calculado: quantidade × valor unitário" />
+                    <button className="remove-partida" onClick={() => removeItem(i)}>×</button>
+                  </div>
+                  {(dicaNcmItem || dicaCfopItem) && (
+                    <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginTop: 3, paddingLeft: 2 }}>
+                      {dicaNcmItem && <div><b>Consulta NCM {it.ncm}:</b> {dicaNcmItem.descricao}</div>}
+                      {dicaCfopItem && <div><b>Consulta CFOP {it.cfop}:</b> {dicaCfopItem.titulo}</div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <button className="btn secondary" style={{ marginTop: 2 }} onClick={addItem}>+ adicionar item</button>
-
-          <DicasFiscais
-            mapaCfop={mapaCfop}
-            mapaNcm={mapaNcm}
-            cfops={[form.cfop, ...form.itens.map((it) => it.cfop)]}
-            ncms={form.itens.map((it) => it.ncm)}
-          />
 
           <label style={{ display: "block", marginTop: 18, fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Impostos</label>
           <div className="grid-2" style={{ marginTop: 8 }}>

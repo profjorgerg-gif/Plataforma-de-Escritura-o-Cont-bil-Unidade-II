@@ -4,8 +4,7 @@ import { doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firest
 import { db } from "../../firebase.js";
 import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { fmt } from "../../lib/contabil.js";
-import { useLookupCfop, useLookupNcm, buscarCfop } from "../../hooks/useLookupFiscal.js";
-import DicasFiscais from "../shared/DicasFiscais.jsx";
+import { useLookupCfop, useLookupNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
 
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
@@ -404,27 +403,34 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
           : <div className="field"><label>Destinatário (cliente)</label><input value={destinatarioNome} onChange={(e) => setDestinatarioNome(e.target.value)} /></div>}
         <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Itens</label>
         <div style={{ marginTop: 8 }}>
-          {itens.map((it, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 24px", gap: 6, marginBottom: 6 }}>
-              <input placeholder="Descrição" value={it.descricao} onChange={(e) => updateItem(i, "descricao", e.target.value)} />
-              <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => updateItem(i, "ncm", e.target.value)} />
-              <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => updateItem(i, "cst", e.target.value)} />
-              <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => updateItem(i, "cfop", e.target.value)} />
-              <input placeholder="Un." value={it.unidade} onChange={(e) => updateItem(i, "unidade", e.target.value)} />
-              <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => updateItem(i, "qtd", e.target.value)} />
-              <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => updateItem(i, "valorUnit", e.target.value)} />
-              {itens.length > 1 ? <button className="remove-partida" onClick={() => removeItem(i)}>×</button> : <span />}
-            </div>
-          ))}
+          {itens.map((it, i) => {
+            const dicaNcmItem = buscarNcm(mapaNcm, it.ncm);
+            const dicaCfopItem = buscarCfop(mapaCfop, it.cfop);
+            const totalItem = (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0);
+            return (
+              <div key={i} style={{ marginBottom: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 90px 24px", gap: 6 }}>
+                  <input placeholder="Descrição" value={it.descricao} onChange={(e) => updateItem(i, "descricao", e.target.value)} />
+                  <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => updateItem(i, "ncm", e.target.value)} />
+                  <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => updateItem(i, "cst", e.target.value)} />
+                  <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => updateItem(i, "cfop", e.target.value)} />
+                  <input placeholder="Un." value={it.unidade} onChange={(e) => updateItem(i, "unidade", e.target.value)} />
+                  <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => updateItem(i, "qtd", e.target.value)} />
+                  <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => updateItem(i, "valorUnit", e.target.value)} />
+                  <input className="mono" placeholder="Total" value={fmt(totalItem)} disabled title="Calculado: quantidade × valor unitário" />
+                  {itens.length > 1 ? <button className="remove-partida" onClick={() => removeItem(i)}>×</button> : <span />}
+                </div>
+                {(dicaNcmItem || dicaCfopItem) && (
+                  <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginTop: 3, paddingLeft: 2 }}>
+                    {dicaNcmItem && <div><b>Consulta NCM {it.ncm}:</b> {dicaNcmItem.descricao}</div>}
+                    {dicaCfopItem && <div><b>Consulta CFOP {it.cfop}:</b> {dicaCfopItem.titulo}</div>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         <button className="btn secondary" onClick={addItem}>+ adicionar item</button>
-
-        <DicasFiscais
-          mapaCfop={mapaCfop}
-          mapaNcm={mapaNcm}
-          cfops={itens.map((it) => it.cfop)}
-          ncms={itens.map((it) => it.ncm)}
-        />
 
         <label style={{ display: "block", marginTop: 16, fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Impostos e totais</label>
         <div className="grid-2" style={{ marginTop: 8 }}>
