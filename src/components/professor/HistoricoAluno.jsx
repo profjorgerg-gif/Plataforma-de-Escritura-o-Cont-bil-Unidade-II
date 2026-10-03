@@ -181,6 +181,11 @@ export default function HistoricoAluno({ turmaId, alunoSelecionado, onVoltarPara
         fiscal aparecem aqui assim que o aluno salva, mesmo como rascunho e antes de qualquer lançamento chegar na
         Fila de correção.
       </p>
+      <div className="aviso-pedagogico">
+        <b>O que você pode fazer aqui:</b> só consultar — digitação, análise fiscal, classificação e lançamento, nas quatro
+        etapas. Esta tela não tem aprovar/devolver; correção de verdade (com observação para o aluno) só existe no
+        lançamento, em <b>Fila de correção</b>.
+      </div>
 
       {documentos.length === 0 && (
         <div className="panel"><div className="empty-state">Nenhum documento fiscal liberado para esta turma ainda.</div></div>
