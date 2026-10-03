@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // Consulta de CFOP/NCM "ao digitar" (2026-10-03) — mesmos dados já publicados
 // para a tela Consulta CFOP/NCM (public/dados/{cfop,ncm}.json), reaproveitados
-// aqui como um dicionário código → descrição oficial, para mostrar uma dica
-// discreta logo abaixo dos campos onde CFOP/NCM são digitados (Digitação da
-// NF-e do aluno e Gabarito do professor). Mostra só o que o código SIGNIFICA
-// — nunca se ele está certo para aquela operação, que é exatamente o
-// julgamento que a Análise fiscal pede pro aluno fazer sozinho.
+// aqui para: (1) autocompletar — uma lista de sugestões aparece assim que o
+// aluno/professor digita o primeiro número do CFOP ou do NCM, pra escolher
+// entre as opções correlacionadas; e (2) uma dica de confirmação do que o
+// código escolhido significa. Em nenhum dos dois casos o sistema diz se o
+// código está CERTO para a operação — isso continua sendo o julgamento que a
+// Análise fiscal pede pro aluno fazer sozinho.
 //
 // Cache em módulo (fora do hook): a tabela de NCM tem 15 mil linhas — uma vez
 // carregada numa tela, as outras reaproveitam sem baixar de novo.
@@ -20,26 +21,32 @@ function carregar(arquivo) {
   return cache[arquivo];
 }
 
-function useMapaFiscal(arquivo, chaveFn) {
-  const [mapa, setMapa] = useState(null); // null = ainda carregando
+function useDados(arquivo) {
+  const [dados, setDados] = useState(null); // null = ainda carregando
   useEffect(() => {
     let vivo = true;
     carregar(arquivo)
-      .then((dados) => { if (vivo) setMapa(new Map(dados.map((d) => [chaveFn(d.codigo), d]))); })
-      .catch(() => { if (vivo) setMapa(new Map()); });
+      .then((d) => { if (vivo) setDados(d); })
+      .catch(() => { if (vivo) setDados([]); });
     return () => { vivo = false; };
   }, [arquivo]);
-  return mapa;
+  return dados;
 }
 
 export const soDigitos = (s) => String(s || "").replace(/\D/g, "");
 
-export function useLookupCfop() {
-  return useMapaFiscal("/dados/cfop.json", (c) => String(c).trim());
-}
+// Array completo (para autocompletar por prefixo) — null enquanto carrega.
+export function useDadosCfop() { return useDados("/dados/cfop.json"); }
+export function useDadosNcm() { return useDados("/dados/ncm.json"); }
 
+// Mapa código → registro (para a dica de confirmação de um código exato).
+export function useLookupCfop() {
+  const dados = useDadosCfop();
+  return useMemo(() => (dados ? new Map(dados.map((d) => [String(d.codigo).trim(), d])) : null), [dados]);
+}
 export function useLookupNcm() {
-  return useMapaFiscal("/dados/ncm.json", soDigitos);
+  const dados = useDadosNcm();
+  return useMemo(() => (dados ? new Map(dados.map((d) => [soDigitos(d.codigo), d])) : null), [dados]);
 }
 
 export function buscarCfop(mapaCfop, codigo) {

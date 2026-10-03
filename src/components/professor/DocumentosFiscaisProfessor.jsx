@@ -4,7 +4,8 @@ import { doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firest
 import { db } from "../../firebase.js";
 import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { fmt } from "../../lib/contabil.js";
-import { useLookupCfop, useLookupNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
+import { useLookupCfop, useLookupNcm, useDadosCfop, useDadosNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
+import CampoFiscalAutocomplete from "../shared/CampoFiscalAutocomplete.jsx";
 
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
@@ -261,6 +262,8 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const editando = !!inicial?.idExistente;
   const mapaCfop = useLookupCfop();
   const mapaNcm = useLookupNcm();
+  const dadosCfop = useDadosCfop();
+  const dadosNcm = useDadosNcm();
   const dicaCfopHeader = buscarCfop(mapaCfop, cfop);
 
   async function copiarPromptIA() {
@@ -379,7 +382,7 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
         <div className="field">
           <label>CFOP</label>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input className="mono" style={{ flex: 1 }} value={cfop} onChange={(e) => setCfop(e.target.value)} />
+            <CampoFiscalAutocomplete tipo="cfop" dados={dadosCfop} value={cfop} onChange={setCfop} style={{ flex: 1 }} />
             {dicaCfopHeader && (
               <button
                 type="button"
@@ -411,9 +414,9 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
               <div key={i} style={{ marginBottom: 10 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 90px 24px", gap: 6 }}>
                   <input placeholder="Descrição" value={it.descricao} onChange={(e) => updateItem(i, "descricao", e.target.value)} />
-                  <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => updateItem(i, "ncm", e.target.value)} />
+                  <CampoFiscalAutocomplete tipo="ncm" dados={dadosNcm} placeholder="NCM" value={it.ncm} onChange={(v) => updateItem(i, "ncm", v)} />
                   <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => updateItem(i, "cst", e.target.value)} />
-                  <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => updateItem(i, "cfop", e.target.value)} />
+                  <CampoFiscalAutocomplete tipo="cfop" dados={dadosCfop} placeholder="CFOP" value={it.cfop} onChange={(v) => updateItem(i, "cfop", v)} />
                   <input placeholder="Un." value={it.unidade} onChange={(e) => updateItem(i, "unidade", e.target.value)} />
                   <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => updateItem(i, "qtd", e.target.value)} />
                   <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => updateItem(i, "valorUnit", e.target.value)} />

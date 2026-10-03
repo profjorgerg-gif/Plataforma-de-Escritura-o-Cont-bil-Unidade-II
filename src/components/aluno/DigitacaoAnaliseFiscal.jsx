@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
-import { useLookupCfop, useLookupNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
+import { useLookupCfop, useLookupNcm, useDadosCfop, useDadosNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
+import CampoFiscalAutocomplete from "../shared/CampoFiscalAutocomplete.jsx";
 
 // NOTA DE FUSÃO (2026-09-28): esta tela nasceu da junção de "Digitação da
 // NF-e" e "Análise fiscal do documento", que eram duas telas separadas no
@@ -38,6 +39,8 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
   const docFiscal = documentos.find((d) => d.id === docSel);
   const mapaCfop = useLookupCfop();
   const mapaNcm = useLookupNcm();
+  const dadosCfop = useDadosCfop();
+  const dadosNcm = useDadosNcm();
 
   // --- 1. digitação ---
   const [form, setForm] = useState(docFiscal ? blankDigitacao(docFiscal) : null);
@@ -140,7 +143,7 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           <div className="grid-2">
             <div className="field">
               <label>CFOP</label>
-              <input className="mono" value={form.cfop} onChange={(e) => setField("cfop", e.target.value)} />
+              <CampoFiscalAutocomplete tipo="cfop" dados={dadosCfop} value={form.cfop} onChange={(v) => setField("cfop", v)} />
               {buscarCfop(mapaCfop, form.cfop) && (
                 <div className="helper-note" style={{ marginTop: 6 }}>Consulta CFOP: {buscarCfop(mapaCfop, form.cfop).titulo}</div>
               )}
@@ -167,9 +170,9 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
                 <div key={i} style={{ marginBottom: 10 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 70px 70px 60px 70px 90px 90px 24px", gap: 6 }}>
                     <input placeholder="Descrição" value={it.descricao} onChange={(e) => setItemField(i, "descricao", e.target.value)} />
-                    <input className="mono" placeholder="NCM" value={it.ncm} onChange={(e) => setItemField(i, "ncm", e.target.value)} />
+                    <CampoFiscalAutocomplete tipo="ncm" dados={dadosNcm} placeholder="NCM" value={it.ncm} onChange={(v) => setItemField(i, "ncm", v)} />
                     <input className="mono" placeholder="CST" value={it.cst} onChange={(e) => setItemField(i, "cst", e.target.value)} />
-                    <input className="mono" placeholder="CFOP" value={it.cfop} onChange={(e) => setItemField(i, "cfop", e.target.value)} />
+                    <CampoFiscalAutocomplete tipo="cfop" dados={dadosCfop} placeholder="CFOP" value={it.cfop} onChange={(v) => setItemField(i, "cfop", v)} />
                     <input placeholder="Un." value={it.unidade} onChange={(e) => setItemField(i, "unidade", e.target.value)} />
                     <input className="mono" placeholder="Qtd." type="number" value={it.qtd} onChange={(e) => setItemField(i, "qtd", e.target.value)} />
                     <input className="mono" placeholder="V. unit." type="number" value={it.valorUnit} onChange={(e) => setItemField(i, "valorUnit", e.target.value)} />
