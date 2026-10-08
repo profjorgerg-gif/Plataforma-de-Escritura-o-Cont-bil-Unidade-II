@@ -300,6 +300,71 @@ function FluxoEtapas({ documentos, progresso, lancamentos }) {
   );
 }
 
+// Painel do próprio aluno: valor oficial das notas liberadas pela turma
+// (igual para todos — vem do documento) comparado só com o que ESTE aluno
+// já teve aprovado. Diferente do painel do professor, não multiplica por
+// número de alunos: aqui é sempre "1 aluno".
+function MeusValoresPorTipo({ documentos, lancamentos }) {
+  if (!documentos || documentos.length === 0) return null;
+
+  const base = { entrada: 0, saida: 0 };
+  const liberado = { ...base };
+  documentos.forEach((d) => {
+    const dir = d.direcao === "entrada" ? "entrada" : "saida";
+    liberado[dir] += Number(d.valorTotal) || 0;
+  });
+
+  const aprovado = { ...base };
+  documentos.forEach((d) => {
+    const dir = d.direcao === "entrada" ? "entrada" : "saida";
+    const temAprovado = lancamentos.some((l) => l.documento === d.id && l.status === "aprovado");
+    if (temAprovado) aprovado[dir] += Number(d.valorTotal) || 0;
+  });
+
+  const totalLiberado = liberado.entrada + liberado.saida;
+  const totalAprovado = aprovado.entrada + aprovado.saida;
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>Meus valores por tipo (R$)</h3></div>
+      <div className="panel-body" style={{ padding: 0 }}>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th className="num">Liberado para você</th>
+              <th className="num">Você já aprovou</th>
+              <th className="num">Ainda pendente</th>
+            </tr>
+          </thead>
+          <tbody>
+            {["entrada", "saida"].map((dir) => {
+              const pendente = liberado[dir] - aprovado[dir];
+              return (
+                <tr key={dir}>
+                  <td>{dir === "entrada" ? "Entrada" : "Saída"}</td>
+                  <td className="num mono">R$ {fmt(liberado[dir])}</td>
+                  <td className="num mono" style={{ color: "var(--green)" }}>R$ {fmt(aprovado[dir])}</td>
+                  <td className="num mono" style={{ color: pendente > 0.005 ? "var(--amber)" : "var(--green)", fontWeight: 600 }}>R$ {fmt(pendente)}</td>
+                </tr>
+              );
+            })}
+            <tr style={{ fontWeight: 700 }}>
+              <td>Total</td>
+              <td className="num mono">R$ {fmt(totalLiberado)}</td>
+              <td className="num mono" style={{ color: "var(--green)" }}>R$ {fmt(totalAprovado)}</td>
+              <td className="num mono" style={{ color: (totalLiberado - totalAprovado) > 0.005 ? "var(--amber)" : "var(--green)" }}>R$ {fmt(totalLiberado - totalAprovado)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="helper-note" style={{ margin: "0 16px 16px" }}>
+        "Liberado para você" é o valor oficial de todas as notas de entrada/saída que o professor já liberou para a turma (as mesmas que aparecem em "Documentos fiscais"). "Você já aprovou" soma só os seus lançamentos com status aprovado. "Ainda pendente" é a diferença — quanto em R$ falta você lançar e o professor aprovar. Aqui aparecem só os seus números, nenhum valor de colega ou da turma.
+      </div>
+    </div>
+  );
+}
+
 function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registro, turma }) {
   const { lancamentos, dre, bp } = esc;
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
@@ -317,6 +382,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
         <div className="kpi bad"><div className="kpi-label">Com correção necessária</div><div className="kpi-value mono">{correcao}</div></div>
         <div className="kpi"><div className="kpi-label">Balanço fecha?</div><div className="kpi-value mono">{lancamentos.length === 0 ? "—" : (bp.fecha ? "sim" : "não")}</div></div>
       </div>
+      {documentos && <MeusValoresPorTipo documentos={documentos} lancamentos={lancamentos} />}
       {documentos && <FluxoEtapas documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
       <div className="panel">
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
