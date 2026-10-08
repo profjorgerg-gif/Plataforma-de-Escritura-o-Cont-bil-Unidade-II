@@ -228,6 +228,8 @@
     padding:2px 7px; background:var(--blue-pale); color:var(--blue); margin-right:5px;
   }
   .tag-pill.warn{background:var(--amber-pale); color:var(--amber);}
+  .tag-pill.ok{background:var(--green-pale); color:var(--green);}
+  .tag-pill.bad{background:var(--red-pale); color:var(--red);}
   .empty-state{padding:34px 18px; text-align:center; color:var(--ink-faint); font-size:13.5px;}
 
   /* Painel "O que será avaliado" (CriteriosAvaliacao em shared/UI.jsx),
