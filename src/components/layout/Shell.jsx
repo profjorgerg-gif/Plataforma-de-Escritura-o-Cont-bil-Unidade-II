@@ -469,12 +469,18 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
   const pendentes = lancamentos.filter((l) => l.status === "enviado").length;
   const correcao = lancamentos.filter((l) => l.status === "correcao").length;
+  const rascunhos = lancamentos.filter((l) => l.status === "rascunho").length;
 
   return (
     <>
       <div className="screen-eyebrow">01 · visão geral</div>
       <h2 className="screen-title">Meu progresso — Unidade II</h2>
       <p className="screen-sub">{identificacao}. Dados ao vivo do Firestore.</p>
+      {rascunhos > 0 && (
+        <div className="aviso-pedagogico" style={{ marginBottom: 14 }}>
+          ⚠ <b>Você tem {rascunhos} {rascunhos === 1 ? "lançamento salvo como rascunho que ainda não foi enviado" : "lançamentos salvos como rascunho que ainda não foram enviados"}.</b> O professor só vê e corrige o que você <b>envia</b>. Abra o <b>Livro diário</b> e clique em <b>Enviar</b> em cada um.
+        </div>
+      )}
       <div className="kpi-row">
         <div className="kpi ok"><div className="kpi-label">Lançamentos aprovados</div><div className="kpi-value mono">{aprovados}</div></div>
         <div className="kpi warn"><div className="kpi-label">Aguardando correção</div><div className="kpi-value mono">{pendentes}</div></div>
