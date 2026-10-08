@@ -214,6 +214,92 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
   );
 }
 
+// As 10 etapas da sequência (mesma ordem numerada do menu — ver
+// MENU_ALUNO_GRUPOS). Etapas 1–2 (Empresa didática, Documentos fiscais) são
+// só informativas, sem ação do aluno para "concluir" — por isso contam como
+// feitas assim que a turma tem ao menos um documento liberado. Etapas 3–5
+// (Digitação/análise, Classificação, Livro diário) ficam concluídas quando
+// TODOS os documentos liberados passaram por aquela etapa (lançamento só
+// conta aprovado — mesmo critério do completudeCiclo, usado na nota). As
+// etapas 6–10 (Razão → Balanço) são só consulta de relatórios calculados
+// automaticamente: ficam "concluídas" junto com a 5, já que não exigem uma
+// ação separada do aluno.
+const ETAPAS_FLUXO = [
+  { n: 1, label: "Empresa didática", desc: "Cadastro informativo da empresa que você vai escriturar: nome, CNPJ e atividade." },
+  { n: 2, label: "Documentos fiscais", desc: "Confira as notas fiscais que o professor liberou para a sua turma." },
+  { n: 3, label: "Digitação e análise fiscal", desc: "Digite os dados da NF-e e analise se CFOP, NCM e CST estão corretos." },
+  { n: 4, label: "Classificação contábil", desc: "Defina a conta de débito e a conta de crédito de cada fato contábil." },
+  { n: 5, label: "Livro diário", desc: "Lance a classificação no diário e envie para o professor aprovar." },
+  { n: 6, label: "Livro razão", desc: "Confira o razão — atualizado sozinho a partir dos lançamentos já aprovados." },
+  { n: 7, label: "Balancete", desc: "Confira se o balancete fecha: soma dos débitos igual à soma dos créditos." },
+  { n: 8, label: "ARE", desc: "Veja a Apuração do Resultado do Exercício, calculada a partir do razão." },
+  { n: 9, label: "DRE", desc: "Veja a Demonstração do Resultado do Exercício." },
+  { n: 10, label: "Balanço patrimonial", desc: "Veja o balanço final: Ativo = Passivo + Patrimônio Líquido." },
+];
+
+function FluxoEtapas({ documentos, progresso, lancamentos }) {
+  const { digitacoes, analises, classificacoes } = progresso;
+  if (!documentos || digitacoes === null || analises === null || classificacoes === null) return null;
+  const total = documentos.length;
+
+  const nDigAnalisado = documentos.filter((d) => digitacoes[d.id] && analises[d.id]?.status === "enviado").length;
+  const nClassificado = documentos.filter((d) => classificacoes.some((c) => c.documento === d.id)).length;
+  const nAprovado = documentos.filter((d) => lancamentos.some((l) => l.documento === d.id && l.status === "aprovado")).length;
+
+  const concluido = {
+    1: true,
+    2: total > 0,
+    3: total > 0 && nDigAnalisado === total,
+    4: total > 0 && nClassificado === total,
+    5: total > 0 && nAprovado === total,
+  };
+  concluido[6] = concluido[7] = concluido[8] = concluido[9] = concluido[10] = concluido[5];
+
+  // primeira etapa ainda não concluída = "você está aqui"
+  let atual = ETAPAS_FLUXO.find((e) => !concluido[e.n])?.n ?? null;
+
+  const fracao = { 3: `${nDigAnalisado}/${total}`, 4: `${nClassificado}/${total}`, 5: `${nAprovado}/${total}` };
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>Seu caminho na sequência</h3></div>
+      <div className="panel-body">
+        <p className="helper-note" style={{ marginTop: 0 }}>As mesmas 10 etapas do menu, na ordem, com o que fazer em cada uma.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {ETAPAS_FLUXO.map((e) => {
+            const feita = concluido[e.n];
+            const ehAtual = e.n === atual;
+            const cor = feita ? "var(--green)" : ehAtual ? "var(--amber)" : "var(--ink-faint)";
+            const bg = feita ? "var(--green-pale)" : ehAtual ? "var(--amber-pale)" : "var(--paper-deep)";
+            return (
+              <div key={e.n} style={{
+                display: "flex", alignItems: "center", gap: 14, padding: "10px 14px",
+                background: bg, border: `1px solid ${feita ? "var(--green)" : ehAtual ? "var(--amber)" : "var(--line)"}`,
+                borderRadius: 4,
+              }}>
+                <div className="mono" style={{
+                  width: 28, height: 28, flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: 13, color: feita || ehAtual ? "#fff" : cor,
+                  background: feita || ehAtual ? cor : "var(--paper)", border: feita || ehAtual ? "none" : "1px solid var(--line-strong)",
+                }}>
+                  {feita ? "✓" : e.n}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: feita || ehAtual ? 700 : 600, color: ehAtual ? "var(--amber)" : "var(--ink)" }}>
+                    {e.n} · {e.label}{ehAtual ? " — você está aqui" : ""}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{e.desc}</div>
+                </div>
+                {fracao[e.n] && <div className="mono" style={{ fontSize: 12, color: "var(--ink-faint)", flexShrink: 0 }}>{fracao[e.n]}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registro, turma }) {
   const { lancamentos, dre, bp } = esc;
   const aprovados = lancamentos.filter((l) => l.status === "aprovado").length;
@@ -231,6 +317,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
         <div className="kpi bad"><div className="kpi-label">Com correção necessária</div><div className="kpi-value mono">{correcao}</div></div>
         <div className="kpi"><div className="kpi-label">Balanço fecha?</div><div className="kpi-value mono">{lancamentos.length === 0 ? "—" : (bp.fecha ? "sim" : "não")}</div></div>
       </div>
+      {documentos && <FluxoEtapas documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
       <div className="panel">
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
         <div className="panel-body">R$ {fmt(dre.resultadoExercicio)}</div>
