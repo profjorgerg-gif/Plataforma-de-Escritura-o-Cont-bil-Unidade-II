@@ -137,6 +137,67 @@ function autonomiaCorrecoes(lancamentos){
   return Math.max(0, Math.round(100 - mediaPorLancamento * 25)); // 0-100
 }
 
+// Qualidade técnica automática (2026-10-08) — substitui o texto livre que o
+// professor escrevia manualmente. São 3 checagens objetivas, só sobre dados
+// de lançamento (nenhuma leitura de texto do aluno):
+//  1. Natureza da conta: a partida foi lançada no lado (D/C) condizente com
+//     a natureza cadastrada da conta no Plano de Contas.
+//  2. Regime de competência: a data do lançamento está no mesmo mês/ano da
+//     emissão do documento de origem.
+//  3. Reação ao aviso fiscal: quando a Análise Fiscal de um documento marcou
+//     CFOP/NCM/CST como incorreto, a Classificação daquele documento
+//     preencheu o campo "tratamento tributário" (só confere se foi
+//     preenchido, não o que foi escrito).
+// Cada checagem só conta nos casos em que dá para avaliar (ex.: conta sem
+// natureza cadastrada, ou nenhum documento com aviso fiscal) — por isso cada
+// uma pode retornar null quando não há base para medir. A nota sugerida é a
+// média simples das checagens que puderam ser calculadas, numa escala 0-10.
+function naturezaDaPartidaCorreta(conta, tipo){
+  if(!conta || !conta.natureza) return null;
+  const ladoEsperado = conta.natureza === "devedora" ? "D" : "C";
+  return tipo === ladoEsperado;
+}
+
+function competenciaDoLancamentoCorreta(dataLancamento, documento){
+  if(!dataLancamento || !documento?.data) return null;
+  return dataLancamento.slice(0, 7) === documento.data.slice(0, 7);
+}
+
+function qualidadeTecnicaAutomatica({ documentos, lancamentos, analises, classificacoes, contas }){
+  const aprovados = (lancamentos || []).filter((l) => l.status === "aprovado");
+  if(!documentos || !contas || aprovados.length === 0) return null;
+
+  let totalPartidas = 0, partidasCorretas = 0;
+  let totalComp = 0, compCorretas = 0;
+  aprovados.forEach((l) => {
+    (l.partidas || []).forEach((p) => {
+      const conta = contas.find((c) => c.codigo === p.conta);
+      const r = naturezaDaPartidaCorreta(conta, p.tipo);
+      if(r !== null){ totalPartidas++; if(r) partidasCorretas++; }
+    });
+    const doc = documentos.find((d) => d.id === l.documento);
+    const rc = competenciaDoLancamentoCorreta(l.data, doc);
+    if(rc !== null){ totalComp++; if(rc) compCorretas++; }
+  });
+
+  const documentosComAvisoFiscal = documentos.filter((d) => {
+    const an = analises && analises[d.id];
+    return an && (an.cfopCorreto === "nao" || an.ncmCorreto === "nao" || an.cstCorreto === "nao");
+  });
+  const reagiu = documentosComAvisoFiscal.filter((d) =>
+    (classificacoes || []).some((c) => c.documento === d.id && c.tratamento && c.tratamento.trim())
+  ).length;
+
+  const natureza = totalPartidas > 0 ? { corretas: partidasCorretas, total: totalPartidas, pct: Math.round((partidasCorretas / totalPartidas) * 100) } : null;
+  const competencia = totalComp > 0 ? { corretas: compCorretas, total: totalComp, pct: Math.round((compCorretas / totalComp) * 100) } : null;
+  const fiscal = documentosComAvisoFiscal.length > 0 ? { corretas: reagiu, total: documentosComAvisoFiscal.length, pct: Math.round((reagiu / documentosComAvisoFiscal.length) * 100) } : null;
+
+  const partes = [natureza, competencia, fiscal].filter(Boolean).map((p) => p.pct);
+  const notaSugerida = partes.length > 0 ? Math.round((partes.reduce((s, p) => s + p, 0) / partes.length) / 10 * 10) / 10 : null;
+
+  return { natureza, competencia, fiscal, notaSugerida };
+}
+
 function notaFinalPonderada({ completudePct, qualidadeNota, autonomiaPct, desconto }){
   if(qualidadeNota === null || qualidadeNota === undefined || qualidadeNota === "") return null;
   const completude10 = completudePct === null || completudePct === undefined ? 0 : completudePct / 10;
@@ -152,4 +213,5 @@ export {
   calcularDRE, calcularBP, fmt, prazoEfetivo, diasAtraso, fmtData,
   descontoSugerido, descontoEfetivo, estatisticasAluno,
   PESOS_RUBRICA, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
+  qualidadeTecnicaAutomatica,
 };
