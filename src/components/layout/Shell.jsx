@@ -26,6 +26,7 @@ import DRE from "../aluno/DRE.jsx";
 import BalancoPatrimonial from "../aluno/BalancoPatrimonial.jsx";
 
 import Painel from "../professor/Painel.jsx";
+import DashboardCiclo from "../professor/DashboardCiclo.jsx";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
@@ -80,6 +81,7 @@ const MENU_ALUNO = [
 
 const MENU_PROFESSOR = [
   { key: "painel", label: "Painel do professor" },
+  { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
   { key: "roteiro", label: "Roteiro do Aluno" },
   { key: "turmas", label: "Turmas" },
   { key: "fila", label: "Fila de correção" },
@@ -351,6 +353,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <BalancoPatrimonial bp={esc.bp} />;
   } else if (ehProfessorOuAdmin && screen === "painel") {
     tela = <Painel turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
+    tela = <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} />;
   } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
