@@ -4,7 +4,7 @@ import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
 import { Kpi } from "../shared/UI.jsx";
-import { fmt } from "../../lib/contabil.js";
+import { fmt, prazoEfetivo } from "../../lib/contabil.js";
 
 // Dashboard do ciclo — Entrada × Saída (2026-10-07, pedido do professor).
 //
@@ -20,6 +20,28 @@ import { fmt } from "../../lib/contabil.js";
 // professor, o saldo daquele documento aparece em âmbar (aguardando você)
 // em vez de vermelho (aluno ainda nem lançou).
 const DIAS_INATIVIDADE = 6;
+
+// "Acompanhamento do processo" (2026-10-08, pedido do professor) — não é
+// uma nota nova, é um aviso para o professor agir a tempo: cruza o %
+// concluído (que a tabela "Total" já calcula) com os dias que faltam até
+// o prazo daquele aluno. Decidido junto com o professor: só ele vê isso
+// (não aparece pro aluno) e os limites abaixo são um ponto de partida —
+// podem ser ajustados depois de observar como a turma se comporta num
+// ciclo real; não há como calcular "no ritmo esperado" de verdade sem uma
+// data de início registrada, então o aviso só aparece quando o prazo já
+// está perto.
+function diasAteOPrazo(prazo) {
+  if (!prazo) return null;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const d1 = new Date(hoje + "T00:00:00"), d2 = new Date(prazo + "T00:00:00");
+  return Math.round((d2 - d1) / 86400000);
+}
+function situacaoProcesso(pctConcluido, dias) {
+  if (pctConcluido === null || dias === null) return null;
+  if (dias <= 3 && pctConcluido < 80) return { label: "atrasado", tone: "bad" };
+  if (dias <= 7 && pctConcluido < 50) return { label: "atenção", tone: "warn" };
+  return { label: "em dia", tone: "ok" };
+}
 
 function milissegundos(ts) {
   if (!ts) return null;
@@ -65,10 +87,12 @@ function linhaPorAluno(aluno, documentosDoTipo, progressoTurma, lancsAluno) {
   return { aluno, nDigitado, nAnalisado, nClassificado, nAprovado, saldo, nAguardando, pctConcluido, total };
 }
 
-function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos, onSelecionarAluno, onAbrirRelatorio }) {
+function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos, turma, mostrarSituacao, onSelecionarAluno, onAbrirRelatorio }) {
   const linhas = alunos.map((a) => {
     const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
-    return linhaPorAluno(a, documentosDoTipo, progressoTurma, lancsAluno);
+    const linha = linhaPorAluno(a, documentosDoTipo, progressoTurma, lancsAluno);
+    const dias = mostrarSituacao ? diasAteOPrazo(prazoEfetivo(a, turma)) : null;
+    return { ...linha, dias, situacao: mostrarSituacao ? situacaoProcesso(linha.pctConcluido, dias) : null };
   });
 
   return (
@@ -88,6 +112,7 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
                 <th className="num">4. Lançamento</th>
                 <th className="num">Saldo</th>
                 <th style={{ width: 150 }}>% concluído (total)</th>
+                {mostrarSituacao && <th style={{ width: 100 }}>Situação</th>}
                 <th className="num no-print" style={{ width: 70 }}>Relatório</th>
               </tr>
             </thead>
@@ -113,6 +138,11 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
                     </div>
                     <div className="mono" style={{ fontSize: 10.5, marginTop: 2, color: "var(--ink-faint)" }}>{r.pctConcluido ?? "—"}%</div>
                   </td>
+                  {mostrarSituacao && (
+                    <td>
+                      {r.situacao ? <span className={"tag-pill " + r.situacao.tone}>{r.situacao.label}</span> : <span className="mono" style={{ color: "var(--ink-faint)" }}>—</span>}
+                    </td>
+                  )}
                   <td className="num no-print">
                     <button
                       className="btn secondary"
@@ -130,6 +160,9 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
       </div>
       <div className="helper-note" style={{ margin: "0 16px 16px" }}>
         Clique num aluno para abrir o Histórico dele. Saldo em <span style={{ color: "var(--amber)", fontWeight: 600 }}>âmbar</span>: já lançou, aguardando sua aprovação. Em <span style={{ color: "var(--red)", fontWeight: 600 }}>vermelho</span>: ainda não lançou nada para essas notas.
+        {mostrarSituacao && (
+          <> "Situação" não é nota, é só um aviso para você: compara o % concluído com os dias que faltam até o prazo daquele aluno. <span className="tag-pill warn" style={{ marginRight: 0 }}>atenção</span> = 7 dias ou menos e completude abaixo de 50%; <span className="tag-pill bad" style={{ marginRight: 0 }}>atrasado</span> = 3 dias ou menos e completude abaixo de 80%. São limites provisórios — ajustáveis depois de ver a turma num ciclo real.</>
+        )}
       </div>
     </div>
   );
@@ -430,9 +463,9 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
         </div>
       )}
 
-      <TabelaPorTipo titulo="Total (Entrada + Saída) — por aluno" documentosDoTipo={documentos} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
-      <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
-      <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
+      <TabelaPorTipo titulo="Total (Entrada + Saída) — por aluno" documentosDoTipo={documentos} alunos={alunos} progressoTurma={progressoTurma} todos={todos} turma={turma} mostrarSituacao onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
+      <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} turma={turma} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
+      <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} turma={turma} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
 
       <div className="grid-2">
         <div className="panel">
