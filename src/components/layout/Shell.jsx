@@ -26,6 +26,7 @@ import DRE from "../aluno/DRE.jsx";
 import BalancoPatrimonial from "../aluno/BalancoPatrimonial.jsx";
 
 import Painel from "../professor/Painel.jsx";
+import Notas from "../professor/Notas.jsx";
 import DashboardCiclo from "../professor/DashboardCiclo.jsx";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
@@ -71,7 +72,10 @@ import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
 const MENU_ALUNO_GRUPOS = [
   {
     label: null,
-    itens: [{ key: "dashboard", label: "Meu progresso" }],
+    itens: [
+      { key: "dashboard", label: "Meu progresso" },
+      { key: "minha-nota", label: "Minha nota" },
+    ],
   },
   {
     label: "sequência da empresa didática",
@@ -115,6 +119,7 @@ function gruposMenuAluno({ incluirManuais, badgeDiario }) {
 
 const MENU_PROFESSOR = [
   { key: "painel", label: "Painel do professor" },
+  { key: "notas", label: "Notas" },
   { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
   { key: "roteiro", label: "Roteiro do Aluno" },
   { key: "turmas", label: "Turmas" },
@@ -388,8 +393,24 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
         <div className="panel-body">R$ {fmt(dre.resultadoExercicio)}</div>
       </div>
-      <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {documentos && <ChecklistProgresso documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
+    </>
+  );
+}
+
+// Tela própria para "Minha nota", com item de menu direto — antes esse
+// painel só existia dentro de "Meu progresso", escondido lá embaixo (pedido
+// do professor em 2026-10-08: acesso rápido pelo menu).
+function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
+  return (
+    <>
+      <div className="screen-eyebrow">avaliação</div>
+      <h2 className="screen-title">Minha nota — Unidade II</h2>
+      <p className="screen-sub">Sua avaliação da Unidade II, liberada pelo professor quando estiver pronta.</p>
+      <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
+      {(!registro || !registro.notaLiberada) && (
+        <div className="helper-note">Sua nota ainda não foi liberada pelo professor. Assim que ele liberar, ela aparece aqui automaticamente.</div>
+      )}
     </>
   );
 }
@@ -486,7 +507,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     menuGrupos = [{ label: null, itens: itensProfessor }];
   }
 
-  const TELAS_COM_ESCRITURACAO = ["dashboard", "diario", "razao", "balancete", "are", "dre", "bp"];
+  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
@@ -506,6 +527,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <div className="empty-state">Carregando documentos da turma…</div>;
   } else if (papelEfetivo === "aluno" && screen === "dashboard") {
     tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} registro={meuRegistro} turma={minhaTurma} />;
+  } else if (papelEfetivo === "aluno" && screen === "minha-nota") {
+    tela = <TelaMinhaNota registro={meuRegistro} turma={minhaTurma} documentos={documentos} progresso={progresso} lancamentos={esc.lancamentos} />;
   } else if (papelEfetivo === "aluno" && screen === "empresa") {
     tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
   } else if (papelEfetivo === "aluno" && screen === "documentos") {
@@ -542,6 +565,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <BalancoPatrimonial bp={esc.bp} />;
   } else if (ehProfessorOuAdmin && screen === "painel") {
     tela = <Painel turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "notas") {
+    tela = <Notas turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
     tela = <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} />;
   } else if (ehProfessorOuAdmin && screen === "turmas") {
