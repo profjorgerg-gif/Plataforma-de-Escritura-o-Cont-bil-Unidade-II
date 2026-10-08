@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useEscrituracao } from "../../hooks/useEscrituracao.js";
 import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
-import { useTurma } from "../../hooks/useTurma.js";
-import { contaInfo, fmt, prazoEfetivo } from "../../lib/contabil.js";
-import { gerarRelatorioOrientacao, relatorioEmTexto } from "../../lib/relatorioOrientacao.js";
+import { contaInfo, fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 
 // Pedido do professor (2026-10-02): durante a aula, acompanhar o que cada
@@ -149,10 +147,7 @@ export default function HistoricoAluno({ turmaId, alunoSelecionado, onVoltarPara
   const { carregando, lancamentos, contas } = useEscrituracao(turmaId, alunoSelecionado?.matricula);
   const { digitacoes, analises, classificacoes } = useProgressoAluno(turmaId, alunoSelecionado?.matricula);
   const documentos = useDocumentosDaTurma(turmaId);
-  const turma = useTurma(turmaId);
   const [abertos, setAbertos] = useState({}); // documentoId -> bool
-  const [relatorio, setRelatorio] = useState(null);
-  const [copiado, setCopiado] = useState(false);
 
   if (!alunoSelecionado) {
     return (
@@ -165,19 +160,6 @@ export default function HistoricoAluno({ turmaId, alunoSelecionado, onVoltarPara
   }
   const carregandoTudo = carregando || digitacoes === null || analises === null || classificacoes === null || documentos === null;
   if (carregandoTudo) return <div className="empty-state">Carregando…</div>;
-
-  function gerarRelatorio() {
-    setRelatorio(gerarRelatorioOrientacao({
-      aluno: alunoSelecionado, documentos, digitacoes, analises, classificacoes, lancamentos,
-      prazo: turma ? prazoEfetivo(alunoSelecionado, turma) : "",
-    }));
-    setCopiado(false);
-  }
-  async function copiarRelatorio() {
-    const texto = relatorioEmTexto(relatorio);
-    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 3000); }
-    catch (e) { window.prompt("Não copiou automaticamente — selecione e copie (Ctrl+C):", texto); }
-  }
 
   function toggle(id) { setAbertos((prev) => ({ ...prev, [id]: !prev[id] })); }
 
@@ -204,43 +186,6 @@ export default function HistoricoAluno({ turmaId, alunoSelecionado, onVoltarPara
         etapas. Esta tela não tem aprovar/devolver; correção de verdade (com observação para o aluno) só existe no
         lançamento, em <b>Fila de correção</b>.
       </div>
-
-      <div className="btn-row no-print" style={{ marginBottom: 14 }}>
-        <button className="btn" onClick={gerarRelatorio}>Gerar relatório de orientação</button>
-      </div>
-      {relatorio && (
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <div className="panel-head">
-            <h3>Relatório de orientação — {alunoSelecionado.nome}</h3>
-            <div className="no-print" style={{ display: "flex", gap: 8 }}>
-              <button className="btn secondary" onClick={copiarRelatorio}>{copiado ? "Copiado ✓" : "Copiar texto"}</button>
-              <button className="btn secondary" onClick={() => window.print()}>Imprimir</button>
-              <button className="btn secondary" onClick={() => setRelatorio(null)}>Fechar</button>
-            </div>
-          </div>
-          <div className="panel-body">
-            <p style={{ marginTop: 0 }}>Documentos em dia: <b>{relatorio.nOk}</b> de <b>{relatorio.total}</b>. Gerado agora, com os dados atuais do aluno.</p>
-            {relatorio.achados.length === 0 ? (
-              <div className="helper-note">Nenhuma pendência encontrada.</div>
-            ) : (
-              <table>
-                <thead><tr><th></th><th>Documento</th><th>Problema</th><th>O que o aluno deve fazer</th></tr></thead>
-                <tbody>
-                  {relatorio.achados.map((a, i) => (
-                    <tr key={i}>
-                      <td><span className={"tag-pill " + (a.gravidade === "erro" ? "bad" : "warn")}>{a.gravidade === "erro" ? "corrigir" : "conferir"}</span></td>
-                      <td className="mono">{a.documento}</td>
-                      <td>{a.titulo}</td>
-                      <td>{a.orientacao}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <p className="helper-note" style={{ marginBottom: 0 }}>Regras fixas do sistema, sem IA: elas apontam o que dá para detectar sozinho (duplicata, rascunho, histórico genérico, débito ≠ crédito, etapa faltando). Não avaliam se a conta contábil escolhida é a certa para a operação — isso continua sendo sua correção.</p>
-          </div>
-        </div>
-      )}
 
       {documentos.length === 0 && (
         <div className="panel"><div className="empty-state">Nenhum documento fiscal liberado para esta turma ainda.</div></div>
