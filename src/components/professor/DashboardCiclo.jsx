@@ -321,6 +321,20 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
     return base;
   }, [documentos, todos]);
 
+  // Valor liberado — soma do valorTotal de cada documento (o valor "oficial"
+  // da NF-e, vindo da digitação do professor), por direção. Comparado com o
+  // saldoFinanceiro (já aprovado), dá o quanto ainda falta aprovar em R$
+  // (2026-10-08, pedido do professor).
+  const valorLiberado = useMemo(() => {
+    if (!documentos) return null;
+    const base = { entrada: 0, saida: 0 };
+    documentos.forEach((d) => {
+      const dir = d.direcao === "entrada" ? "entrada" : "saida";
+      base[dir] += Number(d.valorTotal) || 0;
+    });
+    return base;
+  }, [documentos]);
+
   // Alunos sem nenhuma atividade (digitação, análise ou lançamento) nos
   // últimos DIAS_INATIVIDADE dias — ou sem nenhuma atividade registrada.
   const alunosInativos = useMemo(() => {
@@ -371,8 +385,43 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
         <Kpi label="Notas de entrada" value={docsEntrada.length} />
         <Kpi label="Notas de saída" value={docsSaida.length} />
         <Kpi label="Total de notas (E + S)" value={documentos.length} />
-        <Kpi label="Saldo entrada aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.entrada) : "—"} tone="ok" />
-        <Kpi label="Saldo saída aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.saida) : "—"} tone="ok" />
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>Valores por tipo (R$)</h3></div>
+        <div className="panel-body" style={{ padding: 0 }}>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th className="num">Valor de cada nota</th>
+                <th className="num">Esperado na turma (× {alunos.length} aluno{alunos.length === 1 ? "" : "s"})</th>
+                <th className="num">Já aprovado</th>
+                <th className="num">Saldo pendente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {["entrada", "saida"].map((dir) => {
+                const porNota = valorLiberado?.[dir] ?? 0;
+                const esperadoTurma = porNota * alunos.length;
+                const aprovado = saldoFinanceiro?.[dir] ?? 0;
+                const pendente = esperadoTurma - aprovado;
+                return (
+                  <tr key={dir}>
+                    <td>{dir === "entrada" ? "Entrada" : "Saída"}</td>
+                    <td className="num mono">R$ {fmt(porNota)}</td>
+                    <td className="num mono">R$ {fmt(esperadoTurma)}</td>
+                    <td className="num mono" style={{ color: "var(--green)" }}>R$ {fmt(aprovado)}</td>
+                    <td className="num mono" style={{ color: pendente > 0.005 ? "var(--amber)" : "var(--green)", fontWeight: 600 }}>R$ {fmt(pendente)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="helper-note" style={{ margin: "0 16px 16px" }}>
+          "Valor de cada nota" é o valor oficial de cada documento liberado (o mesmo para todos os alunos, cada um tem sua própria escrituração). Como são {alunos.length} aluno(s), cada um deveria aprovar esse valor — por isso "esperado na turma" multiplica pelo número de alunos. "Já aprovado" soma o que todos os alunos já tiveram aprovado. O saldo pendente é a diferença: quanto em R$ ainda falta a turma toda lançar e você aprovar.
+        </div>
       </div>
 
       {alunosInativos.length > 0 && (
