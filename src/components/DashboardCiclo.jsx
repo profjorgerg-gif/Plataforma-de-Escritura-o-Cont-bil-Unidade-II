@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
@@ -65,7 +65,7 @@ function linhaPorAluno(aluno, documentosDoTipo, progressoTurma, lancsAluno) {
   return { aluno, nDigitado, nAnalisado, nClassificado, nAprovado, saldo, nAguardando, pctConcluido, total };
 }
 
-function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos, onSelecionarAluno, onAbrirRelatorio }) {
+function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos, onSelecionarAluno }) {
   const linhas = alunos.map((a) => {
     const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
     return linhaPorAluno(a, documentosDoTipo, progressoTurma, lancsAluno);
@@ -88,7 +88,6 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
                 <th className="num">4. Lançamento</th>
                 <th className="num">Saldo</th>
                 <th style={{ width: 150 }}>% concluído (total)</th>
-                <th className="num no-print" style={{ width: 70 }}>Relatório</th>
               </tr>
             </thead>
             <tbody>
@@ -113,15 +112,6 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
                     </div>
                     <div className="mono" style={{ fontSize: 10.5, marginTop: 2, color: "var(--ink-faint)" }}>{r.pctConcluido ?? "—"}%</div>
                   </td>
-                  <td className="num no-print">
-                    <button
-                      className="btn secondary"
-                      style={{ padding: "4px 8px", fontSize: 12 }}
-                      onClick={(e) => { e.stopPropagation(); onAbrirRelatorio(r.aluno); }}
-                    >
-                      🖨️
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -135,113 +125,11 @@ function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos
   );
 }
 
-function Marca({ feito }) {
-  return feito ? <span style={{ color: "var(--green)" }}>✓</span> : <span style={{ color: "var(--ink-faint)" }}>—</span>;
-}
-
-// Relatório individual — pensado para ser impresso/salvo como PDF e enviado
-// ao próprio aluno (2026-10-07, pedido do professor): o mesmo recorte do
-// Dashboard do ciclo (entrada × saída, 4 etapas, saldo), mas de um só aluno
-// e documento por documento, para ele conseguir ver exatamente o que falta.
-function TabelaRelatorioDocumentos({ titulo, documentosDoTipo, digitacoes, analises, classificacoes, lancsAluno }) {
-  return (
-    <div className="panel" style={{ marginBottom: 16 }}>
-      <div className="panel-head"><h3>{titulo}</h3></div>
-      <div className="panel-body" style={{ padding: 0 }}>
-        {documentosDoTipo.length === 0 ? (
-          <div className="empty-state">Nenhuma nota deste tipo liberada para a turma.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Documento</th>
-                <th className="num">1. Digitação</th>
-                <th className="num">2. Análise fiscal</th>
-                <th className="num">3. Classificação</th>
-                <th className="num">4. Lançamento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {documentosDoTipo.map((doc) => {
-                const lancsDoDoc = lancsAluno.filter((l) => l.documento === doc.id);
-                const st = statusDocumentoAluno(doc, digitacoes, analises, classificacoes, lancsDoDoc);
-                return (
-                  <tr key={doc.id}>
-                    <td className="mono">Nº {doc.numero || doc.id}</td>
-                    <td className="num"><Marca feito={st.digitado} /></td>
-                    <td className="num"><Marca feito={st.analisado} /></td>
-                    <td className="num"><Marca feito={st.classificado} /></td>
-                    <td className="num">
-                      {st.aprovado ? <Marca feito /> : st.aguardandoProfessor ? <span style={{ color: "var(--amber)" }}>⏳ aguardando professor</span> : <Marca feito={false} />}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RelatorioAluno({ aluno, turma, docsEntrada, docsSaida, progressoTurma, todos, onVoltar }) {
-  const digitacoes = progressoTurma.digitacoesPorMatricula[aluno.matricula];
-  const analises = progressoTurma.analisesPorMatricula[aluno.matricula];
-  const classificacoes = progressoTurma.classificacoesPorMatricula[aluno.matricula];
-  const lancsAluno = todos.filter((t) => t.aluno.matricula === aluno.matricula).map((t) => t.lancamento);
-
-  const linhaEntrada = linhaPorAluno(aluno, docsEntrada, progressoTurma, lancsAluno);
-  const linhaSaida = linhaPorAluno(aluno, docsSaida, progressoTurma, lancsAluno);
-
-  const idsEntrada = new Set(docsEntrada.map((d) => d.id));
-  const saldoFinanceiroAluno = lancsAluno.reduce(
-    (acc, l) => {
-      if (l.status !== "aprovado") return acc;
-      const dir = idsEntrada.has(l.documento) ? "entrada" : "saida";
-      acc[dir] += valorLancamento(l);
-      return acc;
-    },
-    { entrada: 0, saida: 0 }
-  );
-
-  const geradoEm = new Date().toLocaleDateString("pt-BR");
-
-  return (
-    <>
-      <div className="screen-eyebrow no-print">dashboard do ciclo</div>
-      <div className="btn-row no-print" style={{ marginBottom: 10 }}>
-        <button className="btn secondary" onClick={onVoltar}>← Voltar ao Dashboard do ciclo</button>
-        <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
-      </div>
-      <h2 className="screen-title">Relatório do ciclo — {aluno.nome}</h2>
-      <p className="screen-sub">
-        Turma: {turma?.nome || "—"} · Matrícula: {aluno.matricula} · Gerado em {geradoEm}
-      </p>
-      <div className="helper-note">
-        Este relatório mostra, documento por documento, em que etapa do ciclo (Digitação → Análise fiscal → Classificação → Lançamento aprovado) você está. "⏳ aguardando professor" significa que você já lançou e está só esperando a aprovação.
-      </div>
-
-      <div className="kpi-row">
-        <Kpi label="Entrada — aprovadas" value={`${linhaEntrada.nAprovado}/${linhaEntrada.total}`} />
-        <Kpi label="Saída — aprovadas" value={`${linhaSaida.nAprovado}/${linhaSaida.total}`} />
-        <Kpi label="Saldo entrada aprovado" value={"R$ " + fmt(saldoFinanceiroAluno.entrada)} tone="ok" />
-        <Kpi label="Saldo saída aprovado" value={"R$ " + fmt(saldoFinanceiroAluno.saida)} tone="ok" />
-      </div>
-
-      <TabelaRelatorioDocumentos titulo="Entrada" documentosDoTipo={docsEntrada} digitacoes={digitacoes} analises={analises} classificacoes={classificacoes} lancsAluno={lancsAluno} />
-      <TabelaRelatorioDocumentos titulo="Saída" documentosDoTipo={docsSaida} digitacoes={digitacoes} analises={analises} classificacoes={classificacoes} lancsAluno={lancsAluno} />
-    </>
-  );
-}
-
 export default function DashboardCiclo({ turma, onSelecionarAluno }) {
   const alunos = useAlunosDaTurma(turma?.id);
   const documentos = useDocumentosDaTurma(turma?.id);
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const progressoTurma = useProgressoTurma(turma?.id, alunos);
-
-  const [alunoRelatorio, setAlunoRelatorio] = useState(null);
 
   const carregando = alunos === null || documentos === null;
 
@@ -345,20 +233,6 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (carregando) return <div className="empty-state">Carregando…</div>;
 
-  if (alunoRelatorio) {
-    return (
-      <RelatorioAluno
-        aluno={alunoRelatorio}
-        turma={turma}
-        docsEntrada={docsEntrada}
-        docsSaida={docsSaida}
-        progressoTurma={progressoTurma}
-        todos={todos}
-        onVoltar={() => setAlunoRelatorio(null)}
-      />
-    );
-  }
-
   return (
     <>
       <div className="screen-eyebrow">dashboard do ciclo</div>
@@ -380,8 +254,8 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
         </div>
       )}
 
-      <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
-      <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
+      <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} />
+      <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} />
 
       <div className="grid-2">
         <div className="panel">
