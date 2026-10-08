@@ -242,6 +242,12 @@
   .criterio-avaliacao-nome{font-size:14px; font-weight:700; margin-bottom:3px;}
   .criterio-avaliacao-desc{font-size:13px; color:var(--ink-soft); line-height:1.4;}
   .criterio-avaliacao-desc.a-definir{color:var(--amber); font-style:italic;}
+  .sub-criterios{margin-top:10px; border-left:2px solid var(--line); padding-left:14px;}
+  .sub-criterio{margin-bottom:12px;}
+  .sub-criterio:last-child{margin-bottom:0;}
+  .sub-criterio-nome{font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .sub-criterio-pct{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--green); background:var(--green-pale); border-radius:999px; padding:1px 8px;}
+  .sub-criterio-desc{font-size:12.5px; color:var(--ink-soft); line-height:1.4; margin-top:2px;}
 
   .partida-row{display:grid; grid-template-columns:2fr 90px 110px 110px 30px; gap:8px; align-items:center; margin-bottom:8px;}
   .partida-row select, .partida-row input{padding:7px 8px; font-size:13px;}
