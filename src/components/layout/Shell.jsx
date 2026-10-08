@@ -281,8 +281,13 @@ const ETAPAS_FLUXO = [
 ];
 
 function FluxoEtapas({ documentos, progresso, lancamentos }) {
-  const { digitacoes, analises, classificacoes } = progresso;
-  if (!documentos || digitacoes === null || analises === null || classificacoes === null) return null;
+  // Se o progresso ainda não carregou (ou um listener falhou), o fluxograma
+  // continua aparecendo, só que com tudo como "a fazer" — antes sumia em silêncio.
+  const digitacoes = progresso?.digitacoes || {};
+  const analises = progresso?.analises || {};
+  const classificacoes = progresso?.classificacoes || [];
+  lancamentos = lancamentos || [];
+  documentos = documentos || [];
   const total = documentos.length;
 
   const nDigAnalisado = documentos.filter((d) => digitacoes[d.id] && analises[d.id]?.status === "enviado").length;
@@ -303,11 +308,61 @@ function FluxoEtapas({ documentos, progresso, lancamentos }) {
 
   const fracao = { 3: `${nDigAnalisado}/${total}`, 4: `${nClassificado}/${total}`, 5: `${nAprovado}/${total}` };
 
+  const estilo = (n) => {
+    const feita = concluido[n], ehAtual = n === atual;
+    return {
+      feita, ehAtual,
+      bg: feita ? "var(--green-pale)" : ehAtual ? "var(--amber-pale)" : "var(--paper-deep)",
+      borda: feita ? "var(--green)" : ehAtual ? "var(--amber)" : "var(--line)",
+    };
+  };
+  const cartao = (n) => {
+    const e = ETAPAS_FLUXO[n - 1];
+    const { feita, ehAtual, bg, borda } = estilo(n);
+    return (
+      <div key={n} style={{ background: bg, border: `${ehAtual ? 2 : 1}px solid ${borda}`, borderRadius: 4, padding: "8px 10px", minHeight: 62, boxSizing: "border-box" }}>
+        <div className="mono" style={{ fontSize: 10.5, color: ehAtual ? "var(--amber)" : feita ? "var(--green)" : "var(--ink-faint)" }}>
+          {n} · {feita ? "✓ concluído" : ehAtual ? "você está aqui" : "a fazer"}
+        </div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25, color: ehAtual ? "var(--amber)" : feita ? "var(--ink)" : "var(--ink-soft)" }}>{e.label}</div>
+      </div>
+    );
+  };
+  const seta = (txt, key) => (
+    <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-faint)", fontSize: 18 }}>{txt}</div>
+  );
+  const linhaCima = [1, 2, 3, 4, 5];
+  const linhaBaixo = [10, 9, 8, 7, 6]; // volta da direita para a esquerda
+
   return (
+    <>
     <div className="panel">
       <div className="panel-head"><h3>Seu caminho na sequência</h3></div>
+      <div className="panel-body" style={{ overflowX: "auto" }}>
+        <p className="helper-note" style={{ marginTop: 0 }}>Verde = concluído · âmbar = é aqui que você está agora · cinza = ainda não chegou lá.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(110px, 1fr))", columnGap: 0, rowGap: 0, minWidth: 640 }}>
+          {/* cada célula = cartão + seta à direita (exceto a última coluna) */}
+          {linhaCima.map((n, i) => (
+            <div key={n} style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+              <div style={{ flex: 1 }}>{cartao(n)}</div>
+              {i < 4 ? seta("→", "a" + n) : <div style={{ width: 0 }} />}
+            </div>
+          ))}
+          {[0, 1, 2, 3].map((i) => <div key={"v" + i} style={{ height: 30 }} />)}
+          <div style={{ height: 30, display: "flex", justifyContent: "center", alignItems: "center", color: "var(--ink-faint)", fontSize: 18, paddingRight: 0 }}>↓</div>
+          {linhaBaixo.map((n, i) => (
+            <div key={n} style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+              <div style={{ flex: 1 }}>{cartao(n)}</div>
+              {i < 4 ? seta("←", "b" + n) : <div style={{ width: 0 }} />}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <div className="panel">
+      <div className="panel-head"><h3>O que fazer em cada etapa</h3></div>
       <div className="panel-body">
-        <p className="helper-note" style={{ marginTop: 0 }}>As mesmas 10 etapas do menu, na ordem, com o que fazer em cada uma.</p>
+        <p className="helper-note" style={{ marginTop: 0 }}>Detalhe de cada passo da sequência acima.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {ETAPAS_FLUXO.map((e) => {
             const feita = concluido[e.n];
@@ -340,6 +395,7 @@ function FluxoEtapas({ documentos, progresso, lancamentos }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -426,7 +482,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
         <div className="kpi"><div className="kpi-label">Balanço fecha?</div><div className="kpi-value mono">{lancamentos.length === 0 ? "—" : (bp.fecha ? "sim" : "não")}</div></div>
       </div>
       {documentos && <MeusValoresPorTipo documentos={documentos} lancamentos={lancamentos} />}
-      {documentos && <FluxoEtapas documentos={documentos} progresso={progresso} lancamentos={lancamentos} />}
+      <FluxoEtapas documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       <div className="panel">
         <div className="panel-head"><h3>Resultado do exercício (parcial)</h3></div>
         <div className="panel-body">R$ {fmt(dre.resultadoExercicio)}</div>
