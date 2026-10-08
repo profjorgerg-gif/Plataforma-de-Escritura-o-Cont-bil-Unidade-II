@@ -370,6 +370,7 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
       <div className="kpi-row">
         <Kpi label="Notas de entrada" value={docsEntrada.length} />
         <Kpi label="Notas de saída" value={docsSaida.length} />
+        <Kpi label="Total de notas (E + S)" value={documentos.length} />
         <Kpi label="Saldo entrada aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.entrada) : "—"} tone="ok" />
         <Kpi label="Saldo saída aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.saida) : "—"} tone="ok" />
       </div>
@@ -380,6 +381,7 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
         </div>
       )}
 
+      <TabelaPorTipo titulo="Total (Entrada + Saída) — por aluno" documentosDoTipo={documentos} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
       <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
       <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} onAbrirRelatorio={setAlunoRelatorio} />
 
