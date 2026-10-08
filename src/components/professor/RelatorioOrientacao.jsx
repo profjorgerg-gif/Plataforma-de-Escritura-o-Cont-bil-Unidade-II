@@ -14,7 +14,7 @@ function TabelaAchados({ achados }) {
   if (achados.length === 0) return <div className="helper-note">Nenhuma pendência encontrada.</div>;
   return (
     <table>
-      <thead><tr><th></th><th>Documento</th><th>Problema</th><th>O que o aluno deve fazer</th></tr></thead>
+      <thead><tr><th></th><th>Documento</th><th>Problema</th><th>O que o aluno deve fazer</th><th>Onde corrigir</th></tr></thead>
       <tbody>
         {achados.map((a, i) => (
           <tr key={i}>
@@ -22,6 +22,7 @@ function TabelaAchados({ achados }) {
             <td className="mono">{a.documento}</td>
             <td>{a.titulo}</td>
             <td>{a.orientacao}</td>
+            <td style={{ fontSize: 12.5 }}>{a.onde}</td>
           </tr>
         ))}
       </tbody>
@@ -76,6 +77,16 @@ export default function RelatorioOrientacao({ turma }) {
   }
   function abrirAluno(rel) { setGerado({ modo: "aluno", rel, veioDaTurma: gerado }); setCopiado(false); }
 
+  // O nome do arquivo ao "Salvar como PDF" vem do título da página: troca o
+  // título só durante a impressão, para o PDF sair com o nome do aluno.
+  function imprimir(titulo) {
+    const anterior = document.title;
+    document.title = titulo;
+    const restaurar = () => { document.title = anterior; window.removeEventListener("afterprint", restaurar); };
+    window.addEventListener("afterprint", restaurar);
+    window.print();
+  }
+
   async function copiar(texto) {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 3000); }
     catch (e) { window.prompt("Não copiou automaticamente — selecione e copie (Ctrl+C):", texto); }
@@ -113,7 +124,7 @@ export default function RelatorioOrientacao({ turma }) {
             <h3>Resumo da turma</h3>
             <div className="no-print" style={{ display: "flex", gap: 8 }}>
               <button className="btn secondary" onClick={() => copiar(textoTurma(gerado.linhas))}>{copiado ? "Copiado ✓" : "Copiar tudo"}</button>
-              <button className="btn secondary" onClick={() => window.print()}>Imprimir</button>
+              <button className="btn secondary" onClick={() => imprimir("Resumo da turma - Relatório de orientação" + (turma.nome ? " - " + turma.nome : ""))}>Imprimir</button>
             </div>
           </div>
           <div className="panel-body" style={{ padding: 0 }}>
@@ -146,7 +157,7 @@ export default function RelatorioOrientacao({ turma }) {
             <div className="no-print" style={{ display: "flex", gap: 8 }}>
               {gerado.veioDaTurma && <button className="btn secondary" onClick={() => setGerado(gerado.veioDaTurma)}>← Voltar ao resumo</button>}
               <button className="btn secondary" onClick={() => copiar(relatorioEmTexto(gerado.rel))}>{copiado ? "Copiado ✓" : "Copiar texto"}</button>
-              <button className="btn secondary" onClick={() => window.print()}>Imprimir</button>
+              <button className="btn secondary" onClick={() => imprimir("Relatório de orientação - " + gerado.rel.aluno.nome)}>Imprimir</button>
             </div>
           </div>
           <div className="panel-body">
