@@ -5,9 +5,10 @@ import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
+import { CriteriosAvaliacao } from "../shared/UI.jsx";
 import {
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, fmt,
-  completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, PESOS_RUBRICA,
+  completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
 } from "../../lib/contabil.js";
 
 // Mesma tabela de avaliação que antes ficava lá embaixo em "Painel do
@@ -37,6 +38,9 @@ export default function Notas({ turma }) {
   async function usarSugestaoAutomatica(matricula) {
     await updateDoc(alunoRef(matricula), { descontoManual: false });
   }
+  async function salvarCriterios(texto) {
+    await updateDoc(doc(db, "turmas", turma.id), { criteriosQualidade: texto });
+  }
   function abrirProrrogacao(a) {
     setProrrogando(a.matricula); setNovoPrazoData(prazoEfetivo(a, turma)); setNovoPrazoMotivo("");
   }
@@ -60,10 +64,12 @@ export default function Notas({ turma }) {
       <h2 className="screen-title">Notas — Unidade II</h2>
       <p className="screen-sub">Avaliação da turma {turma.nome}.</p>
 
+      <CriteriosAvaliacao turma={turma} editavel onSalvar={salvarCriterios} />
+
       <div className="panel">
         <div className="panel-body">
           <div className="helper-note">
-            A nota final combina três componentes: <b>completude do ciclo</b> ({Math.round(PESOS_RUBRICA.completude * 100)}%, automático — % de documentos com as 4 etapas concluídas), <b>qualidade técnica</b> ({Math.round(PESOS_RUBRICA.qualidade * 100)}%, manual — seu julgamento sobre a coerência do raciocínio contábil) e <b>autonomia</b> ({Math.round(PESOS_RUBRICA.autonomia * 100)}%, automático — quanto menos rodadas de correção em média). O desconto por atraso continua sendo aplicado por fora, no final. Digite apenas a nota de <b>qualidade técnica</b> — os outros dois componentes e a nota final são calculados sozinhos. O aluno só vê tudo isso depois de liberada.
+            Digite apenas a nota de <b>qualidade técnica</b> (coluna abaixo) — completude, autonomia e nota final são calculados sozinhos. O aluno só vê os números depois de liberada.
           </div>
           {!turma.prazoUnidadeII && <div className="balance-check bad" style={{ marginBottom: 14 }}>Nenhum prazo definido para esta turma ainda — configure em Turmas.</div>}
 
