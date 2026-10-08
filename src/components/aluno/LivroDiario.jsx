@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, getDocs, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
@@ -241,6 +241,32 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setClassificacaoVinculada(null);
   }
 
+  // Exclui SÓ rascunho (nunca enviado/aprovado/devolvido — esses ficam no
+  // histórico do professor). A regra do Firestore repete essa trava. Se era o
+  // único lançamento do documento, as classificações dele que o salvar() tinha
+  // marcado como "lançada" voltam a "pendente", para o aluno poder lançar de novo.
+  async function excluirRascunho(l) {
+    if (l.status !== "rascunho") return;
+    if (!window.confirm("Excluir este rascunho? Não dá para desfazer.")) return;
+    try {
+      await deleteDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", l.id));
+    } catch (e) {
+      window.alert("Não foi possível excluir: " + (e?.message || e));
+      return;
+    }
+    try {
+      const sobrou = lancamentos.some((x) => x.id !== l.id && x.documento === l.documento);
+      if (l.documento && !sobrou) {
+        const snap = await getDocs(collection(db, "turmas", turmaId, "alunos", matricula, "classificacoes"));
+        await Promise.all(
+          snap.docs
+            .filter((d) => d.data().documento === l.documento && d.data().status === "lançada")
+            .map((d) => updateDoc(d.ref, { status: "pendente" }))
+        );
+      }
+    } catch (e) { /* o rascunho já foi excluído; a classificação pode ser reaberta manualmente */ }
+  }
+
   function abrirNovo() {
     setEditando(null);
     setValoresIniciais(null);
@@ -335,6 +361,11 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
                           {editavel && (
                             <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => abrirEdicao(l)}>
                               ✏️ Editar
+                            </button>
+                          )}
+                          {l.status === "rascunho" && (
+                            <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12, color: "var(--red)" }} onClick={() => excluirRascunho(l)}>
+                              🗑️ Excluir rascunho
                             </button>
                           )}
                           {temHistorico && (
