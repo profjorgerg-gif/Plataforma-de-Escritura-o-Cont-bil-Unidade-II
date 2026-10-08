@@ -6,7 +6,15 @@ import { fmt, PESOS_RUBRICA } from "../../lib/contabil.js";
 // 3 checagens objetivas sobre os lançamentos (não lê nada escrito pelo
 // aluno). `qualidade` é o retorno de qualidadeTecnicaAutomatica() em
 // contabil.js; passar undefined/null mostra só as descrições, sem números
-// (usado na tela do professor, que é por turma, não por aluno).
+// (usado na tela do professor por turma, que não tem um aluno único).
+// `mostrarSugestao` (2026-10-08b) controla só a linha final "Nota sugerida
+// desta parte: X" — ela é útil pro professor (que decide se usa ou não,
+// com o botão "usar" na tabela de Notas), mas confunde o aluno, que pode
+// achar que aquele número já é a nota ou algo que falta "bater" com o
+// professor. Por isso a tela do aluno (TelaMinhaNota, em Shell.jsx) passa
+// mostrarSugestao={false} — ele continua vendo as 3 porcentagens de
+// checagem (essas são só informativas, não um valor de nota), só não vê
+// a média final calculada a partir delas.
 function subCriterio(nome, desc, resultado) {
   return (
     <div className="sub-criterio">
@@ -19,7 +27,7 @@ function subCriterio(nome, desc, resultado) {
   );
 }
 
-export function CriteriosAvaliacao({ turma, qualidade }) {
+export function CriteriosAvaliacao({ turma, qualidade, mostrarSugestao = true }) {
   return (
     <div className="panel">
       <div className="panel-head"><h3>O que será avaliado — Unidade II</h3></div>
@@ -41,7 +49,7 @@ export function CriteriosAvaliacao({ turma, qualidade }) {
               {subCriterio("Regime de competência", "Confere se a data do lançamento está no mesmo mês/ano da emissão do documento de origem.", qualidade?.competencia)}
               {subCriterio("Reação ao aviso fiscal", "Quando a Análise Fiscal aponta CFOP, NCM ou CST incorreto, confere se o campo \"tratamento tributário\" foi preenchido na Classificação daquele documento.", qualidade?.fiscal)}
             </div>
-            {qualidade?.notaSugerida !== null && qualidade?.notaSugerida !== undefined && (
+            {mostrarSugestao && qualidade?.notaSugerida !== null && qualidade?.notaSugerida !== undefined && (
               <div className="criterio-avaliacao-desc" style={{ marginTop: 10, fontWeight: 700, color: "var(--green)" }}>
                 Nota sugerida desta parte: {fmt(qualidade.notaSugerida)} (média das checagens acima)
               </div>
