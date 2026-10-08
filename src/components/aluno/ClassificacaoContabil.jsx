@@ -150,7 +150,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
           )}
         </div>
       </div>
-      <div className="helper-note">Clique em "usar no lançamento" para levar esta classificação pronta para o Livro Diário — a data e o histórico ainda podem ser ajustados lá antes de enviar.</div>
+      <div className="helper-note">Clique em "usar no lançamento" para levar esta classificação pronta para o Livro Diário — a data e o histórico ainda podem ser ajustados lá antes de enviar. Assim que você salvar o lançamento lá (mesmo como rascunho), esta classificação já é marcada como lançada sozinha — "marcar como lançada" aqui só é necessário se você montar o lançamento no Diário sem usar esse atalho.</div>
     </>
   );
 }
