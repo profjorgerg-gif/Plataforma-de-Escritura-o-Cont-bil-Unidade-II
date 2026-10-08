@@ -8,7 +8,7 @@ import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
 import { useTurma } from "../../hooks/useTurma.js";
 import {
-  fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
+  fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica,
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
 } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
@@ -402,13 +402,20 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
 // Tela própria para "Minha nota", com item de menu direto — antes esse
 // painel só existia dentro de "Meu progresso", escondido lá embaixo (pedido
 // do professor em 2026-10-08: acesso rápido pelo menu).
-function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
+function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos, contas }) {
+  const qualidadeAuto = documentos
+    ? qualidadeTecnicaAutomatica({
+        documentos, lancamentos,
+        analises: progresso.analises, classificacoes: progresso.classificacoes,
+        contas: contas || [],
+      })
+    : null;
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Minha nota — Unidade II</h2>
       <p className="screen-sub">Sua avaliação da Unidade II, liberada pelo professor quando estiver pronta.</p>
-      <CriteriosAvaliacao turma={turma} />
+      <CriteriosAvaliacao turma={turma} qualidade={qualidadeAuto} />
       <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {(!registro || !registro.notaLiberada) && (
         <div className="helper-note">Sua nota ainda não foi liberada pelo professor. Assim que ele liberar, ela aparece aqui automaticamente.</div>
@@ -530,7 +537,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "dashboard") {
     tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} registro={meuRegistro} turma={minhaTurma} />;
   } else if (papelEfetivo === "aluno" && screen === "minha-nota") {
-    tela = <TelaMinhaNota registro={meuRegistro} turma={minhaTurma} documentos={documentos} progresso={progresso} lancamentos={esc.lancamentos} />;
+    tela = <TelaMinhaNota registro={meuRegistro} turma={minhaTurma} documentos={documentos} progresso={progresso} lancamentos={esc.lancamentos} contas={esc.contas} />;
   } else if (papelEfetivo === "aluno" && screen === "empresa") {
     tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
   } else if (papelEfetivo === "aluno" && screen === "documentos") {
