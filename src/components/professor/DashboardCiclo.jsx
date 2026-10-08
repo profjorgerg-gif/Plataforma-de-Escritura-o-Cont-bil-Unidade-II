@@ -1,0 +1,329 @@
+import { useMemo } from "react";
+import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
+import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
+import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
+import { Kpi } from "../shared/UI.jsx";
+import { fmt } from "../../lib/contabil.js";
+
+// Dashboard do ciclo — Entrada × Saída (2026-10-07, pedido do professor).
+//
+// Para cada aluno e cada documento liberado para a turma, considera 4
+// etapas (Digitação → Análise fiscal enviada → Classificação → Lançamento
+// APROVADO) e cruza isso com a direção do documento (entrada/saída).
+//
+// Critério da etapa 4 — decidido com o professor: só lançamento APROVADO
+// fecha o ciclo (mesma régua que já vale no resto do sistema: Razão,
+// Balancete, DRE e BP só usam lançamentos aprovados). Um lançamento
+// "enviado" ou "em correção" NÃO conta como concluído — mas, para não
+// esconder que o aluno já fez a parte dele e está só esperando o
+// professor, o saldo daquele documento aparece em âmbar (aguardando você)
+// em vez de vermelho (aluno ainda nem lançou).
+const DIAS_INATIVIDADE = 6;
+
+function milissegundos(ts) {
+  if (!ts) return null;
+  if (typeof ts.toMillis === "function") return ts.toMillis();
+  const d = new Date(ts);
+  return isNaN(d) ? null : d.getTime();
+}
+
+function valorLancamento(l) {
+  return (l.partidas || []).filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
+}
+
+// Para um aluno e um documento: em que pé está cada uma das 4 etapas.
+function statusDocumentoAluno(doc, digitacoes, analises, classificacoes, lancsDoDoc) {
+  const digitado = !!(digitacoes && digitacoes[doc.id]);
+  const analisado = analises && analises[doc.id]?.status === "enviado";
+  const classificado = (classificacoes || []).some((c) => c.documento === doc.id);
+  const aprovado = lancsDoDoc.some((l) => l.status === "aprovado");
+  const aguardandoProfessor = !aprovado && lancsDoDoc.some((l) => l.status === "enviado" || l.status === "correcao");
+  return { digitado, analisado, classificado, aprovado, aguardandoProfessor };
+}
+
+function linhaPorAluno(aluno, documentosDoTipo, progressoTurma, lancsAluno) {
+  const digitacoes = progressoTurma.digitacoesPorMatricula[aluno.matricula];
+  const analises = progressoTurma.analisesPorMatricula[aluno.matricula];
+  const classificacoes = progressoTurma.classificacoesPorMatricula[aluno.matricula];
+
+  let nDigitado = 0, nAnalisado = 0, nClassificado = 0, nAprovado = 0, nAguardando = 0;
+  documentosDoTipo.forEach((doc) => {
+    const lancsDoDoc = lancsAluno.filter((l) => l.documento === doc.id);
+    const st = statusDocumentoAluno(doc, digitacoes, analises, classificacoes, lancsDoDoc);
+    if (st.digitado) nDigitado++;
+    if (st.analisado) nAnalisado++;
+    if (st.classificado) nClassificado++;
+    if (st.aprovado) nAprovado++;
+    if (st.aguardandoProfessor) nAguardando++;
+  });
+
+  const total = documentosDoTipo.length;
+  const saldo = total - nAprovado;
+  const pctConcluido = total === 0 ? null : Math.round(((nDigitado + nAnalisado + nClassificado + nAprovado) / (total * 4)) * 100);
+
+  return { aluno, nDigitado, nAnalisado, nClassificado, nAprovado, saldo, nAguardando, pctConcluido, total };
+}
+
+function TabelaPorTipo({ titulo, documentosDoTipo, alunos, progressoTurma, todos, onSelecionarAluno }) {
+  const linhas = alunos.map((a) => {
+    const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
+    return linhaPorAluno(a, documentosDoTipo, progressoTurma, lancsAluno);
+  });
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>{titulo} ({documentosDoTipo.length} nota{documentosDoTipo.length === 1 ? "" : "s"} liberada{documentosDoTipo.length === 1 ? "" : "s"})</h3></div>
+      <div className="panel-body" style={{ padding: 0 }}>
+        {documentosDoTipo.length === 0 ? (
+          <div className="empty-state">Nenhuma nota deste tipo liberada para a turma.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Aluno</th>
+                <th className="num">1. Digitação</th>
+                <th className="num">2. Análise fiscal</th>
+                <th className="num">3. Classificação</th>
+                <th className="num">4. Lançamento</th>
+                <th className="num">Saldo</th>
+                <th style={{ width: 150 }}>% concluído (total)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((r) => (
+                <tr key={r.aluno.matricula} className="clickable" onClick={() => onSelecionarAluno(r.aluno)}>
+                  <td>{r.aluno.nome}</td>
+                  <td className="num mono">{r.nDigitado}/{r.total}</td>
+                  <td className="num mono">{r.nAnalisado}/{r.total}</td>
+                  <td className="num mono">{r.nClassificado}/{r.total}</td>
+                  <td className="num mono">{r.nAprovado}/{r.total}</td>
+                  <td className="num mono">
+                    <span style={{
+                      fontWeight: r.saldo > 0 ? 600 : 400,
+                      color: r.saldo === 0 ? "var(--green)" : (r.nAguardando > 0 ? "var(--amber)" : "var(--red)"),
+                    }}>
+                      {r.saldo}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ height: 7, background: "var(--green-pale)", border: "1px solid var(--line-strong)", position: "relative" }}>
+                      <div style={{ height: "100%", width: (r.pctConcluido ?? 0) + "%", background: "var(--green)" }} />
+                    </div>
+                    <div className="mono" style={{ fontSize: 10.5, marginTop: 2, color: "var(--ink-faint)" }}>{r.pctConcluido ?? "—"}%</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className="helper-note" style={{ margin: "0 16px 16px" }}>
+        Clique num aluno para abrir o Histórico dele. Saldo em <span style={{ color: "var(--amber)", fontWeight: 600 }}>âmbar</span>: já lançou, aguardando sua aprovação. Em <span style={{ color: "var(--red)", fontWeight: 600 }}>vermelho</span>: ainda não lançou nada para essas notas.
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardCiclo({ turma, onSelecionarAluno }) {
+  const alunos = useAlunosDaTurma(turma?.id);
+  const documentos = useDocumentosDaTurma(turma?.id);
+  const { todos } = useLancamentosDaTurma(turma?.id, alunos);
+  const progressoTurma = useProgressoTurma(turma?.id, alunos);
+
+  const carregando = alunos === null || documentos === null;
+
+  const docsEntrada = useMemo(() => (documentos || []).filter((d) => d.direcao === "entrada"), [documentos]);
+  const docsSaida = useMemo(() => (documentos || []).filter((d) => d.direcao !== "entrada"), [documentos]);
+
+  // Documento mais travado da turma — menor % médio de conclusão entre os alunos.
+  const documentoMaisTravado = useMemo(() => {
+    if (carregando || !alunos || alunos.length === 0 || !documentos || documentos.length === 0) return null;
+    let pior = null;
+    documentos.forEach((doc) => {
+      const pcts = alunos.map((a) => {
+        const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
+        const lancsDoDoc = lancsAluno.filter((l) => l.documento === doc.id);
+        const st = statusDocumentoAluno(
+          doc,
+          progressoTurma.digitacoesPorMatricula[a.matricula],
+          progressoTurma.analisesPorMatricula[a.matricula],
+          progressoTurma.classificacoesPorMatricula[a.matricula],
+          lancsDoDoc
+        );
+        return ([st.digitado, st.analisado, st.classificado, st.aprovado].filter(Boolean).length / 4) * 100;
+      });
+      const media = pcts.reduce((s, v) => s + v, 0) / pcts.length;
+      if (!pior || media < pior.media) pior = { doc, media: Math.round(media) };
+    });
+    return pior;
+  }, [carregando, alunos, documentos, todos, progressoTurma]);
+
+  // Correções por tipo — entre todos os lançamentos já feitos (qualquer
+  // status, já que todo lançamento nasce "enviado"), quantos já precisaram
+  // de pelo menos uma devolução.
+  const correcoesPorTipo = useMemo(() => {
+    if (!documentos) return null;
+    const direcaoPorDoc = Object.fromEntries(documentos.map((d) => [d.id, d.direcao === "entrada" ? "entrada" : "saida"]));
+    const base = { entrada: { total: 0, devolvidos: 0 }, saida: { total: 0, devolvidos: 0 } };
+    todos.forEach(({ lancamento: l }) => {
+      const dir = direcaoPorDoc[l.documento];
+      if (!dir) return;
+      base[dir].total++;
+      if ((l.historicoCorrecoes?.length || 0) > 0) base[dir].devolvidos++;
+    });
+    return base;
+  }, [documentos, todos]);
+
+  // Apontamentos de análise fiscal por tipo — análises enviadas que
+  // marcaram CFOP, NCM ou CST como incorretos para a operação.
+  const apontamentosPorTipo = useMemo(() => {
+    if (!documentos || !alunos) return null;
+    const direcaoPorDoc = Object.fromEntries(documentos.map((d) => [d.id, d.direcao === "entrada" ? "entrada" : "saida"]));
+    const base = { entrada: { enviadas: 0, incorretas: 0 }, saida: { enviadas: 0, incorretas: 0 } };
+    alunos.forEach((a) => {
+      const analises = progressoTurma.analisesPorMatricula[a.matricula] || {};
+      Object.entries(analises).forEach(([docId, an]) => {
+        if (an.status !== "enviado") return;
+        const dir = direcaoPorDoc[docId];
+        if (!dir) return;
+        base[dir].enviadas++;
+        if (an.cfopCorreto === "não" || an.ncmCorreto === "não" || an.cstCorreto === "não") base[dir].incorretas++;
+      });
+    });
+    return base;
+  }, [documentos, alunos, progressoTurma]);
+
+  // Saldo financeiro aprovado — soma do valor dos lançamentos aprovados,
+  // por direção do documento de origem.
+  const saldoFinanceiro = useMemo(() => {
+    if (!documentos) return null;
+    const direcaoPorDoc = Object.fromEntries(documentos.map((d) => [d.id, d.direcao === "entrada" ? "entrada" : "saida"]));
+    const base = { entrada: 0, saida: 0 };
+    todos.forEach(({ lancamento: l }) => {
+      if (l.status !== "aprovado") return;
+      const dir = direcaoPorDoc[l.documento];
+      if (!dir) return;
+      base[dir] += valorLancamento(l);
+    });
+    return base;
+  }, [documentos, todos]);
+
+  // Alunos sem nenhuma atividade (digitação, análise ou lançamento) nos
+  // últimos DIAS_INATIVIDADE dias — ou sem nenhuma atividade registrada.
+  const alunosInativos = useMemo(() => {
+    if (!alunos) return [];
+    const agora = Date.now();
+    const limite = DIAS_INATIVIDADE * 86400000;
+    return alunos.filter((a) => {
+      const digitacoes = Object.values(progressoTurma.digitacoesPorMatricula[a.matricula] || {});
+      const analises = Object.values(progressoTurma.analisesPorMatricula[a.matricula] || {});
+      const lancsAluno = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
+      const timestamps = [
+        ...digitacoes.map((d) => milissegundos(d.atualizadoEm)),
+        ...analises.map((d) => milissegundos(d.atualizadoEm)),
+        ...lancsAluno.map((l) => milissegundos(l.criadoEm)),
+      ].filter((t) => t !== null);
+      if (timestamps.length === 0) return true; // nunca fez nada ainda
+      const ultima = Math.max(...timestamps);
+      return (agora - ultima) > limite;
+    });
+  }, [alunos, progressoTurma, todos]);
+
+  if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
+  if (carregando) return <div className="empty-state">Carregando…</div>;
+
+  return (
+    <>
+      <div className="screen-eyebrow">dashboard do ciclo</div>
+      <h2 className="screen-title">Dashboard do ciclo — Entrada × Saída</h2>
+      <p className="screen-sub">
+        Por aluno, quantas notas de entrada e de saída já passaram por cada etapa do ciclo, e quantas ainda faltam (saldo). Turma: {turma.nome}.
+      </p>
+
+      <div className="kpi-row">
+        <Kpi label="Notas de entrada" value={docsEntrada.length} />
+        <Kpi label="Notas de saída" value={docsSaida.length} />
+        <Kpi label="Saldo entrada aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.entrada) : "—"} tone="ok" />
+        <Kpi label="Saldo saída aprovada" value={saldoFinanceiro ? "R$ " + fmt(saldoFinanceiro.saida) : "—"} tone="ok" />
+      </div>
+
+      {alunosInativos.length > 0 && (
+        <div className="balance-check bad" style={{ marginBottom: 16 }}>
+          ⚠ {alunosInativos.length} aluno(s) sem nenhuma atividade há {DIAS_INATIVIDADE}+ dias: {alunosInativos.map((a) => a.nome).join(", ")}.
+        </div>
+      )}
+
+      <TabelaPorTipo titulo="Entrada — por aluno" documentosDoTipo={docsEntrada} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} />
+      <TabelaPorTipo titulo="Saída — por aluno" documentosDoTipo={docsSaida} alunos={alunos} progressoTurma={progressoTurma} todos={todos} onSelecionarAluno={onSelecionarAluno} />
+
+      <div className="grid-2">
+        <div className="panel">
+          <div className="panel-head"><h3>Documento mais travado da turma</h3></div>
+          <div className="panel-body">
+            {documentoMaisTravado ? (
+              <>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                  Nº {documentoMaisTravado.doc.numero || documentoMaisTravado.doc.id} — {documentoMaisTravado.doc.direcao === "entrada" ? "Entrada" : "Saída"}
+                </div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 8 }}>
+                  {documentoMaisTravado.media}% de conclusão média entre os {alunos.length} aluno(s) — a mais baixa entre as notas liberadas.
+                </div>
+                <div style={{ height: 7, background: "var(--red-pale)", border: "1px solid var(--line-strong)" }}>
+                  <div style={{ height: "100%", width: documentoMaisTravado.media + "%", background: "var(--red)" }} />
+                </div>
+              </>
+            ) : <div className="empty-state">Sem dados suficientes ainda.</div>}
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-head"><h3>Correções por tipo (lançamentos devolvidos)</h3></div>
+          <div className="panel-body" style={{ padding: 0 }}>
+            <table>
+              <tbody>
+                {["entrada", "saida"].map((dir) => {
+                  const d = correcoesPorTipo?.[dir];
+                  const pct = d && d.total > 0 ? Math.round((d.devolvidos / d.total) * 100) : null;
+                  return (
+                    <tr key={dir}>
+                      <td>{dir === "entrada" ? "Entrada" : "Saída"}</td>
+                      <td className="num">{d ? `${d.devolvidos} de ${d.total} enviado(s)` : "—"}</td>
+                      <td className="num mono" style={{ color: "var(--red)" }}>{pct === null ? "—" : pct + "%"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>Apontamentos de análise fiscal por tipo</h3></div>
+        <div className="panel-body" style={{ padding: 0 }}>
+          <table>
+            <thead><tr><th></th><th className="num">Análises enviadas</th><th className="num">Com algo marcado incorreto</th><th className="num">%</th></tr></thead>
+            <tbody>
+              {["entrada", "saida"].map((dir) => {
+                const d = apontamentosPorTipo?.[dir];
+                const pct = d && d.enviadas > 0 ? Math.round((d.incorretas / d.enviadas) * 100) : null;
+                return (
+                  <tr key={dir}>
+                    <td>{dir === "entrada" ? "Entrada" : "Saída"}</td>
+                    <td className="num mono">{d ? d.enviadas : "—"}</td>
+                    <td className="num mono">{d ? d.incorretas : "—"}</td>
+                    <td className="num mono">{pct === null ? "—" : pct + "%"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="helper-note" style={{ margin: "0 16px 16px" }}>
+          CFOP, NCM ou CST que o aluno marcou como incorreto para a operação, na Análise fiscal — não é erro do aluno, é a contagem do que ele próprio sinalizou.
+        </div>
+      </div>
+    </>
+  );
+}
