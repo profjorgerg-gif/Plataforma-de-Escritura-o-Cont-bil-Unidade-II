@@ -227,7 +227,21 @@
     display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
     padding:2px 7px; background:var(--blue-pale); color:var(--blue); margin-right:5px;
   }
+  .tag-pill.warn{background:var(--amber-pale); color:var(--amber);}
   .empty-state{padding:34px 18px; text-align:center; color:var(--ink-faint); font-size:13.5px;}
+
+  /* Painel "O que será avaliado" (CriteriosAvaliacao em shared/UI.jsx),
+     usado tanto na tela do professor (Notas) quanto na do aluno (Minha
+     nota) — 2026-10-08. */
+  .criterio-avaliacao-row{display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--paper-deep);}
+  .criterio-avaliacao-peso{
+    font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:700; color:var(--green);
+    width:46px; flex-shrink:0; text-align:center; background:var(--green-pale); border-radius:3px;
+    padding:4px 0; height:fit-content;
+  }
+  .criterio-avaliacao-nome{font-size:14px; font-weight:700; margin-bottom:3px;}
+  .criterio-avaliacao-desc{font-size:13px; color:var(--ink-soft); line-height:1.4;}
+  .criterio-avaliacao-desc.a-definir{color:var(--amber); font-style:italic;}
 
   .partida-row{display:grid; grid-template-columns:2fr 90px 110px 110px 30px; gap:8px; align-items:center; margin-bottom:8px;}
   .partida-row select, .partida-row input{padding:7px 8px; font-size:13px;}
