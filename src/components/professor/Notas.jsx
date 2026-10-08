@@ -5,10 +5,11 @@ import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
+import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { CriteriosAvaliacao } from "../shared/UI.jsx";
 import {
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, fmt,
-  completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
+  completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica,
 } from "../../lib/contabil.js";
 
 // Mesma tabela de avaliação que antes ficava lá embaixo em "Painel do
@@ -19,6 +20,7 @@ export default function Notas({ turma }) {
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const documentos = useDocumentosDaTurma(turma?.id);
   const progressoTurma = useProgressoTurma(turma?.id, alunos);
+  const { contas } = usePlanoContas();
 
   const [prorrogando, setProrrogando] = useState(null); // matricula
   const [novoPrazoData, setNovoPrazoData] = useState("");
@@ -38,8 +40,8 @@ export default function Notas({ turma }) {
   async function usarSugestaoAutomatica(matricula) {
     await updateDoc(alunoRef(matricula), { descontoManual: false });
   }
-  async function salvarCriterios(texto) {
-    await updateDoc(doc(db, "turmas", turma.id), { criteriosQualidade: texto });
+  async function usarSugestaoQualidade(matricula, notaSugerida) {
+    await setNota(matricula, notaSugerida);
   }
   function abrirProrrogacao(a) {
     setProrrogando(a.matricula); setNovoPrazoData(prazoEfetivo(a, turma)); setNovoPrazoMotivo("");
@@ -64,7 +66,7 @@ export default function Notas({ turma }) {
       <h2 className="screen-title">Notas — Unidade II</h2>
       <p className="screen-sub">Avaliação da turma {turma.nome}.</p>
 
-      <CriteriosAvaliacao turma={turma} editavel onSalvar={salvarCriterios} />
+      <CriteriosAvaliacao turma={turma} />
 
       <div className="panel">
         <div className="panel-body">
@@ -97,7 +99,7 @@ export default function Notas({ turma }) {
               <tr>
                 <th>Aluno</th><th>Prazo</th><th>Entrega</th><th className="num">Atraso</th>
                 <th className="num">Completude</th><th className="num">Autonomia</th>
-                <th className="num">Qualidade técnica</th><th className="num">Desconto</th>
+                <th className="num">Sugestão</th><th className="num">Qualidade técnica</th><th className="num">Desconto</th>
                 <th className="num">Nota final</th><th>Status</th><th></th>
               </tr>
             </thead>
@@ -116,6 +118,13 @@ export default function Notas({ turma }) {
                 );
                 const autonomiaPct = autonomiaCorrecoes(lancsAluno);
                 const notaFinal = notaFinalPonderada({ completudePct, qualidadeNota: a.nota, autonomiaPct, desconto });
+                const qualidadeAuto = qualidadeTecnicaAutomatica({
+                  documentos,
+                  lancamentos: lancsAluno,
+                  analises: progressoTurma.analisesPorMatricula[a.matricula],
+                  classificacoes: progressoTurma.classificacoesPorMatricula[a.matricula],
+                  contas: contas || [],
+                });
                 return (
                   <tr key={a.matricula}>
                     <td>{a.nome}</td>
@@ -124,6 +133,14 @@ export default function Notas({ turma }) {
                     <td className="num mono">{dias > 0 ? dias + "d" : "—"}</td>
                     <td className="num mono">{completudePct === null ? "—" : completudePct + "%"}</td>
                     <td className="num mono">{autonomiaPct === null ? "—" : autonomiaPct + "%"}</td>
+                    <td className="num">
+                      {qualidadeAuto?.notaSugerida !== null && qualidadeAuto?.notaSugerida !== undefined ? (
+                        <>
+                          <div className="mono">{fmt(qualidadeAuto.notaSugerida)}</div>
+                          <button className="btn secondary" style={{ padding: "2px 6px", fontSize: "10.5px", marginTop: 3 }} onClick={() => usarSugestaoQualidade(a.matricula, qualidadeAuto.notaSugerida)}>usar</button>
+                        </>
+                      ) : <span className="mono">—</span>}
+                    </td>
                     <td><input type="number" min={0} max={10} step={0.1} className="mono" style={{ width: 70, padding: "5px 6px" }} value={a.nota ?? ""} onChange={(e) => setNota(a.matricula, e.target.value)} /></td>
                     <td>
                       <input type="number" min={0} step={0.1} className="mono" style={{ width: 60, padding: "5px 6px" }} value={desconto} onChange={(e) => setDesconto(a.matricula, e.target.value)} />
