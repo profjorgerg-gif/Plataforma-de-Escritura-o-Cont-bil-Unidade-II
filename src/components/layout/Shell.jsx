@@ -118,19 +118,56 @@ function gruposMenuAluno({ incluirManuais, badgeDiario }) {
   return grupos;
 }
 
-const MENU_PROFESSOR = [
-  { key: "painel", label: "Painel do professor" },
-  { key: "notas", label: "Notas" },
-  { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
-  { key: "roteiro", label: "Roteiro do Aluno" },
-  { key: "turmas", label: "Turmas" },
-  { key: "fila", label: "Fila de correção" },
-  { key: "historico", label: "Histórico do aluno" },
-  { key: "documentos", label: "Documentos fiscais" },
-  { key: "consulta", label: "Consulta CFOP/NCM" },
-  { key: "plano", label: "Plano de contas" },
-  { key: "modoteste", label: "Modo de teste" },
+// Menu do professor agrupado por função (2026-10-08, mesmo pedido do
+// professor que levou ao reagrupamento do menu do aluno: tudo numa lista só
+// misturava "o que eu olho todo dia" com "ferramenta de apoio que uso de vez
+// em quando"). Sem numeração — ao contrário do aluno, o professor não segue
+// uma sequência fixa de telas.
+const MENU_PROFESSOR_GRUPOS = [
+  {
+    label: null,
+    itens: [
+      { key: "painel", label: "Painel do professor" },
+      { key: "notas", label: "Notas" },
+      { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
+    ],
+  },
+  {
+    label: "gestão da turma",
+    itens: [
+      { key: "turmas", label: "Turmas" },
+      { key: "fila", label: "Fila de correção" },
+      { key: "historico", label: "Histórico do aluno" },
+    ],
+  },
+  {
+    label: "apoio e consulta",
+    itens: [
+      { key: "roteiro", label: "Roteiro do Aluno" },
+      { key: "documentos", label: "Documentos fiscais" },
+      { key: "consulta", label: "Consulta CFOP/NCM" },
+      { key: "plano", label: "Plano de contas" },
+    ],
+  },
+  {
+    label: "ferramentas",
+    itens: [{ key: "modoteste", label: "Modo de teste" }],
+  },
 ];
+
+// Monta os grupos do menu do professor já com o badge de pendências (no
+// item "Fila de correção") e o grupo de manuais ao final — mesmo padrão
+// usado em gruposMenuAluno().
+function gruposMenuProfessor({ papel, badgeFila }) {
+  const grupos = MENU_PROFESSOR_GRUPOS.map((grupo) => ({
+    ...grupo,
+    itens: grupo.itens.map((item) =>
+      item.key === "fila" && badgeFila > 0 ? { ...item, badge: badgeFila } : item
+    ),
+  }));
+  grupos.push({ label: "manuais", itens: manuaisPara(papel) });
+  return grupos;
+}
 
 function manuaisPara(papel) {
   if (papel === "aluno") return [{ key: "manual-aluno", label: "Manual do Aluno" }];
@@ -497,13 +534,9 @@ export default function Shell({ usuario, perfil, onSair }) {
     }
   }
 
-  function comBadge(itens, key, contagem) {
-    return itens.map((it) => (it.key === key && contagem > 0 ? { ...it, badge: contagem } : it));
-  }
-
   // Menu do aluno (e do modo de teste, que usa as mesmas telas): agrupado e
-  // numerado na ordem real do exercício. Menu do professor: continua como
-  // lista única (não é onde os alunos se perdem).
+  // numerado na ordem real do exercício. Menu do professor: agrupado por
+  // função, sem numeração (2026-10-08).
   let menuGrupos;
   if (papelEfetivo === "aluno") {
     menuGrupos = gruposMenuAluno({
@@ -511,9 +544,10 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeDiario: correcoesPendentesAluno,
     });
   } else {
-    let itensProfessor = [...MENU_PROFESSOR, ...manuaisPara(perfil.papel)];
-    itensProfessor = comBadge(itensProfessor, "fila", correcoesPendentesProfessor);
-    menuGrupos = [{ label: null, itens: itensProfessor }];
+    menuGrupos = gruposMenuProfessor({
+      papel: perfil.papel,
+      badgeFila: correcoesPendentesProfessor,
+    });
   }
 
   const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp"];
