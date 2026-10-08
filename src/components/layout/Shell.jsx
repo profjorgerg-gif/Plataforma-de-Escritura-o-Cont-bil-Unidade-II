@@ -415,7 +415,7 @@ function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos, co
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Minha nota — Unidade II</h2>
       <p className="screen-sub">Sua avaliação da Unidade II, liberada pelo professor quando estiver pronta.</p>
-      <CriteriosAvaliacao turma={turma} qualidade={qualidadeAuto} />
+      <CriteriosAvaliacao turma={turma} qualidade={qualidadeAuto} mostrarSugestao={false} />
       <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {(!registro || !registro.notaLiberada) && (
         <div className="helper-note">Sua nota ainda não foi liberada pelo professor. Assim que ele liberar, ela aparece aqui automaticamente.</div>
