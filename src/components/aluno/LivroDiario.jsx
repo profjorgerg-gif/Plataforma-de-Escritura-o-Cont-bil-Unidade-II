@@ -154,6 +154,11 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
   const [valoresIniciais, setValoresIniciais] = useState(null); // pré-preenchimento vindo da Classificação Contábil
+  // Id da classificação que originou o pré-preenchimento atual (via "usar no
+  // lançamento"), para marcá-la como "lançada" sozinha assim que este
+  // lançamento for salvo — ver salvar() abaixo. null quando o formulário não
+  // veio de nenhuma classificação (lançamento digitado do zero ou edição).
+  const [classificacaoVinculada, setClassificacaoVinculada] = useState(null);
   const [historicoAberto, setHistoricoAberto] = useState({}); // id -> bool
   const [classificacoes, setClassificacoes] = useState([]); // todas as classificações do aluno, para o aviso de ponte abaixo
 
@@ -171,6 +176,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
         { conta: rascunhoDeClassificacao.contaCredito || "", tipo: "C", valor: rascunhoDeClassificacao.valor ?? "" },
       ],
     });
+    setClassificacaoVinculada(rascunhoDeClassificacao.id || null);
     setMostrarForm(true);
     onRascunhoConsumido?.();
   }, [rascunhoDeClassificacao]);
@@ -202,6 +208,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
         { conta: c.contaCredito || "", tipo: "C", valor: c.valor ?? "" },
       ],
     });
+    setClassificacaoVinculada(c.id || null);
     setMostrarForm(true);
   }
 
@@ -214,20 +221,37 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
         criadoEm: serverTimestamp(),
       });
     }
+    // Fecha o laço Classificação → Diário (2026-10-08): antes, marcar a
+    // classificação como "lançada" era um clique manual separado ("marcar
+    // como lançada no Diário") — se o aluno esquecia, ela continuava
+    // aparecendo como pendente e um novo clique em "usar no lançamento"
+    // criava um SEGUNDO lançamento para o mesmo fato (foi o que gerou um
+    // lançamento duplicado real, identificado nesta data). Agora, assim que
+    // o lançamento é salvo — rascunho ou enviado, tanto faz — a
+    // classificação de origem (se houver) é marcada sozinha.
+    if (classificacaoVinculada) {
+      await updateDoc(
+        doc(db, "turmas", turmaId, "alunos", matricula, "classificacoes", classificacaoVinculada),
+        { status: "lançada" }
+      );
+    }
     setMostrarForm(false);
     setEditando(null);
     setValoresIniciais(null);
+    setClassificacaoVinculada(null);
   }
 
   function abrirNovo() {
     setEditando(null);
     setValoresIniciais(null);
+    setClassificacaoVinculada(null);
     setMostrarForm(true);
   }
 
   function abrirEdicao(l) {
     setEditando(l);
     setValoresIniciais(null);
+    setClassificacaoVinculada(null);
     setMostrarForm(true);
   }
 
@@ -235,6 +259,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setMostrarForm(false);
     setEditando(null);
     setValoresIniciais(null);
+    setClassificacaoVinculada(null);
   }
 
   function alternarHistorico(id) {
