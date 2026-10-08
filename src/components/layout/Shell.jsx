@@ -62,22 +62,56 @@ import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
 // Professor; admin vê os três (inclui o de Operacionalização, mais
 // técnico). Isso usa perfil.papel de verdade — não muda em modo de teste.
 
-const MENU_ALUNO = [
-  { key: "dashboard", label: "Meu progresso" },
-  { key: "roteiro", label: "Roteiro do Aluno" },
-  { key: "empresa", label: "Empresa didática" },
-  { key: "documentos", label: "Documentos fiscais" },
-  { key: "digitacao", label: "Digitação e análise fiscal" },
-  { key: "consulta", label: "Consulta CFOP/NCM" },
-  { key: "plano", label: "Plano de contas" },
-  { key: "classificacao", label: "Classificação contábil" },
-  { key: "diario", label: "Livro diário" },
-  { key: "razao", label: "Livro razão" },
-  { key: "balancete", label: "Balancete" },
-  { key: "are", label: "ARE" },
-  { key: "dre", label: "DRE" },
-  { key: "bp", label: "Balanço patrimonial" },
+// Menu do aluno reorganizado em grupos (2026-10-07, pedido do professor: os
+// alunos estavam se perdendo da sequência). Antes era uma lista única, com
+// as 10 telas da sequência da empresa didática misturadas com telas de
+// apoio/consulta (Roteiro, Consulta CFOP/NCM, Plano de contas) — agora a
+// sequência fica separada e numerada (1 a 10, na ordem real do exercício),
+// e o que é só apoio/consulta fica num grupo à parte, sem número.
+const MENU_ALUNO_GRUPOS = [
+  {
+    label: null,
+    itens: [{ key: "dashboard", label: "Meu progresso" }],
+  },
+  {
+    label: "sequência da empresa didática",
+    numerado: true,
+    itens: [
+      { key: "empresa", label: "Empresa didática" },
+      { key: "documentos", label: "Documentos fiscais" },
+      { key: "digitacao", label: "Digitação e análise fiscal" },
+      { key: "classificacao", label: "Classificação contábil" },
+      { key: "diario", label: "Livro diário" },
+      { key: "razao", label: "Livro razão" },
+      { key: "balancete", label: "Balancete" },
+      { key: "are", label: "ARE" },
+      { key: "dre", label: "DRE" },
+      { key: "bp", label: "Balanço patrimonial" },
+    ],
+  },
+  {
+    label: "apoio e consulta",
+    itens: [
+      { key: "roteiro", label: "Roteiro do Aluno" },
+      { key: "consulta", label: "Consulta CFOP/NCM" },
+      { key: "plano", label: "Plano de contas" },
+    ],
+  },
 ];
+
+// Monta os grupos do menu do aluno já com o badge de pendências (no item
+// "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
+// padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
+function gruposMenuAluno({ incluirManuais, badgeDiario }) {
+  const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
+    ...grupo,
+    itens: grupo.itens.map((item) =>
+      item.key === "diario" && badgeDiario > 0 ? { ...item, badge: badgeDiario } : item
+    ),
+  }));
+  if (incluirManuais) grupos.push({ label: "manuais", itens: manuaisPara("aluno") });
+  return grupos;
+}
 
 const MENU_PROFESSOR = [
   { key: "painel", label: "Painel do professor" },
@@ -284,17 +318,19 @@ export default function Shell({ usuario, perfil, onSair }) {
     return itens.map((it) => (it.key === key && contagem > 0 ? { ...it, badge: contagem } : it));
   }
 
-  let menu = emTeste
-    ? MENU_ALUNO
-    : papelEfetivo === "aluno"
-      ? [...MENU_ALUNO, ...manuaisPara(perfil.papel)]
-      : [...MENU_PROFESSOR, ...manuaisPara(perfil.papel)];
-
+  // Menu do aluno (e do modo de teste, que usa as mesmas telas): agrupado e
+  // numerado na ordem real do exercício. Menu do professor: continua como
+  // lista única (não é onde os alunos se perdem).
+  let menuGrupos;
   if (papelEfetivo === "aluno") {
-    menu = comBadge(menu, "diario", correcoesPendentesAluno);
-  }
-  if (ehProfessorOuAdmin && !emTeste) {
-    menu = comBadge(menu, "fila", correcoesPendentesProfessor);
+    menuGrupos = gruposMenuAluno({
+      incluirManuais: !emTeste,
+      badgeDiario: correcoesPendentesAluno,
+    });
+  } else {
+    let itensProfessor = [...MENU_PROFESSOR, ...manuaisPara(perfil.papel)];
+    itensProfessor = comBadge(itensProfessor, "fila", correcoesPendentesProfessor);
+    menuGrupos = [{ label: null, itens: itensProfessor }];
   }
 
   const TELAS_COM_ESCRITURACAO = ["dashboard", "diario", "razao", "balancete", "are", "dre", "bp"];
@@ -386,17 +422,23 @@ export default function Shell({ usuario, perfil, onSair }) {
         </div>
         <div className="nav-group">
           <div className="nav-group-label">{emTeste ? "aluno (modo de teste)" : perfil.papel}</div>
-          {menu.map((item) => (
-            <div
-              key={item.key}
-              className={"nav-item" + (screen === item.key ? " active" : "")}
-              onClick={() => { setScreen(item.key); setMenuAberto(false); }}
-            >
-              <span>{item.label}</span>
-              {!!item.badge && <span className="nav-badge">{item.badge}</span>}
-            </div>
-          ))}
         </div>
+        {menuGrupos.map((grupo, gi) => (
+          <div className="nav-group" key={gi}>
+            {grupo.label && <div className="nav-group-label">{grupo.label}</div>}
+            {grupo.itens.map((item, ii) => (
+              <div
+                key={item.key}
+                className={"nav-item" + (screen === item.key ? " active" : "")}
+                onClick={() => { setScreen(item.key); setMenuAberto(false); }}
+              >
+                {grupo.numerado && <span className="num">{ii + 1}</span>}
+                <span>{item.label}</span>
+                {!!item.badge && <span className="nav-badge">{item.badge}</span>}
+              </div>
+            ))}
+          </div>
+        ))}
         <div className="sidebar-foot">{usuario.email}</div>
       </div>
       <div className="main">
