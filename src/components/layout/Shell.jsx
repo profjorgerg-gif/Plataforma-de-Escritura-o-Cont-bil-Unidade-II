@@ -30,6 +30,7 @@ import Painel from "../professor/Painel.jsx";
 import Notas from "../professor/Notas.jsx";
 import DashboardCiclo from "../professor/DashboardCiclo.jsx";
 import RelatorioOrientacao from "../professor/RelatorioOrientacao.jsx";
+import ModelosMensagens from "../professor/ModelosMensagens.jsx";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
@@ -149,6 +150,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "documentos", label: "Documentos fiscais" },
       { key: "consulta", label: "Consulta CFOP/NCM" },
       { key: "plano", label: "Plano de contas" },
+      { key: "modelos", label: "Modelos de mensagens" },
     ],
   },
   {
@@ -695,6 +697,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DocumentosFiscaisProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "consulta") {
     tela = <ConsultaFiscal />;
+  } else if (ehProfessorOuAdmin && screen === "modelos") {
+    tela = <ModelosMensagens turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={perfil.papel} />;
   }
