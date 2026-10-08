@@ -1,29 +1,25 @@
-import { useEffect, useState } from "react";
 import { fmt, PESOS_RUBRICA } from "../../lib/contabil.js";
 
-// Painel "O que será avaliado" — mesma estrutura nos dois lados (professor
-// edita só o texto de "qualidade técnica", aluno só lê). Pedido do professor
-// em 2026-10-08: antes só existiam os pesos em %, sem dizer o que de fato é
-// observado — os alunos ficavam sem saber o critério real.
-export function CriteriosAvaliacao({ turma, editavel, onSalvar }) {
-  const [texto, setTexto] = useState(turma?.criteriosQualidade || "");
-  const [salvando, setSalvando] = useState(false);
+// Painel "O que será avaliado" — mesma estrutura nos dois lados (professor e
+// aluno), só leitura nos dois. A "qualidade técnica" (2026-10-08) deixou de
+// ser texto livre escrito pelo professor e passou a ser 100% automática —
+// 3 checagens objetivas sobre os lançamentos (não lê nada escrito pelo
+// aluno). `qualidade` é o retorno de qualidadeTecnicaAutomatica() em
+// contabil.js; passar undefined/null mostra só as descrições, sem números
+// (usado na tela do professor, que é por turma, não por aluno).
+function subCriterio(nome, desc, resultado) {
+  return (
+    <div className="sub-criterio">
+      <div className="sub-criterio-nome">
+        {nome}
+        {resultado && <span className="sub-criterio-pct">{resultado.corretas}/{resultado.total} — {resultado.pct}%</span>}
+      </div>
+      <div className="sub-criterio-desc">{desc}</div>
+    </div>
+  );
+}
 
-  // Se trocar de turma (professor) ou os dados chegarem depois (aluno),
-  // atualiza o campo para refletir o que está salvo.
-  useEffect(() => {
-    setTexto(turma?.criteriosQualidade || "");
-  }, [turma?.id, turma?.criteriosQualidade]);
-
-  const definido = (turma?.criteriosQualidade || "").trim().length > 0;
-
-  async function salvar() {
-    if (!onSalvar) return;
-    setSalvando(true);
-    await onSalvar(texto.trim());
-    setSalvando(false);
-  }
-
+export function CriteriosAvaliacao({ turma, qualidade }) {
   return (
     <div className="panel">
       <div className="panel-head"><h3>O que será avaliado — Unidade II</h3></div>
@@ -38,25 +34,16 @@ export function CriteriosAvaliacao({ turma, editavel, onSalvar }) {
         <div className="criterio-avaliacao-row">
           <div className="criterio-avaliacao-peso">{Math.round(PESOS_RUBRICA.qualidade * 100)}%</div>
           <div style={{ flex: 1 }}>
-            <div className="criterio-avaliacao-nome">
-              Qualidade técnica {editavel ? <span className="tag-pill warn">manual — você define</span> : null}
+            <div className="criterio-avaliacao-nome">Qualidade técnica <span className="tag-pill">automático — baseado nos lançamentos</span></div>
+            <div className="criterio-avaliacao-desc">Calculada a partir de 3 verificações objetivas sobre os seus lançamentos aprovados — nenhuma delas lê o que foi escrito, só confere dados e datas:</div>
+            <div className="sub-criterios">
+              {subCriterio("Natureza da conta", "Confere se cada conta foi lançada no lado (débito ou crédito) condizente com a natureza dela no Plano de Contas.", qualidade?.natureza)}
+              {subCriterio("Regime de competência", "Confere se a data do lançamento está no mesmo mês/ano da emissão do documento de origem.", qualidade?.competencia)}
+              {subCriterio("Reação ao aviso fiscal", "Quando a Análise Fiscal aponta CFOP, NCM ou CST incorreto, confere se o campo \"tratamento tributário\" foi preenchido na Classificação daquele documento.", qualidade?.fiscal)}
             </div>
-            {editavel ? (
-              <>
-                <div className="criterio-avaliacao-desc" style={{ marginBottom: 8 }}>Descreva aqui o que você observa para dar a nota de 0 a 10 — os alunos veem exatamente este texto.</div>
-                <textarea
-                  style={{ minHeight: 64 }}
-                  placeholder="Ex.: coerência entre o fato contábil descrito, a conta escolhida e o CFOP/NCM da nota; clareza do histórico; ausência de inversões de débito/crédito..."
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                />
-                <div className="btn-row" style={{ marginTop: 8 }}>
-                  <button className="btn secondary" disabled={salvando} onClick={salvar}>Salvar critérios</button>
-                </div>
-              </>
-            ) : (
-              <div className={"criterio-avaliacao-desc" + (definido ? "" : " a-definir")}>
-                {definido ? turma.criteriosQualidade : "A definir — o professor ainda não publicou os critérios desta parte."}
+            {qualidade?.notaSugerida !== null && qualidade?.notaSugerida !== undefined && (
+              <div className="criterio-avaliacao-desc" style={{ marginTop: 10, fontWeight: 700, color: "var(--green)" }}>
+                Nota sugerida desta parte: {fmt(qualidade.notaSugerida)} (média das checagens acima)
               </div>
             )}
           </div>
