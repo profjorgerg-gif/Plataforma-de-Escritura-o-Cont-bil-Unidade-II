@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
@@ -155,6 +155,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
   const [valoresIniciais, setValoresIniciais] = useState(null); // pré-preenchimento vindo da Classificação Contábil
   const [historicoAberto, setHistoricoAberto] = useState({}); // id -> bool
+  const [classificacoes, setClassificacoes] = useState([]); // todas as classificações do aluno, para o aviso de ponte abaixo
 
   // Quando o aluno clica em "usar esta classificação no lançamento" na tela
   // de Classificação Contábil, chegamos aqui já com o formulário pré-cheio —
@@ -173,6 +174,36 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setMostrarForm(true);
     onRascunhoConsumido?.();
   }, [rascunhoDeClassificacao]);
+
+  // Lê as classificações do aluno só para avisar, aqui mesmo no Diário, quais
+  // ainda não foram usadas em nenhum lançamento — antes só havia esse aviso
+  // na tela de Classificação, e quem entrava direto no Diário pelo menu
+  // acabava redigitando tudo do zero sem saber que já tinha feito esse
+  // trabalho antes.
+  useEffect(() => {
+    if (!turmaId || !matricula) return;
+    const ref = collection(db, "turmas", turmaId, "alunos", matricula, "classificacoes");
+    const unsub = onSnapshot(ref, (snap) => setClassificacoes(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return unsub;
+  }, [turmaId, matricula]);
+
+  const classificacoesPendentes = classificacoes.filter((c) => c.status === "pendente");
+
+  // Mesmo pré-preenchimento usado quando a ponte vem da tela de Classificação
+  // (rascunhoDeClassificacao acima) — aqui é só acionado localmente, sem
+  // trocar de tela.
+  function usarClassificacaoAqui(c) {
+    setEditando(null);
+    setValoresIniciais({
+      documento: c.documento || "",
+      historico: c.historico || c.fato || "",
+      partidas: [
+        { conta: c.contaDebito || "", tipo: "D", valor: c.valor ?? "" },
+        { conta: c.contaCredito || "", tipo: "C", valor: c.valor ?? "" },
+      ],
+    });
+    setMostrarForm(true);
+  }
 
   async function salvar(novo) {
     if (editando) {
@@ -215,6 +246,37 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
       <div className="screen-eyebrow">08 · livro diário</div>
       <h2 className="screen-title">Livro Diário</h2>
       <p className="screen-sub">Registro cronológico dos fatos contábeis da sua empresa didática. Só é enviado para análise quando débitos e créditos coincidem.</p>
+      {classificacoesPendentes.length > 0 && (
+        <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 18 }}>
+          <div className="panel-head" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span>⚠</span>
+            <h3 style={{ margin: 0 }}>
+              Você já classificou {classificacoesPendentes.length === 1 ? "1 fato contábil" : `${classificacoesPendentes.length} fatos contábeis`} que ainda {classificacoesPendentes.length === 1 ? "não foi usado" : "não foram usados"} em nenhum lançamento
+            </h3>
+          </div>
+          <div className="panel-body" style={{ padding: 0 }}>
+            <table>
+              <thead>
+                <tr><th>Fato contábil</th><th>Débito</th><th>Crédito</th><th className="num">Valor</th><th></th></tr>
+              </thead>
+              <tbody>
+                {classificacoesPendentes.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.fato}</td>
+                    <td className="mono">{c.contaDebito}</td>
+                    <td className="mono">{c.contaCredito}</td>
+                    <td className="num mono">{fmt(c.valor)}</td>
+                    <td><button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => usarClassificacaoAqui(c)}>usar no lançamento</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="helper-note" style={{ margin: "0 16px 16px" }}>
+            Clique em "usar no lançamento" para trazer esses dados prontos para baixo — evita digitar tudo de novo. Se preferir começar do zero mesmo assim, use "+ Novo lançamento".
+          </div>
+        </div>
+      )}
       {!mostrarForm && <button className="btn" style={{ marginBottom: 18 }} onClick={abrirNovo}>+ Novo lançamento</button>}
       {mostrarForm && (
         <NovoLancamentoForm
