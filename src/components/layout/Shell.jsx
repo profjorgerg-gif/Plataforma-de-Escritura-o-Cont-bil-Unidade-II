@@ -29,6 +29,7 @@ import BalancoPatrimonial from "../aluno/BalancoPatrimonial.jsx";
 import Painel from "../professor/Painel.jsx";
 import Notas from "../professor/Notas.jsx";
 import DashboardCiclo from "../professor/DashboardCiclo.jsx";
+import RelatorioOrientacao from "../professor/RelatorioOrientacao.jsx";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
@@ -138,6 +139,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "turmas", label: "Turmas" },
       { key: "fila", label: "Fila de correção" },
       { key: "historico", label: "Histórico do aluno" },
+      { key: "relatorio", label: "Relatório de orientação" },
     ],
   },
   {
@@ -687,6 +689,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   } else if (ehProfessorOuAdmin && screen === "historico") {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
+  } else if (ehProfessorOuAdmin && screen === "relatorio") {
+    tela = <RelatorioOrientacao turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "documentos") {
     tela = <DocumentosFiscaisProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "consulta") {
