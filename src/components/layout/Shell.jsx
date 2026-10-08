@@ -12,6 +12,7 @@ import {
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
 } from "../../lib/contabil.js";
 import { backupDoAluno, backupDaTurma } from "../../lib/backup.js";
+import { CriteriosAvaliacao } from "../shared/UI.jsx";
 
 import EmpresaDidatica from "../aluno/EmpresaDidatica.jsx";
 import DocumentosFiscais from "../aluno/DocumentosFiscais.jsx";
@@ -407,6 +408,7 @@ function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos }) 
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Minha nota — Unidade II</h2>
       <p className="screen-sub">Sua avaliação da Unidade II, liberada pelo professor quando estiver pronta.</p>
+      <CriteriosAvaliacao turma={turma} />
       <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {(!registro || !registro.notaLiberada) && (
         <div className="helper-note">Sua nota ainda não foi liberada pelo professor. Assim que ele liberar, ela aparece aqui automaticamente.</div>
