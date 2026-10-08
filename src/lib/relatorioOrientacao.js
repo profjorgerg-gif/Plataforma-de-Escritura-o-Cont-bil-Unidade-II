@@ -17,7 +17,7 @@ function diasAteHoje(prazo) {
 
 export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analises, classificacoes, lancamentos, prazo }) {
   const achados = [];
-  const add = (gravidade, documento, titulo, orientacao) => achados.push({ gravidade, documento, titulo, orientacao });
+  const add = (gravidade, documento, titulo, orientacao, onde = "") => achados.push({ gravidade, documento, titulo, orientacao, onde });
 
   let nOk = 0;
   for (const d of documentos) {
@@ -32,34 +32,34 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
 
     if (aprovados.length > 0 && lans.length === aprovados.length && lans.length === 1) { nOk++; continue; }
 
-    if (!dig) add("erro", nomeDoc(d), "Digitação não feita", "Abra “Digitação e análise fiscal”, digite os dados da NF-e e salve.");
-    else if (!ana || ana.status !== "enviado") add("erro", nomeDoc(d), "Análise fiscal não enviada", "Conclua a análise de CFOP, NCM e CST e clique em Enviar (rascunho não conta).");
+    if (!dig) add("erro", nomeDoc(d), "Digitação não feita", "Digite os dados da NF-e e salve.", `Menu → Digitação e análise fiscal (etapa 3) → escolha o documento ${nomeDoc(d)} → seção Digitação → Salvar digitação`);
+    else if (!ana || ana.status !== "enviado") add("erro", nomeDoc(d), "Análise fiscal não enviada", "Conclua a análise de CFOP, NCM e CST e clique em Enviar (rascunho não conta).", `Menu → Digitação e análise fiscal (etapa 3) → documento ${nomeDoc(d)} → seção Análise fiscal → Enviar análise`);
 
     if (dig && ana?.status === "enviado" && clas.length === 0 && lans.length === 0)
-      add("erro", nomeDoc(d), "Classificação contábil não feita", "Em “Classificação contábil”, defina a conta de débito e a de crédito deste documento.");
+      add("erro", nomeDoc(d), "Classificação contábil não feita", "Defina a conta de débito e a de crédito deste documento.", "Menu → Classificação contábil (etapa 4) → Nova classificação → Salvar classificação");
 
     if (clas.some((c) => c.status === "pendente") && lans.length > 0)
-      add("atencao", nomeDoc(d), "Classificação ainda marcada como pendente", "O lançamento existe, mas a classificação não foi marcada como lançada. Use “marcar como lançada” ou refaça pelo botão “usar no lançamento”.");
+      add("atencao", nomeDoc(d), "Classificação ainda marcada como pendente", "O lançamento existe, mas a classificação não foi marcada como lançada. Clique em “marcar como lançada no Diário”.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas → botão “marcar como lançada no Diário”");
 
     if (lans.length > 1)
-      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "Exclua os repetidos e mantenha apenas um lançamento para este documento.");
+      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "Fique com um só lançamento para este documento: edite o correto e envie. Não envie o repetido (hoje o sistema não permite excluir; avise o professor).", "Menu → Livro diário (etapa 5) → tabela de lançamentos, linhas deste documento → coluna Ações → ✏️ Editar");
 
-    if (rascunhos.length > 0)
-      add("erro", nomeDoc(d), `${rascunhos.length} lançamento(s) parado(s) em rascunho`, "O professor não vê rascunho. Abra o Livro diário e clique em Enviar.");
+    if (rascunhos.length === 1 && lans.length === 1)
+      add("erro", nomeDoc(d), "Lançamento parado em rascunho", "O professor não vê rascunho. Abra o lançamento e clique em Enviar.", "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar → Enviar para análise do professor");
 
     if (devolvidos.length > 0)
-      add("erro", nomeDoc(d), "Lançamento devolvido para correção", devolvidos.map((l) => l.obsCorrecao).filter(Boolean).join(" | ") || "Veja a observação do professor no Livro diário, corrija e reenvie.");
+      add("erro", nomeDoc(d), "Lançamento devolvido para correção", devolvidos.map((l) => l.obsCorrecao).filter(Boolean).join(" | ") || "Veja a observação do professor, corrija e reenvie.", "Menu → Livro diário (etapa 5) → linha devolvida → ✏️ Editar → Reenviar para análise do professor");
 
     for (const l of lans) {
       const dD = soma(l.partidas, "D"), dC = soma(l.partidas, "C");
-      if (Math.abs(dD - dC) > 0.005) add("erro", nomeDoc(d), "Débito diferente de crédito", `Total de débitos (${dD.toFixed(2)}) e de créditos (${dC.toFixed(2)}) não fecham. Revise as partidas.`);
+      if (Math.abs(dD - dC) > 0.005) add("erro", nomeDoc(d), "Débito diferente de crédito", `Total de débitos (${dD.toFixed(2)}) e de créditos (${dC.toFixed(2)}) não fecham. Revise as partidas.`, "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar → partidas (débito e crédito)");
       const h = (l.historico || "").trim();
       if (h.length < 8 || HISTORICO_GENERICO.test(h))
-        add("atencao", nomeDoc(d), "Histórico muito genérico", "O histórico deve descrever a operação do documento (ex.: compra de mercadorias a prazo conforme NF-e nº " + d.numero + ").");
+        add("atencao", nomeDoc(d), "Histórico muito genérico", "O histórico deve descrever a operação do documento (ex.: compra de mercadorias a prazo conforme NF-e nº " + d.numero + ").", "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar → campo Histórico");
     }
 
     if (lans.length === 0 && clas.length > 0 && dig && ana?.status === "enviado")
-      add("erro", nomeDoc(d), "Classificado, mas não lançado no Livro diário", "Use “usar no lançamento” na Classificação e envie o lançamento.");
+      add("erro", nomeDoc(d), "Classificado, mas não lançado no Livro diário", "Lance a classificação no Diário e envie.", "Menu → Classificação contábil (etapa 4) → botão “usar no lançamento” → Livro diário (etapa 5) → Enviar para análise do professor");
 
     if (enviados.length > 0 && rascunhos.length === 0 && devolvidos.length === 0 && aprovados.length === 0 && lans.length === 1) {
       // aguardando o professor — não é problema do aluno
@@ -69,8 +69,8 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
   const dias = diasAteHoje(prazo);
   const pendentesDoAluno = achados.filter((a) => a.gravidade === "erro").length;
   if (dias !== null && pendentesDoAluno > 0) {
-    if (dias < 0) add("erro", "Geral", `Prazo da unidade vencido há ${-dias} dia(s)`, "Regularize as pendências acima o quanto antes.");
-    else if (dias <= 7) add("atencao", "Geral", `Faltam ${dias} dia(s) para o prazo da unidade`, "Priorize as pendências acima.");
+    if (dias < 0) add("erro", "Geral", `Prazo da unidade vencido há ${-dias} dia(s)`, "Regularize as pendências acima o quanto antes.", "Menu → Meu progresso (acompanhe o fluxo)");
+    else if (dias <= 7) add("atencao", "Geral", `Faltam ${dias} dia(s) para o prazo da unidade`, "Priorize as pendências acima.", "Menu → Meu progresso (acompanhe o fluxo)");
   }
 
   achados.sort((a, b) => (a.gravidade === b.gravidade ? 0 : a.gravidade === "erro" ? -1 : 1));
@@ -86,6 +86,7 @@ export function relatorioEmTexto(rel) {
   rel.achados.forEach((a, i) => {
     L.push(`${i + 1}. [${a.documento}] ${a.titulo}`);
     L.push(`   O que fazer: ${a.orientacao}`);
+    if (a.onde) L.push(`   Onde: ${a.onde}`);
   });
   L.push("", "Qualquer dúvida, procure o professor em aula.");
   return L.join("\n");
