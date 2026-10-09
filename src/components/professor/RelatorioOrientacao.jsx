@@ -81,7 +81,11 @@ export default function RelatorioOrientacao({ turma }) {
   // título só durante a impressão, para o PDF sair com o nome do aluno.
   function imprimir(titulo) {
     const anterior = document.title;
-    document.title = titulo;
+    // Data e hora (horário local) no nome do arquivo: AAAA-MM-DD_HHhMM
+    const d = new Date();
+    const dois = (n) => String(n).padStart(2, "0");
+    const carimbo = `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}_${dois(d.getHours())}h${dois(d.getMinutes())}`;
+    document.title = `${titulo} - ${carimbo}`;
     const restaurar = () => { document.title = anterior; window.removeEventListener("afterprint", restaurar); };
     window.addEventListener("afterprint", restaurar);
     window.print();
