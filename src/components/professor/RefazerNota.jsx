@@ -20,11 +20,17 @@ const TIPOS = {
   lancamento: { colecao: "lancamentos", rotulo: "Lançamento do diário" },
 };
 
+function moeda(v) {
+  const n = Number(v);
+  return isNaN(n) ? "—" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function resumo(tipo, d) {
   if (tipo === "digitacao") return "Total digitado: " + (d.total ?? "—");
   if (tipo === "analise") return "Status: " + (d.status || "—");
-  if (tipo === "classificacao") return (d.fato || d.historico || "").slice(0, 60) + " · valor " + (d.valor ?? "—") + " · " + (d.status || "");
-  return (d.historico || "").slice(0, 60) + " · " + (d.status || "");
+  if (tipo === "classificacao") return (d.fato || d.historico || "") + " · valor " + (d.valor ?? "—") + " · " + (d.status || "");
+  const deb = (d.partidas || []).filter((p) => p.tipo === "D").reduce((t, p) => t + (Number(p.valor) || 0), 0);
+  return (d.historico || "") + " · total do lançamento " + moeda(deb) + " · " + (d.status || "");
 }
 
 export default function RefazerNota({ turma }) {
