@@ -7,6 +7,8 @@ import { fmt } from "../../lib/contabil.js";
 import { useLookupCfop, useLookupNcm, useDadosCfop, useDadosNcm, buscarCfop, buscarNcm } from "../../hooks/useLookupFiscal.js";
 import CampoFiscalAutocomplete from "../shared/CampoFiscalAutocomplete.jsx";
 
+const arred2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
 function blankItemDoc() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "UN", qtd: "", valorUnit: "" }; }
 
 // GABARITO POR IA — mesmo princípio já usado na Fila de correção: sem Cloud
@@ -32,10 +34,12 @@ Anexe a este prompt o arquivo "${arquivoNome}" (NF-e nº ${numero}, ${direcao ==
     { "descricao": "...", "ncm": "........", "cst": "..", "cfop": "0000", "unidade": "UN", "qtd": 0, "valorUnit": 0.00 }
   ],
   "impostos": { "icms": 0.00, "pis": 0.00, "cofins": 0.00, "cbs": 0.00, "ibs": 0.00 },
-  "freteSeguroOutras": 0.00
+  "desconto": 0.00,
+  "freteSeguroOutras": 0.00,
+  "totalNota": 0.00
 }
 
-Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" da nota, na mesma ordem em que aparecem. Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais da nota.`;
+Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" da nota, na mesma ordem em que aparecem. Em "desconto", copie o valor do campo Desconto dos totais da nota (0 se não houver). Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais da nota. Em "totalNota", copie o "Valor total da nota" impresso (é só para conferência).`;
 }
 
 function aplicarJSONGabaritoIA(texto) {
@@ -75,11 +79,13 @@ Para CADA nota da lista, extraia os dados reais do PDF correspondente. No final,
       { "descricao": "...", "ncm": "........", "cst": "..", "cfop": "0000", "unidade": "UN", "qtd": 0, "valorUnit": 0.00 }
     ],
     "impostos": { "icms": 0.00, "pis": 0.00, "cofins": 0.00, "cbs": 0.00, "ibs": 0.00 },
-    "freteSeguroOutras": 0.00
+    "desconto": 0.00,
+    "freteSeguroOutras": 0.00,
+    "totalNota": 0.00
   }
 ]
 
-Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" de cada nota, na mesma ordem em que aparecem. Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais de cada nota. Confira que o array tem exatamente um objeto para cada uma das ${docsPendentes.length} notas listadas acima antes de devolver a resposta.`;
+Inclua um item em "itens" para cada produto da tabela "Dados dos produtos" de cada nota, na mesma ordem em que aparecem. Em "desconto", copie o valor do campo Desconto dos totais de cada nota (0 se não houver). Em "freteSeguroOutras", some frete + seguro + outras despesas mostrados nos totais de cada nota. Em "totalNota", copie o "Valor total da nota" impresso (é só para conferência). Confira que o array tem exatamente um objeto para cada uma das ${docsPendentes.length} notas listadas acima antes de devolver a resposta.`;
 }
 
 // Converte um item do lote (formato solto vindo da IA) para o mesmo formato
@@ -93,7 +99,8 @@ function normalizarDocumentoLote(item) {
   const itensCalc = itens.map((it) => ({ ...it, total: it.qtd * it.valorUnit }));
   const totalProdutos = itensCalc.reduce((s, it) => s + it.total, 0);
   const freteSeguroOutras = Number(item.freteSeguroOutras) || 0;
-  const valorTotal = totalProdutos + freteSeguroOutras;
+  const desconto = Number(item.desconto) || 0;
+  const valorTotal = arred2(totalProdutos - desconto + freteSeguroOutras);
   const direcao = item.direcao === "entrada" ? "entrada" : "saida";
   return {
     numero: String(item.numero || "").trim(), serie: item.serie ? String(item.serie) : "1", tipo: "NF-e",
@@ -106,10 +113,109 @@ function normalizarDocumentoLote(item) {
       pis: { valor: Number(item.impostos?.pis) || 0, contabilizado: true }, cofins: { valor: Number(item.impostos?.cofins) || 0, contabilizado: true },
       cbs: { valor: Number(item.impostos?.cbs) || 0, contabilizado: false }, ibs: { valor: Number(item.impostos?.ibs) || 0, contabilizado: false },
     },
-    totais: { produtos: totalProdutos, desconto: 0, frete: freteSeguroOutras, seguro: 0, outras: 0, total: valorTotal },
+    totais: { produtos: arred2(totalProdutos), desconto, frete: freteSeguroOutras, seguro: 0, outras: 0, total: valorTotal },
     transportador: { nome: "", cnpj: "", placaUf: "", volumes: "", pesoBrutoLiquido: "", freteContaDe: "" },
     valorTotal, completo: itensCalc.length > 0,
   };
+}
+
+
+// CONFERIR GABARITOS — compara o total de cada nota do catálogo com os totais
+// impressos nas notas (arquivo JSON). Corrige SOMENTE campos de totais do
+// documento do catálogo (updateDoc). Nunca lê nem grava dados dos alunos.
+function ConferirGabaritos({ catalogo }) {
+  const [aberto, setAberto] = useState(false);
+  const [ref, setRef] = useState(null);
+  const [erro, setErro] = useState("");
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function lerArquivo(file) {
+    setErro(""); setMsg("");
+    try {
+      const dados = JSON.parse(await file.text());
+      if (!Array.isArray(dados) || !dados.every((x) => x && x.numero !== undefined && x.total !== undefined)) throw new Error("formato inesperado");
+      setRef(dados);
+    } catch (e) { setErro("Não consegui ler esse arquivo (" + e.message + "). Use o arquivo totais_notas_….json."); setRef(null); }
+  }
+
+  const linhas = !ref ? [] : ref.map((r) => {
+    const d = catalogo.find((c) => String(c.numero) === String(r.numero) && c.direcao === r.direcao);
+    if (!d) return { r, d: null, situacao: "nao-cadastrada" };
+    const t = d.totais || {};
+    const somaItens = arred2((d.itens || []).reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0), 0));
+    const totalGab = arred2(d.valorTotal);
+    const totalOk = Math.abs(totalGab - r.total) < 0.01;
+    const itensOk = Math.abs(somaItens - r.produtos) < 0.05;
+    const situacao = totalOk ? "confere" : (itensOk ? "diverge" : "revisar-itens");
+    return { r, d, t, somaItens, totalGab, situacao };
+  });
+  const n = (s) => linhas.filter((l) => l.situacao === s).length;
+  const corrigiveis = linhas.filter((l) => l.situacao === "diverge");
+
+  async function corrigir() {
+    if (corrigiveis.length === 0) return;
+    if (!window.confirm("Corrigir " + corrigiveis.length + " nota(s)? Serão alterados apenas desconto, frete, seguro, outras e valor total do gabarito. Nada digitado pelos alunos é alterado. Você já baixou o backup da turma?")) return;
+    setCorrigindo(true); setMsg(""); setErro("");
+    let ok = 0;
+    try {
+      for (const l of corrigiveis) {
+        await updateDoc(doc(db, "documentosFiscais", l.d.id), {
+          "totais.produtos": l.r.produtos, "totais.desconto": l.r.desconto || 0, "totais.frete": l.r.frete || 0,
+          "totais.seguro": l.r.seguro || 0, "totais.outras": l.r.outras || 0, "totais.total": l.r.total, valorTotal: l.r.total,
+        });
+        ok++;
+      }
+      setMsg(ok + " nota(s) corrigida(s). Os alunos já veem o novo total.");
+    } catch (e) { setErro("Parou após " + ok + " nota(s): " + e.message); }
+    setCorrigindo(false);
+  }
+
+  const rot = { "confere": ["ok", "confere"], "diverge": ["bad", "diverge"], "revisar-itens": ["warn", "revisar itens"], "nao-cadastrada": ["warn", "não cadastrada"] };
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3>Conferir gabaritos</h3>
+        <button className="btn secondary" onClick={() => setAberto(!aberto)}>{aberto ? "fechar" : "abrir"}</button></div>
+      {aberto && (
+        <div className="panel-body">
+          <p className="helper-note">Carregue o arquivo com os totais impressos nas notas. O sistema compara com o gabarito de cada nota e mostra as que divergem. A correção altera <b>somente</b> os totais do gabarito (desconto, frete, seguro, outras e valor total) — nada que o aluno digitou, analisou ou lançou. Antes de corrigir, use "Baixar backup" da turma por segurança.</p>
+          <label className="btn" style={{ cursor: "pointer" }}>Carregar arquivo de totais (.json)
+            <input type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) lerArquivo(e.target.files[0]); e.target.value = ""; }} />
+          </label>
+          {erro && <div className="balance-check bad">{erro}</div>}
+          {msg && <div className="balance-check ok">{msg}</div>}
+          {ref && (
+            <>
+              <div className="balance-check ok" style={{ marginTop: 12 }}>{n("confere")} conferem · {n("diverge")} divergem · {n("revisar-itens")} para revisar itens · {n("nao-cadastrada")} não cadastradas</div>
+              <table>
+                <thead><tr><th>Nota</th><th>Produtos</th><th>Desconto</th><th>Frete+seg.+outras</th><th>Total no gabarito</th><th>Total na nota</th><th>Situação</th></tr></thead>
+                <tbody>
+                  {linhas.map((l) => (
+                    <tr key={l.r.direcao + l.r.numero}>
+                      <td className="mono">Nº {l.r.numero} <small>({l.r.direcao})</small></td>
+                      <td className="mono">{fmt(l.r.produtos)}</td>
+                      <td className="mono">{fmt(l.r.desconto || 0)}</td>
+                      <td className="mono">{fmt((l.r.frete || 0) + (l.r.seguro || 0) + (l.r.outras || 0))}</td>
+                      <td className="mono">{l.d ? fmt(l.totalGab) : "—"}</td>
+                      <td className="mono">{fmt(l.r.total)}</td>
+                      <td><span className={"tag-pill " + rot[l.situacao][0]}>{rot[l.situacao][1]}</span>
+                        {l.situacao === "revisar-itens" && <small> itens somam {fmt(l.somaItens)}, nota imprime {fmt(l.r.produtos)} — corrija os itens à mão</small>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="btn-row" style={{ marginTop: 12 }}>
+                <button className="btn green" disabled={corrigiveis.length === 0 || corrigindo} onClick={corrigir}>
+                  {corrigindo ? "Corrigindo…" : "Corrigir as " + corrigiveis.length + " notas divergentes"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Painel de importação em lote — some sozinho quando não há documento
@@ -255,6 +361,7 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   const [cbsValor, setCbsValor] = useState(inicial?.cbsValor !== undefined ? String(inicial.cbsValor) : "");
   const [ibsValor, setIbsValor] = useState(inicial?.ibsValor !== undefined ? String(inicial.ibsValor) : "");
   const [freteSeguroOutras, setFreteSeguroOutras] = useState(inicial?.freteSeguroOutras !== undefined ? String(inicial.freteSeguroOutras) : "0");
+  const [desconto, setDesconto] = useState(inicial?.desconto !== undefined ? String(inicial.desconto) : "0");
   const [erro, setErro] = useState("");
   const [jsonIA, setJsonIA] = useState("");
   const [erroIA, setErroIA] = useState("");
@@ -298,6 +405,7 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
       if (dados.impostos?.cbs !== undefined) setCbsValor(String(dados.impostos.cbs));
       if (dados.impostos?.ibs !== undefined) setIbsValor(String(dados.impostos.ibs));
       if (dados.freteSeguroOutras !== undefined) setFreteSeguroOutras(String(dados.freteSeguroOutras));
+      if (dados.desconto !== undefined) setDesconto(String(dados.desconto));
     } catch (e) {
       setErroIA("Não consegui ler esse JSON (" + e.message + "). Confira se colou a resposta completa e sem texto extra.");
     }
@@ -308,7 +416,7 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
   function removeItem(i) { setItens(itens.filter((_, idx) => idx !== i)); }
 
   const totalProdutos = itens.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0), 0);
-  const valorTotal = totalProdutos + (Number(freteSeguroOutras) || 0);
+  const valorTotal = arred2(totalProdutos - (Number(desconto) || 0) + (Number(freteSeguroOutras) || 0));
 
   function criar() {
     if (!numero.trim() || !cfop.trim() || itens.length === 0) { setErro("Preencha ao menos número, CFOP e um item."); return; }
@@ -325,7 +433,7 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
         pis: { valor: Number(pisValor) || 0, contabilizado: true }, cofins: { valor: Number(cofinsValor) || 0, contabilizado: true },
         cbs: { valor: Number(cbsValor) || 0, contabilizado: false }, ibs: { valor: Number(ibsValor) || 0, contabilizado: false },
       },
-      totais: { produtos: totalProdutos, desconto: 0, frete: Number(freteSeguroOutras) || 0, seguro: 0, outras: 0, total: valorTotal },
+      totais: { produtos: arred2(totalProdutos), desconto: Number(desconto) || 0, frete: Number(freteSeguroOutras) || 0, seguro: 0, outras: 0, total: valorTotal },
       transportador: { nome: "", cnpj: "", placaUf: "", volumes: "", pesoBrutoLiquido: "", freteContaDe: "" },
       valorTotal, completo: true, arquivoNome: inicial?.arquivoNome || null,
     });
@@ -442,10 +550,11 @@ function NovoDocumentoForm({ onCriar, onCancelar, idsExistentes, inicial }) {
           <div>
             <div className="field"><label>CBS — valor (informativo)</label><input className="mono" type="number" value={cbsValor} onChange={(e) => setCbsValor(e.target.value)} /></div>
             <div className="field"><label>IBS — valor (informativo)</label><input className="mono" type="number" value={ibsValor} onChange={(e) => setIbsValor(e.target.value)} /></div>
+            <div className="field"><label>Desconto (abate do total)</label><input className="mono" type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} /></div>
             <div className="field"><label>Frete + seguro + outras</label><input className="mono" type="number" value={freteSeguroOutras} onChange={(e) => setFreteSeguroOutras(e.target.value)} /></div>
           </div>
         </div>
-        <div className="balance-check ok">Total dos produtos: {fmt(totalProdutos)} · Valor total da nota: {fmt(valorTotal)}</div>
+        <div className="balance-check ok">Total dos produtos: {fmt(totalProdutos)} · Desconto: {fmt(Number(desconto) || 0)} · Valor total da nota: {fmt(valorTotal)}</div>
         {erro && <div className="balance-check bad">{erro}</div>}
         <div className="btn-row">
           <button className="btn" onClick={criar}>{editando ? "Salvar documento completo" : "Adicionar ao catálogo"}</button>
@@ -552,6 +661,8 @@ export default function DocumentosFiscaisProfessor({ turma }) {
         <ImportarGabaritoLoteIA docsPendentes={catalogo.filter((d) => !d.completo)} onAplicar={() => {}} />
       )}
 
+      {!criando && !editandoDoc && <ConferirGabaritos catalogo={catalogo} />}
+
       {criando && (
         <NovoDocumentoForm
           idsExistentes={catalogo.map((d) => d.id)}
@@ -572,6 +683,7 @@ export default function DocumentosFiscaisProfessor({ turma }) {
             icmsValor: editandoDoc.impostos?.icms?.valor, pisValor: editandoDoc.impostos?.pis?.valor,
             cofinsValor: editandoDoc.impostos?.cofins?.valor, cbsValor: editandoDoc.impostos?.cbs?.valor,
             ibsValor: editandoDoc.impostos?.ibs?.valor,
+            desconto: editandoDoc.totais?.desconto || 0,
             freteSeguroOutras: (editandoDoc.totais?.frete || 0) + (editandoDoc.totais?.seguro || 0) + (editandoDoc.totais?.outras || 0),
             arquivoNome: editandoDoc.arquivoNome, idExistente: editandoDoc.id,
           }}
