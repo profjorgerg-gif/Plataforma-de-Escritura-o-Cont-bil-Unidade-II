@@ -31,6 +31,10 @@ import Notas from "../professor/Notas.jsx";
 import DashboardCiclo from "../professor/DashboardCiclo.jsx";
 import RelatorioOrientacao from "../professor/RelatorioOrientacao.jsx";
 import ModelosMensagens from "../professor/ModelosMensagens.jsx";
+import SuporteAluno from "../aluno/SuporteAluno.jsx";
+import SuporteProfessor from "../professor/SuporteProfessor.jsx";
+import RefazerNota from "../professor/RefazerNota.jsx";
+import { useChamados } from "../../hooks/useChamados.js";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
@@ -102,6 +106,7 @@ const MENU_ALUNO_GRUPOS = [
       { key: "roteiro", label: "Roteiro do Aluno" },
       { key: "consulta", label: "Consulta CFOP/NCM" },
       { key: "plano", label: "Plano de contas" },
+      { key: "suporte", label: "Suporte" },
     ],
   },
 ];
@@ -109,11 +114,12 @@ const MENU_ALUNO_GRUPOS = [
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
-      item.key === "diario" && badgeDiario > 0 ? { ...item, badge: badgeDiario } : item
+      item.key === "diario" && badgeDiario > 0 ? { ...item, badge: badgeDiario }
+        : item.key === "suporte" && badgeSuporte > 0 ? { ...item, badge: badgeSuporte } : item
     ),
   }));
   if (incluirManuais) grupos.push({ label: "manuais", itens: manuaisPara("aluno") });
@@ -140,7 +146,9 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "turmas", label: "Turmas" },
       { key: "fila", label: "Fila de correção" },
       { key: "historico", label: "Histórico do aluno" },
+      { key: "suporte", label: "Suporte" },
       { key: "relatorio", label: "Relatório de orientação" },
+      { key: "refazer", label: "Refazer nota do aluno" },
     ],
   },
   {
@@ -162,11 +170,12 @@ const MENU_PROFESSOR_GRUPOS = [
 // Monta os grupos do menu do professor já com o badge de pendências (no
 // item "Fila de correção") e o grupo de manuais ao final — mesmo padrão
 // usado em gruposMenuAluno().
-function gruposMenuProfessor({ papel, badgeFila }) {
+function gruposMenuProfessor({ papel, badgeFila, badgeSuporte }) {
   const grupos = MENU_PROFESSOR_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
-      item.key === "fila" && badgeFila > 0 ? { ...item, badge: badgeFila } : item
+      item.key === "fila" && badgeFila > 0 ? { ...item, badge: badgeFila }
+        : item.key === "suporte" && badgeSuporte > 0 ? { ...item, badge: badgeSuporte } : item
     ),
   }));
   grupos.push({ label: "manuais", itens: manuaisPara(papel) });
@@ -572,6 +581,10 @@ export default function Shell({ usuario, perfil, onSair }) {
   // (status chega a "aprovado"), o item "Livro diário" mostra a contagem.
   const correcoesPendentesAluno = (esc.lancamentos || []).filter((l) => l.status === "correcao").length;
 
+  // Suporte: contadores de mensagens novas (aluno: respostas; professor: chamados novos)
+  const { chamados: chamadosDoAluno } = useChamados(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
+  const suporteNaoLidoAluno = (chamadosDoAluno || []).filter((c) => c.naoLidoAluno).length;
+
   // --- Professor/admin: turma e aluno selecionados ---
   const turmasDoProfessor = useTurmasDoProfessor(ehProfessorOuAdmin ? usuario.uid : null);
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
@@ -582,6 +595,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   // (envio inicial ou reenvio depois de uma correção) na turma selecionada.
   const alunosParaFila = useAlunosDaTurma(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null);
   const { todos: lancamentosParaFila } = useLancamentosDaTurma(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null, alunosParaFila);
+  const { chamados: chamadosDaTurma } = useChamados(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null, null);
+  const suporteNaoLidoProfessor = (chamadosDaTurma || []).filter((c) => c.naoLidoProfessor).length;
   const correcoesPendentesProfessor = lancamentosParaFila.filter(({ lancamento }) => lancamento.status === "enviado").length;
 
   function selecionarAlunoEVerHistorico(aluno) {
@@ -608,11 +623,13 @@ export default function Shell({ usuario, perfil, onSair }) {
     menuGrupos = gruposMenuAluno({
       incluirManuais: !emTeste,
       badgeDiario: correcoesPendentesAluno,
+      badgeSuporte: suporteNaoLidoAluno,
     });
   } else {
     menuGrupos = gruposMenuProfessor({
       papel: perfil.papel,
       badgeFila: correcoesPendentesProfessor,
+      badgeSuporte: suporteNaoLidoProfessor,
     });
   }
 
@@ -646,6 +663,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DigitacaoAnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
   } else if (papelEfetivo === "aluno" && screen === "consulta") {
     tela = <ConsultaFiscal />;
+  } else if (papelEfetivo === "aluno" && screen === "suporte") {
+    tela = <SuporteAluno turmaId={turmaId} matricula={matricula} nome={emTeste ? testeAtivo.nome : meuRegistro?.nome} documentos={documentos || []} />;
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {
@@ -691,6 +710,10 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   } else if (ehProfessorOuAdmin && screen === "historico") {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
+  } else if (ehProfessorOuAdmin && screen === "suporte") {
+    tela = <SuporteProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "refazer") {
+    tela = <RefazerNota turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "relatorio") {
     tela = <RelatorioOrientacao turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "documentos") {
