@@ -35,6 +35,7 @@ import SuporteAluno from "../aluno/SuporteAluno.jsx";
 import SuporteProfessor from "../professor/SuporteProfessor.jsx";
 import RefazerNota from "../professor/RefazerNota.jsx";
 import RegistroProcesso from "../professor/RegistroProcesso.jsx";
+import FluxoEtapa from "../shared/FluxoEtapa.jsx";
 import { useChamados } from "../../hooks/useChamados.js";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
@@ -785,6 +786,7 @@ export default function Shell({ usuario, perfil, onSair }) {
               🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.
             </div>
           )}
+          {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} />}
           {tela}
         </div>
       </div>
