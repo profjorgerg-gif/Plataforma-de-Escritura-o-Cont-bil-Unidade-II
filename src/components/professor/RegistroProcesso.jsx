@@ -50,7 +50,7 @@ export default function RegistroProcesso({ turma }) {
         ["digitacoesNFe", "analisesFiscais", "classificacoes", "lancamentos", "lixeira"].map((n) => lerColecao(turmaId, m, n)));
       const ev = [];
       const add = (quando, quem, tipo, doc, texto) => { const d = paraData(quando); ev.push({ d, quem, tipo, doc: doc || "", texto }); };
-      dig.forEach((x) => add(x.atualizadoEm, "aluno", "digitacao", x.id, "Digitou/atualizou a NF-e (total digitado " + (x.total ?? "—") + ")"));
+      dig.forEach((x) => add(x.atualizadoEm, "aluno", "digitacao", x.id, "Digitou/atualizou a NF-e (total digitado " + (x.total === "" || x.total == null ? "não informado" : x.total) + ")"));
       ana.forEach((x) => {
         add(x.atualizadoEm, "aluno", "analise", x.id, x.status === "enviado" ? "Enviou a análise fiscal" : "Salvou a análise fiscal como rascunho");
         if (x.devolucao) add(x.devolucao.em, "professor", "devolucao", x.id, "Reabriu a análise fiscal: " + (x.devolucao.orientacao || ""));
@@ -73,7 +73,8 @@ export default function RegistroProcesso({ turma }) {
           add(msg.em, msg.autor, "chamado", c.documentoId, (msg.autor === "aluno" ? "Aluno escreveu: " : "Professor respondeu: ") + msg.texto);
         });
       });
-      ev.sort((a, b) => (a.d?.getTime() || 0) - (b.d?.getTime() || 0));
+      // mais recentes primeiro (pedido do professor, 10/10/2026)
+      ev.sort((a, b) => (b.d?.getTime() || 0) - (a.d?.getTime() || 0));
       setEventos(ev);
       setResumo({
         chamados: meus.length, resolvidos, devolucoes, respostasAluno,
