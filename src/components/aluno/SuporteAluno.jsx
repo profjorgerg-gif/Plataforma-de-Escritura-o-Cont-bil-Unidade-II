@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { addDoc, collection, doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useChamados } from "../../hooks/useChamados.js";
+import { criarChamadoNumerado, fmtNumero } from "../../lib/chamados.js";
 
 // Suporte — visão do aluno (2026-10-09). Abre chamados para o professor e
 // acompanha as respostas. Só escreve na coleção "chamados"; nunca toca em
@@ -91,7 +92,7 @@ function ChamadoItem({ c, turmaId }) {
   return (
     <div style={{ borderBottom: "1px solid #e4dfd0", padding: "10px 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", gap: 8 }} onClick={abrir}>
-        <b>{c.assunto}{c.documentoNumero ? " · NF " + c.documentoNumero : ""}</b>
+        <b>{c.numero ? <span className="mono" style={{ marginRight: 6 }}>Nº {fmtNumero(c.numero)}</span> : null}{c.assunto}{c.documentoNumero ? " · NF " + c.documentoNumero : ""}</b>
         <span className={"status " + sit.cls}>{sit.txt}{c.naoLidoAluno && <span className="nav-badge" style={{ marginLeft: 6 }}>1</span>}</span>
       </div>
       {aberto && (
@@ -124,7 +125,7 @@ export default function SuporteAluno({ turmaId, matricula, nome, documentos }) {
     setEnviando(true); setErro(""); setOk("");
     try {
       const d = (documentos || []).find((x) => x.id === docId);
-      await addDoc(collection(db, "turmas", turmaId, "chamados"), {
+      const { numero } = await criarChamadoNumerado(turmaId, {
         matricula, alunoNome: nome || "", assunto,
         documentoId: docId || null, documentoNumero: d?.numero || null,
         status: "aberto", iniciadoPor: "aluno",
@@ -132,7 +133,7 @@ export default function SuporteAluno({ turmaId, matricula, nome, documentos }) {
         naoLidoProfessor: true, naoLidoAluno: false,
         criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
       });
-      setTexto(""); setDocId(""); setOk("Chamado enviado. A resposta do professor aparece aqui mesmo, em \"Meus chamados\".");
+      setTexto(""); setDocId(""); setOk((numero ? "Chamado Nº " + fmtNumero(numero) + " enviado. " : "Chamado enviado. ") + "A resposta do professor aparece aqui mesmo, em \"Meus chamados\".");
     } catch (e) { setErro("Não foi possível enviar o chamado: " + e.message); }
     setEnviando(false);
   }

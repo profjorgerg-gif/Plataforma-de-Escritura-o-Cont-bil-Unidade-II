@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { addDoc, collection, doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useChamados } from "../../hooks/useChamados.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { formatarDataHora, rotuloSituacao } from "../aluno/SuporteAluno.jsx";
+import { criarChamadoNumerado, numerarChamadosAntigos, fmtNumero, textoChamado, textoVariosChamados, nomeArquivo, baixarTxt, copiarTexto, imprimirTexto } from "../../lib/chamados.js";
 import { devolverNota, ETAPAS_DEVOLUCAO, MODELO_ORIENTACAO } from "../../lib/devolucao.js";
 
 // Suporte — visão do professor (2026-10-09). Caixa de entrada de chamados da
@@ -51,13 +52,34 @@ export default function SuporteProfessor({ turma }) {
   const [nMat, setNMat] = useState("");
   const [nAssunto, setNAssunto] = useState("");
   const [nTexto, setNTexto] = useState("");
+  const [filtroAluno, setFiltroAluno] = useState("");
+  const [aviso, setAviso] = useState("");
 
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
 
-  const lista = (chamados || []).filter((c) =>
-    aba === "abertos" ? c.status === "aberto" : aba === "respondidos" ? c.status === "respondido" : c.status === "resolvido");
-  const nAbertos = (chamados || []).filter((c) => c.status === "aberto").length;
   const sel = (chamados || []).find((c) => c.id === selId) || null;
+  const porAluno = (chamados || []).filter((c) => !filtroAluno || c.matricula === filtroAluno);
+  const lista = porAluno.filter((c) =>
+    aba === "abertos" ? c.status === "aberto" : aba === "respondidos" ? c.status === "respondido" : c.status === "resolvido")
+    .sort((a, b) => (b.numero || 0) - (a.numero || 0) || 0);
+  const semNumero = (chamados || []).filter((c) => !c.numero).length;
+  const nomeSel = sel ? "Chamado " + fmtNumero(sel.numero) + " - " + (sel.alunoNome || sel.matricula) : "";
+  const nAbertos = (chamados || []).filter((c) => c.status === "aberto").length;
+
+  async function numerarAntigos() {
+    if (!window.confirm("Numerar " + semNumero + " chamado(s) antigo(s), na ordem em que foram abertos? Só acrescenta o número; mensagens, status e notas não mudam.")) return;
+    setEnviando(true); setErro(""); setAviso("");
+    try { const n = await numerarChamadosAntigos(turmaId, chamados); setAviso(n + " chamado(s) numerado(s)."); }
+    catch (e) { setErro("Não foi possível numerar: " + e.message + ". Confira se a regra nova do Firestore foi publicada."); }
+    setEnviando(false);
+  }
+  function imprimirSel() { imprimirTexto(nomeArquivo(nomeSel), textoChamado(sel, turma)); }
+  function baixarSel() { baixarTxt(nomeArquivo(nomeSel), textoChamado(sel, turma)); }
+  async function copiarSel() { setAviso((await copiarTexto(textoChamado(sel, turma))) ? "Texto copiado." : "Não foi possível copiar; use \"Baixar texto\"."); }
+  function exportarTodos() {
+    const nome = filtroAluno ? "Chamados - " + ((alunos || []).find((a) => a.matricula === filtroAluno)?.nome || filtroAluno) : "Chamados - " + (turma.nome || "turma");
+    baixarTxt(nomeArquivo(nome), textoVariosChamados(porAluno, turma));
+  }
 
   async function abrirChamado(c) {
     setSelId(c.id); setTexto(""); setErro("");
@@ -105,7 +127,7 @@ export default function SuporteProfessor({ turma }) {
     setEnviando(true); setErro("");
     try {
       const a = (alunos || []).find((x) => x.matricula === nMat);
-      await addDoc(collection(db, "turmas", turmaId, "chamados"), {
+      await criarChamadoNumerado(turmaId, {
         matricula: nMat, alunoNome: a?.nome || "", assunto: nAssunto.trim() || "Mensagem do professor",
         documentoId: null, documentoNumero: null, status: "respondido", iniciadoPor: "professor",
         mensagens: [{ autor: "professor", texto: nTexto.trim(), em: new Date().toISOString() }],
@@ -130,6 +152,15 @@ export default function SuporteProfessor({ turma }) {
         <button className={"btn" + (aba === "resolvidos" ? "" : " secondary")} onClick={() => setAba("resolvidos")}>Resolvidos</button>
         <button className="btn secondary" onClick={() => { setNovo(!novo); setErro(""); }}>+ Mensagem ao aluno</button>
       </div>
+      <div className="btn-row" style={{ marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={filtroAluno} onChange={(e) => setFiltroAluno(e.target.value)}>
+          <option value="">Todos os alunos</option>
+          {(alunos || []).map((a) => <option key={a.matricula} value={a.matricula}>{a.nome || a.matricula}</option>)}
+        </select>
+        <button className="btn secondary" disabled={porAluno.length === 0} onClick={exportarTodos}>⬇ Exportar {filtroAluno ? "chamados do aluno" : "todos os chamados"} (.txt)</button>
+        {semNumero > 0 && <button className="btn secondary" disabled={enviando} onClick={numerarAntigos}>Numerar chamados antigos ({semNumero})</button>}
+      </div>
+      {aviso && <div className="balance-check ok">{aviso}</div>}
 
       {novo && (
         <div className="panel"><div className="panel-head"><h3>Nova mensagem ao aluno</h3></div><div className="panel-body">
@@ -148,12 +179,13 @@ export default function SuporteProfessor({ turma }) {
       <div className="panel"><div className="panel-body" style={{ padding: 0 }}>
         {chamados === null ? <div className="empty-state">Carregando…</div> : lista.length === 0 ? <div className="empty-state">Nenhum chamado nesta aba.</div> : (
           <table>
-            <thead><tr><th>Aluno</th><th>Assunto</th><th>Nota</th><th>Atualizado</th><th>Situação</th></tr></thead>
+            <thead><tr><th>Nº</th><th>Aluno</th><th>Assunto</th><th>Nota</th><th>Atualizado</th><th>Situação</th></tr></thead>
             <tbody>
               {lista.map((c) => {
                 const s = rotuloSituacao(c, "professor");
                 return (
                   <tr key={c.id} style={{ cursor: "pointer", background: c.id === selId ? "#efe9d8" : undefined }} onClick={() => abrirChamado(c)}>
+                    <td className="mono">{fmtNumero(c.numero)}</td>
                     <td>{c.naoLidoProfessor ? <b>{c.alunoNome || c.matricula}</b> : (c.alunoNome || c.matricula)}</td>
                     <td>{c.assunto}</td>
                     <td className="mono">{c.documentoNumero || "—"}</td>
@@ -169,7 +201,7 @@ export default function SuporteProfessor({ turma }) {
 
       {sel && (
         <div className="panel">
-          <div className="panel-head"><h3>{sel.alunoNome || sel.matricula} — {sel.assunto}{sel.documentoNumero ? " · NF " + sel.documentoNumero : ""}</h3></div>
+          <div className="panel-head"><h3>{sel.numero ? "Nº " + fmtNumero(sel.numero) + " · " : ""}{sel.alunoNome || sel.matricula} — {sel.assunto}{sel.documentoNumero ? " · NF " + sel.documentoNumero : ""}</h3></div>
           <div className="panel-body">
             {(sel.mensagens || []).map((m, i) => <Bolha key={i} m={m} />)}
             <div className="field"><textarea rows={2} style={{ width: "100%" }} placeholder="Responder ao aluno…" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>
@@ -199,6 +231,9 @@ export default function SuporteProfessor({ turma }) {
             <div className="btn-row">
               <button className="btn" disabled={enviando || !texto.trim()} onClick={responder}>{enviando ? "Enviando…" : "Responder"}</button>
               <button className="btn secondary" onClick={() => { setDevAberto(!devAberto); setDevOk(""); }}>↩ Devolver nota ao aluno</button>
+              <button className="btn secondary" onClick={imprimirSel}>🖨 Imprimir / salvar PDF</button>
+              <button className="btn secondary" onClick={baixarSel}>⬇ Baixar texto (.txt)</button>
+              <button className="btn secondary" onClick={copiarSel}>📋 Copiar</button>
               {sel.status !== "resolvido"
                 ? <button className="btn secondary" onClick={() => mudarStatus("resolvido")}>Marcar como resolvido</button>
                 : <button className="btn secondary" onClick={() => mudarStatus("aberto")}>Reabrir</button>}
