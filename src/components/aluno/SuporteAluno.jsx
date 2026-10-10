@@ -28,20 +28,33 @@ export function rotuloSituacao(c, visao) {
   return c.status === "aberto" ? { cls: "correcao", txt: "novo" } : { cls: "enviado", txt: "aguardando aluno" };
 }
 
+const ROTULO_ETAPA = { digitacao: "Digitação da NF-e", analise: "Análise fiscal", classificacao: "Classificação contábil", lancamento: "Lançamento no diário" };
+
 function Conversa({ c }) {
   return (
     <div>
-      {(c.mensagens || []).map((m, i) => (
+      {(c.mensagens || []).map((m, i) => m.tipo === "sistema" ? (
+        <div key={i} style={{ textAlign: "center", color: "#7a7466", fontSize: 12, margin: "8px 0" }}>{m.texto} · {formatarDataHora(m.em)}</div>
+      ) : (
         <div key={i} style={{
           padding: "10px 12px", borderRadius: 8, margin: "8px 0", maxWidth: "88%", fontSize: 14, whiteSpace: "pre-wrap",
-          background: m.autor === "professor" ? "#E5EFEA" : "#fff",
-          border: "1px solid " + (m.autor === "professor" ? "#b9d3c7" : "#d9d2c0"),
+          background: m.tipo === "devolucao" ? "#FBF1DC" : m.autor === "professor" ? "#E5EFEA" : "#fff",
+          border: "1px solid " + (m.tipo === "devolucao" ? "#e2c27a" : m.autor === "professor" ? "#b9d3c7" : "#d9d2c0"),
           marginLeft: m.autor === "professor" ? "auto" : 0,
         }}>
           <small style={{ display: "block", color: "#7a7466", fontSize: 11, marginBottom: 3 }}>
             {m.autor === "professor" ? "Professor" : "Você"} · {formatarDataHora(m.em)}
           </small>
+          {m.tipo === "devolucao" && (
+            <div style={{ marginBottom: 6 }}>
+              <b>↩ Nota {m.documentoNumero || ""} devolvida para você refazer</b>
+              <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {(m.etapas || []).map((e) => <span key={e} className="tag-pill warn">{ROTULO_ETAPA[e] || e}</span>)}
+              </div>
+            </div>
+          )}
           {m.texto}
+          {m.tipo === "devolucao" && <div className="helper-note" style={{ marginTop: 8 }}>Refaça as etapas na ordem do menu. Ao terminar, responda este chamado.</div>}
         </div>
       ))}
     </div>
