@@ -63,7 +63,7 @@ export default function SuporteProfessor({ turma }) {
     aba === "abertos" ? c.status === "aberto" : aba === "respondidos" ? c.status === "respondido" : c.status === "resolvido")
     .sort((a, b) => (b.numero || 0) - (a.numero || 0) || 0);
   const semNumero = (chamados || []).filter((c) => !c.numero).length;
-  const nomeSel = sel ? "Chamado " + fmtNumero(sel.numero) + " - " + (sel.alunoNome || sel.matricula) : "";
+  const nomeSel = sel ? "Chamado " + (sel.numero ? fmtNumero(sel.numero) + " - " : "") + (sel.alunoNome || sel.matricula) : "";
   const nAbertos = (chamados || []).filter((c) => c.status === "aberto").length;
 
   async function numerarAntigos() {

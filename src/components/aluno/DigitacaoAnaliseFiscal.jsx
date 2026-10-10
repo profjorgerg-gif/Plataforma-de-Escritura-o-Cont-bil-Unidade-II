@@ -334,14 +334,28 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           <label style={{ display: "block", marginTop: 10, fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", color: "var(--ink-faint)" }}>Totais</label>
           <div className="grid-2" style={{ marginTop: 8 }}>
             <div>
-              <div className="field"><label>Total dos produtos</label><input className="mono" type="number" value={form.totalProdutos} onChange={(e) => setField("totalProdutos", e.target.value)} /></div>
-              <div className="field"><label>Desconto</label><input className="mono" type="number" value={form.desconto} onChange={(e) => setField("desconto", e.target.value)} /></div>
+              <div className="field"><label>Total dos produtos</label><input className="mono" type="number" value={form.totalProdutos ?? ""} onChange={(e) => setField("totalProdutos", e.target.value)} /></div>
+              <div className="field"><label>Desconto</label><input className="mono" type="number" value={form.desconto ?? ""} onChange={(e) => setField("desconto", e.target.value)} /></div>
+              <div className="field"><label>Frete</label><input className="mono" type="number" value={form.frete ?? ""} onChange={(e) => setField("frete", e.target.value)} /></div>
             </div>
             <div>
-              <div className="field"><label>Frete + seguro + outras</label><input className="mono" type="number" value={form.frete} onChange={(e) => setField("frete", e.target.value)} /></div>
-              <div className="field"><label>Valor total da nota</label><input className="mono" type="number" value={form.total} onChange={(e) => setField("total", e.target.value)} /></div>
+              <div className="field"><label>Seguro</label><input className="mono" type="number" value={form.seguro ?? ""} onChange={(e) => setField("seguro", e.target.value)} /></div>
+              <div className="field"><label>Outras despesas acessórias</label><input className="mono" type="number" value={form.outras ?? ""} onChange={(e) => setField("outras", e.target.value)} /></div>
+              <div className="field"><label>Valor total da nota</label><input className="mono" type="number" value={form.total ?? ""} onChange={(e) => setField("total", e.target.value)} /></div>
             </div>
           </div>
+          {(() => {
+            const n = (v) => Number(v) || 0;
+            const temAlgo = [form.totalProdutos, form.desconto, form.frete, form.seguro, form.outras].some((v) => v !== "" && v != null);
+            if (!temAlgo) return null;
+            const calc = n(form.totalProdutos) - n(form.desconto) + n(form.frete) + n(form.seguro) + n(form.outras);
+            return (
+              <div className="helper-note" style={{ marginTop: 4 }}>
+                Conta de conferência: produtos − desconto + frete + seguro + outras despesas = <b className="mono">R$ {fmt(calc)}</b>.
+                Compare com o “Valor total da nota” impresso e digite-o no campo acima.
+              </div>
+            );
+          })()}
 
           <div className="btn-row">
             <button className="btn secondary" onClick={conferir}>Conferir digitação</button>

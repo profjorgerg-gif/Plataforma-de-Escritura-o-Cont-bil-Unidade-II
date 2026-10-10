@@ -64,7 +64,7 @@ const LINHA = "--------------------------------------------------------";
 
 export function textoChamado(c, turma, geradoEm = new Date()) {
   const L = [];
-  L.push(`CHAMADO Nº ${fmtNumero(c.numero)} — ${c.assunto || ""}`);
+  L.push(`CHAMADO ${c.numero ? "Nº " + fmtNumero(c.numero) + " " : ""}— ${c.assunto || ""}`);
   L.push(`Turma: ${turma?.nome || ""} · Aluno: ${c.alunoNome || ""} (matrícula ${c.matricula || ""})`);
   L.push(`Nota fiscal: ${c.documentoNumero ? "NF " + c.documentoNumero : "—"} · Situação: ${c.status || ""} · Iniciado por: ${c.iniciadoPor || ""}`);
   L.push(`Aberto em ${dt(c.criadoEm)} · Última atualização ${dt(c.atualizadoEm)} · Gerado em ${dt(geradoEm)}`);
