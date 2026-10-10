@@ -34,6 +34,7 @@ import ModelosMensagens from "../professor/ModelosMensagens.jsx";
 import SuporteAluno from "../aluno/SuporteAluno.jsx";
 import SuporteProfessor from "../professor/SuporteProfessor.jsx";
 import RefazerNota from "../professor/RefazerNota.jsx";
+import RegistroProcesso from "../professor/RegistroProcesso.jsx";
 import { useChamados } from "../../hooks/useChamados.js";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
@@ -149,6 +150,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "suporte", label: "Suporte" },
       { key: "relatorio", label: "Relatório de orientação" },
       { key: "refazer", label: "Refazer nota do aluno" },
+      { key: "registro", label: "Registro do processo" },
     ],
   },
   {
@@ -712,6 +714,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
   } else if (ehProfessorOuAdmin && screen === "suporte") {
     tela = <SuporteProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "registro") {
+    tela = <RegistroProcesso turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "refazer") {
     tela = <RefazerNota turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "relatorio") {
