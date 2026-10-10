@@ -73,17 +73,18 @@ const FLUXOS = {
   },
 };
 const AUTOMATICA = {
-  titulo: "6 a 10 · Razão, Balancete, ARE, DRE e Balanço",
+  titulo: "6 a 10 · Resultado automático",
   passos: [
-    ["sy", "Lançamentos aprovados", "do Livro diário"],
-    ["sy", "Razão", "agrupa por conta"],
-    ["sy", "Balancete", "saldos das contas"],
-    ["sy", "ARE → DRE", "apura o resultado"],
-    ["sy", "Balanço", "ativo = passivo + patrimônio"],
+    ["sy", "6 · Livro razão", "agrupa os lançamentos aprovados por conta"],
+    ["sy", "7 · Balancete", "saldos das contas"],
+    ["sy", "8 · ARE", "apuração do resultado do exercício"],
+    ["sy", "9 · DRE", "demonstração do resultado"],
+    ["sy", "10 · Balanço patrimonial", "ativo = passivo + patrimônio líquido"],
   ],
-  aviso: ["al", "Aqui você não digita nada: se algo estiver errado, volte ao Livro diário e corrija o lançamento."],
+  aviso: ["al", "Aqui você não digita nada: se algo estiver errado, volte ao 5 · Livro diário e corrija o lançamento."],
 };
-["razao", "balancete", "are", "dre", "bp"].forEach((k) => { FLUXOS[k] = AUTOMATICA; });
+const TITULOS_AUTOMATICOS = { razao: "6 · Livro razão", balancete: "7 · Balancete", are: "8 · ARE", dre: "9 · DRE", bp: "10 · Balanço patrimonial" };
+["razao", "balancete", "are", "dre", "bp"].forEach((k) => { FLUXOS[k] = { ...AUTOMATICA, titulo: TITULOS_AUTOMATICOS[k] + " (etapas 6 a 10 são automáticas)" }; });
 
 const COR = {
   al: ["#E5EFEA", "#1F5C4A"], sy: ["#EEEDEA", "#8a8678"], pr: ["#FBF1DC", "#9C6B1F"], at: ["#F5E1E1", "#8C2F2F"], ok: ["#E5EFEA", "#1F5C4A"],
