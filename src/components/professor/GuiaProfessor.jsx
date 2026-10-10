@@ -34,7 +34,7 @@ const FASES = [
     id: "corrigir", n: 3, titulo: "Corrigir e orientar", quando: "semanal", marcavel: false,
     itens: [
       { key: "fila", nome: "Fila de correção", texto: "Lançamentos enviados: aprovar ou pedir correção.", contador: "fila", rotuloContador: "na fila" },
-      { key: "suporte", nome: "Suporte", texto: "Chamados dos alunos. Responder, ou ↩ devolver a nota com orientação.", contador: "suporte", rotuloContador: "novos", aviso: "Devolver nota altera a nota do aluno — faça backup antes" },
+      { key: "suporte", nome: "Suporte", texto: "Chamados dos alunos. Responder, ou ↩ devolver uma nota a um aluno com orientação (não precisa de chamado).", contador: "suporte", rotuloContador: "novos", aviso: "Devolver nota altera a nota do aluno — faça backup antes" },
       { key: "refazer", nome: "Refazer nota do aluno", texto: "Apaga tudo de uma NF do aluno para ele recomeçar (guarda cópia na lixeira).", aviso: "Mexe nos dados do aluno — faça backup antes" },
       { key: "relatorio", nome: "Relatório de orientação", texto: "Texto pronto por aluno com o que ajustar." },
       { key: "modelos", nome: "Modelos de mensagens", texto: "Respostas rápidas." },
@@ -50,7 +50,7 @@ const FASES = [
 ];
 
 const SITUACOES = [
-  { t: "Aluno digitou a nota errada / valor errado", v: "Suporte → ↩ Devolver nota (o aluno refaz com a sua orientação)", key: "suporte", rot: "Abrir Suporte", aviso: true },
+  { t: "Aluno digitou a nota errada / valor errado", v: "Suporte → ↩ Devolver nota a um aluno (escolha aluno, nota e etapas; não precisa de chamado aberto). O aluno refaz com a sua orientação", key: "suporte", rot: "Abrir Suporte", aviso: true },
   { t: "Quero apagar tudo daquela NF do aluno e recomeçar", v: "Refazer nota do aluno (guarda cópia na lixeira; dá para restaurar)", key: "refazer", rot: "Abrir Refazer nota", aviso: true },
   { t: "O total da NF no gabarito está diferente", v: "Documentos fiscais → Conferir gabaritos (backup antes)", key: "documentos", rot: "Abrir Documentos fiscais", aviso: true },
   { t: "Aluno diz que perdeu o que digitou", v: "Registro do processo mostra o que foi salvo e quando", key: "registro", rot: "Abrir Registro" },

@@ -1,5 +1,6 @@
 import { addDoc, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { db, auth } from "../firebase.js";
+import { criarChamadoNumerado } from "./chamados.js";
 
 // Devolução de nota ao aluno (2026-10-09). O professor devolve uma ou mais
 // etapas de UMA nota, com orientação; o aluno refaz. Nada é substituído:
@@ -58,7 +59,8 @@ export async function devolverNota({ turmaId, matricula, alunoNome, docId, docNu
       documentoId: chamado.documentoId || docId, documentoNumero: chamado.documentoNumero || docNumero || null,
     });
   } else {
-    await addDoc(collection(db, "turmas", turmaId, "chamados"), {
+    // sem chamado aberto: cria um já numerado (se o contador não estiver liberado, cria sem número)
+    await criarChamadoNumerado(turmaId, {
       matricula, alunoNome: alunoNome || "", assunto: "Nota devolvida para refazer", documentoId: docId, documentoNumero: docNumero || null,
       status: "respondido", iniciadoPor: "professor", mensagens: [mensagem], naoLidoProfessor: false, naoLidoAluno: true,
       criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),

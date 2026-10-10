@@ -53,6 +53,11 @@ export default function SuporteProfessor({ turma }) {
   const [nAssunto, setNAssunto] = useState("");
   const [nTexto, setNTexto] = useState("");
   const [filtroAluno, setFiltroAluno] = useState("");
+  const [dirAberto, setDirAberto] = useState(false);
+  const [dirAluno, setDirAluno] = useState("");
+  const [dirDoc, setDirDoc] = useState("");
+  const [dirEtapas, setDirEtapas] = useState([]);
+  const [dirTexto, setDirTexto] = useState(MODELO_ORIENTACAO);
   const [aviso, setAviso] = useState("");
 
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
@@ -79,6 +84,24 @@ export default function SuporteProfessor({ turma }) {
   function exportarTodos() {
     const nome = filtroAluno ? "Chamados - " + ((alunos || []).find((a) => a.matricula === filtroAluno)?.nome || filtroAluno) : "Chamados - " + (turma.nome || "turma");
     baixarTxt(nomeArquivo(nome), textoVariosChamados(porAluno, turma));
+  }
+
+  function alternarEtapaDireta(k) { setDirEtapas((e) => (e.includes(k) ? e.filter((x) => x !== k) : [...e, k])); }
+  function marcarTodasDireta() { setDirEtapas(dirEtapas.length === ETAPAS_DEVOLUCAO.length ? [] : ETAPAS_DEVOLUCAO.map((e) => e.key)); }
+  // Devolução direta: o professor escolhe aluno + nota + etapas, sem precisar de chamado aberto
+  // (o sistema cria um chamado numerado para registrar a orientação e avisar o aluno).
+  async function devolverDireto() {
+    const aluno = (alunos || []).find((a) => a.matricula === dirAluno);
+    const nota = (documentos || []).find((d) => d.id === dirDoc);
+    if (!aluno || !nota || dirEtapas.length === 0 || !dirTexto.trim()) { setErro("Escolha o aluno, a nota, ao menos uma etapa e escreva a orientação."); return; }
+    if (!window.confirm("Devolver a NF " + (nota.numero || nota.id) + " para " + (aluno.nome || aluno.matricula) + "? Etapas: " + dirEtapas.join(", ") + ". Lançamentos aprovados voltam para correção e classificações devolvidas vão para a lixeira de segurança. Você já baixou o backup da turma?")) return;
+    setEnviando(true); setErro(""); setDevOk("");
+    try {
+      const feitos = await devolverNota({ turmaId, matricula: aluno.matricula, alunoNome: aluno.nome, docId: nota.id, docNumero: nota.numero, etapas: dirEtapas, orientacao: dirTexto.trim(), chamado: null });
+      setDevOk("Nota devolvida a " + (aluno.nome || aluno.matricula) + ". " + (feitos.length ? feitos.join("; ") + "." : "O aluno foi avisado pelo Suporte."));
+      setDirAberto(false); setDirAluno(""); setDirDoc(""); setDirEtapas([]); setDirTexto(MODELO_ORIENTACAO); setAba("respondidos");
+    } catch (e) { setErro("Não foi possível devolver: " + e.message + ". Confira se as regras novas do Firestore foram publicadas."); }
+    setEnviando(false);
   }
 
   async function abrirChamado(c) {
@@ -151,6 +174,7 @@ export default function SuporteProfessor({ turma }) {
         <button className={"btn" + (aba === "respondidos" ? "" : " secondary")} onClick={() => setAba("respondidos")}>Respondidos</button>
         <button className={"btn" + (aba === "resolvidos" ? "" : " secondary")} onClick={() => setAba("resolvidos")}>Resolvidos</button>
         <button className="btn secondary" onClick={() => { setNovo(!novo); setErro(""); }}>+ Mensagem ao aluno</button>
+        <button className="btn secondary" onClick={() => { setDirAberto(!dirAberto); setErro(""); setDevOk(""); }}>↩ Devolver nota a um aluno</button>
       </div>
       <div className="btn-row" style={{ marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
         <select value={filtroAluno} onChange={(e) => setFiltroAluno(e.target.value)}>
@@ -161,6 +185,32 @@ export default function SuporteProfessor({ turma }) {
         {semNumero > 0 && <button className="btn secondary" disabled={enviando} onClick={numerarAntigos}>Numerar chamados antigos ({semNumero})</button>}
       </div>
       {aviso && <div className="balance-check ok">{aviso}</div>}
+      {!sel && devOk && <div className="balance-check ok">{devOk}</div>}
+      {!sel && erro && !novo && <div className="balance-check bad">{erro}</div>}
+
+      {dirAberto && (
+        <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2 }}>
+          <div className="panel-head"><h3>Devolver nota a um aluno (sem precisar de chamado)</h3></div>
+          <div className="panel-body">
+            <div className="field"><label>Aluno</label>
+              <select value={dirAluno} onChange={(e) => setDirAluno(e.target.value)}>
+                <option value="">— escolha —</option>
+                {(alunos || []).map((a) => <option key={a.matricula} value={a.matricula}>{a.nome || a.matricula}</option>)}
+              </select></div>
+            <div className="field"><label>Nota fiscal</label>
+              <select value={dirDoc} onChange={(e) => setDirDoc(e.target.value)}>
+                <option value="">— escolha —</option>
+                {(documentos || []).map((d) => <option key={d.id} value={d.id}>Nº {d.numero} — {d.direcao === "entrada" ? "entrada" : "saída"}</option>)}
+              </select></div>
+            <div className="field"><label>Etapas a devolver (na ordem do aluno)</label>
+              <label style={{ display: "block", margin: "4px 0" }}><input type="checkbox" checked={dirEtapas.length === ETAPAS_DEVOLUCAO.length} onChange={marcarTodasDireta} /> <b>Todas, do início ao fim</b></label>
+              {ETAPAS_DEVOLUCAO.map((e) => <label key={e.key} style={{ display: "block", margin: "4px 0" }}><input type="checkbox" checked={dirEtapas.includes(e.key)} onChange={() => alternarEtapaDireta(e.key)} /> {e.rotulo}</label>)}</div>
+            <div className="field"><label>Orientação ao aluno</label><textarea rows={3} style={{ width: "100%" }} value={dirTexto} onChange={(e) => setDirTexto(e.target.value)} /></div>
+            <div className="aviso-pedagogico">⚠ Análise reabre como rascunho · Classificação vai para a lixeira de segurança (restaurável) · Lançamento volta como "correção necessária". Digitação o aluno já pode reeditar. O sistema registra tudo num chamado numerado e avisa o aluno no menu Suporte dele.</div>
+            <div className="btn-row"><button className="btn red" disabled={enviando} onClick={devolverDireto}>{enviando ? "Devolvendo…" : "Devolver ao aluno"}</button><button className="btn secondary" onClick={() => setDirAberto(false)}>Cancelar</button></div>
+          </div>
+        </div>
+      )}
 
       {novo && (
         <div className="panel"><div className="panel-head"><h3>Nova mensagem ao aluno</h3></div><div className="panel-body">
