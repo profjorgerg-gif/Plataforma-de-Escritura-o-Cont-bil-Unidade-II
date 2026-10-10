@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
@@ -16,6 +16,29 @@ import CampoFiscalAutocomplete from "../shared/CampoFiscalAutocomplete.jsx";
 // Firestore — digitacoesNFe/{doc} e analisesFiscais/{doc} — então nada no
 // checklist de progresso, na rubrica de nota ou na Classificação Contábil
 // (que lê analisesFiscais para o aviso de coerência) precisou mudar.
+
+// PROTEÇÃO CONTRA DIGITAÇÃO NÃO SALVA (2026-10-09). Alguns alunos relataram que
+// "sumiu" o que tinham digitado. Antes, todo aviso do banco (onSnapshot)
+// substituía o formulário na tela — inclusive quando o aluno estava no meio
+// da digitação. Agora: (1) enquanto houver alteração não salva, o que vem do
+// banco NÃO sobrescreve a tela; (2) um rascunho é guardado só neste
+// computador (localStorage) e pode ser restaurado; (3) a tela avisa antes de
+// sair ou trocar de nota. Nada disso grava no banco: os dados salvos só mudam
+// quando o aluno clica em salvar/enviar, como antes.
+const chaveRasc = (tipo, t, m, d) => "rascunhoLocal_" + tipo + "_" + t + "_" + m + "_" + d;
+function lerRasc(chave) { try { const r = localStorage.getItem(chave); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function gravarRasc(chave, dados) { try { localStorage.setItem(chave, JSON.stringify({ dados, em: new Date().toISOString() })); } catch (e) { /* sem armazenamento: tudo bem */ } }
+function apagarRasc(chave) { try { localStorage.removeItem(chave); } catch (e) { /* idem */ } }
+function estavel(o) {
+  if (Array.isArray(o)) return o.map(estavel);
+  if (o && typeof o === "object") {
+    const base = typeof o.toJSON === "function" ? o.toJSON() : o;
+    return Object.keys(base).sort().reduce((r, k) => { r[k] = estavel(base[k]); return r; }, {});
+  }
+  return o;
+}
+const igual = (a, b) => JSON.stringify(estavel(a)) === JSON.stringify(estavel(b));
+const horaAgora = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 function blankItemDigitacao() { return { codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", qtd: "", valorUnit: "" }; }
 
@@ -53,23 +76,91 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
   const [salvandoAnalise, setSalvandoAnalise] = useState(false);
   const [salvoAnalise, setSalvoAnalise] = useState("");
 
+  // --- proteção contra alteração não salva ---
+  const [dirtyDig, setDirtyDig] = useState(false);
+  const [dirtyAn, setDirtyAn] = useState(false);
+  const [rascDig, setRascDig] = useState(null);   // rascunho local encontrado (digitação)
+  const [rascAn, setRascAn] = useState(null);     // idem (análise)
+  const [salvoEmDig, setSalvoEmDig] = useState("");
+  const [erroSalvar, setErroSalvar] = useState("");
+  const dirtyDigRef = useRef(false), dirtyAnRef = useRef(false);
+  const formRef = useRef(null), analiseRef = useRef(null);
+  const carregouDigRef = useRef(false), carregouAnRef = useRef(false);
+  const docSelRef = useRef(docSel);
+  docSelRef.current = docSel;
+  formRef.current = form;
+  analiseRef.current = analise;
+  const marcarDig = (v) => { dirtyDigRef.current = v; setDirtyDig(v); };
+  const marcarAn = (v) => { dirtyAnRef.current = v; setDirtyAn(v); };
+
   useEffect(() => {
     if (!turmaId || !matricula || !docSel || !docFiscal) return;
-    setConferido(null); setSalvoDigitacao(false);
+    setConferido(null); setSalvoDigitacao(false); setSalvoEmDig(""); setRascDig(null);
+    carregouDigRef.current = false; dirtyDigRef.current = false; setDirtyDig(false);
+    const chave = chaveRasc("dig", turmaId, matricula, docSel);
     const unsub = onSnapshot(doc(db, "turmas", turmaId, "alunos", matricula, "digitacoesNFe", docSel), (snap) => {
-      setForm(snap.exists() ? snap.data() : blankDigitacao(docFiscal));
+      const primeira = !carregouDigRef.current;
+      carregouDigRef.current = true;
+      // Não sobrescreve o que o aluno está digitando e ainda não salvou.
+      if (dirtyDigRef.current && !primeira) return;
+      // Digitou antes de a tela terminar de carregar: guarda o que ele digitou como rascunho.
+      if (dirtyDigRef.current && primeira && formRef.current) gravarRasc(chave, formRef.current);
+      const carregado = snap.exists() ? snap.data() : blankDigitacao(docFiscal);
+      setForm(carregado);
+      dirtyDigRef.current = false; setDirtyDig(false);
+      const r = lerRasc(chave);
+      if (r && !igual(r.dados, carregado)) setRascDig(r);
+      else { if (r) apagarRasc(chave); setRascDig(null); }
     });
     return unsub;
   }, [turmaId, matricula, docSel]);
 
   useEffect(() => {
     if (!turmaId || !matricula || !docSel) return;
-    setSalvoAnalise("");
+    setSalvoAnalise(""); setRascAn(null);
+    carregouAnRef.current = false; dirtyAnRef.current = false; setDirtyAn(false);
+    const chave = chaveRasc("ana", turmaId, matricula, docSel);
     const unsub = onSnapshot(doc(db, "turmas", turmaId, "alunos", matricula, "analisesFiscais", docSel), (snap) => {
-      setAnalise(snap.exists() ? snap.data() : blankAnalise());
+      const primeira = !carregouAnRef.current;
+      carregouAnRef.current = true;
+      if (dirtyAnRef.current && !primeira) return;
+      if (dirtyAnRef.current && primeira && analiseRef.current) gravarRasc(chave, analiseRef.current);
+      const carregada = snap.exists() ? snap.data() : blankAnalise();
+      setAnalise(carregada);
+      dirtyAnRef.current = false; setDirtyAn(false);
+      const r = lerRasc(chave);
+      if (r && !igual(r.dados, carregada)) setRascAn(r);
+      else { if (r) apagarRasc(chave); setRascAn(null); }
     });
     return unsub;
   }, [turmaId, matricula, docSel]);
+
+  // Rascunho local automático (só neste computador) enquanto houver alteração não salva.
+  useEffect(() => {
+    if (!dirtyDig || !turmaId || !matricula || !docSel) return;
+    const t = setTimeout(() => gravarRasc(chaveRasc("dig", turmaId, matricula, docSel), form), 500);
+    return () => clearTimeout(t);
+  }, [form, dirtyDig]);
+  useEffect(() => {
+    if (!dirtyAn || !turmaId || !matricula || !docSel) return;
+    const t = setTimeout(() => gravarRasc(chaveRasc("ana", turmaId, matricula, docSel), analise), 500);
+    return () => clearTimeout(t);
+  }, [analise, dirtyAn]);
+
+  // Aviso do navegador ao fechar/recarregar com algo não salvo.
+  useEffect(() => {
+    if (!dirtyDig && !dirtyAn) return;
+    const aviso = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", aviso);
+    return () => window.removeEventListener("beforeunload", aviso);
+  }, [dirtyDig, dirtyAn]);
+
+  // Ao sair desta tela (outro item do menu) com algo não salvo: guarda o rascunho local.
+  useEffect(() => () => {
+    if (!turmaId || !matricula) return;
+    if (dirtyDigRef.current && formRef.current) gravarRasc(chaveRasc("dig", turmaId, matricula, docSelRef.current), formRef.current);
+    if (dirtyAnRef.current && analiseRef.current) gravarRasc(chaveRasc("ana", turmaId, matricula, docSelRef.current), analiseRef.current);
+  }, []);
 
   if (!docFiscal || !form) {
     return (
@@ -81,12 +172,22 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
     );
   }
 
-  function setField(field, value) { setForm({ ...form, [field]: value }); }
+  function editarForm(novo) { setForm(novo); formRef.current = novo; marcarDig(true); setSalvoDigitacao(false); }
+  function setField(field, value) { editarForm({ ...form, [field]: value }); }
   function setItemField(i, field, value) {
-    setForm({ ...form, itens: form.itens.map((it, idx) => (idx === i ? { ...it, [field]: value } : it)) });
+    editarForm({ ...form, itens: form.itens.map((it, idx) => (idx === i ? { ...it, [field]: value } : it)) });
   }
-  function addItem() { setForm({ ...form, itens: [...form.itens, blankItemDigitacao()] }); }
-  function removeItem(i) { setForm({ ...form, itens: form.itens.filter((_, idx) => idx !== i) }); }
+  function addItem() { editarForm({ ...form, itens: [...form.itens, blankItemDigitacao()] }); }
+  function removeItem(i) { editarForm({ ...form, itens: form.itens.filter((_, idx) => idx !== i) }); }
+
+  function trocarNota(novoId) {
+    if (dirtyDigRef.current || dirtyAnRef.current) {
+      if (!window.confirm("Você tem alterações que não foram salvas nesta nota. Se trocar de nota agora, elas ficam guardadas como rascunho neste computador e você poderá restaurar ao voltar. Trocar mesmo?")) return;
+      if (dirtyDigRef.current) gravarRasc(chaveRasc("dig", turmaId, matricula, docSel), form);
+      if (dirtyAnRef.current) gravarRasc(chaveRasc("ana", turmaId, matricula, docSel), analise);
+    }
+    setDocSel(novoId);
+  }
 
   const semGabarito = docFiscal.itens.length === 0 && !docFiscal.valorTotal;
 
@@ -99,22 +200,39 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
   }
 
   async function salvarDigitacao() {
-    setSalvandoDigitacao(true);
-    await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "digitacoesNFe", docSel), { ...form, atualizadoEm: serverTimestamp() });
+    setSalvandoDigitacao(true); setErroSalvar("");
+    try {
+      await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "digitacoesNFe", docSel), { ...form, atualizadoEm: serverTimestamp() });
+      apagarRasc(chaveRasc("dig", turmaId, matricula, docSel));
+      marcarDig(false); setRascDig(null); setSalvoEmDig(horaAgora());
+      setSalvoDigitacao(true);
+    } catch (e) {
+      setErroSalvar("Não foi possível salvar a digitação: " + e.message + ". Seus dados continuam na tela e no rascunho deste computador — tente de novo.");
+    }
     setSalvandoDigitacao(false);
-    setSalvoDigitacao(true);
   }
 
-  function setAnaliseField(field, value) { setAnalise({ ...analise, [field]: value }); }
+  function setAnaliseField(field, value) { const novo = { ...analise, [field]: value }; setAnalise(novo); analiseRef.current = novo; marcarAn(true); setSalvoAnalise(""); }
 
   async function salvarAnalise(status) {
-    setSalvandoAnalise(true);
-    await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "analisesFiscais", docSel), {
-      ...analise, status, atualizadoEm: serverTimestamp(),
-    });
+    setSalvandoAnalise(true); setErroSalvar("");
+    try {
+      await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "analisesFiscais", docSel), {
+        ...analise, status, atualizadoEm: serverTimestamp(),
+      });
+      apagarRasc(chaveRasc("ana", turmaId, matricula, docSel));
+      marcarAn(false); setRascAn(null);
+      setSalvoAnalise(status === "enviado" ? "Análise enviada." : "Rascunho salvo.");
+    } catch (e) {
+      setErroSalvar("Não foi possível salvar a análise: " + e.message + ". Seus dados continuam na tela e no rascunho deste computador — tente de novo.");
+    }
     setSalvandoAnalise(false);
-    setSalvoAnalise(status === "enviado" ? "Análise enviada." : "Rascunho salvo.");
   }
+
+  function restaurarDig() { editarForm(rascDig.dados); setRascDig(null); }
+  function descartarDig() { apagarRasc(chaveRasc("dig", turmaId, matricula, docSel)); setRascDig(null); }
+  function restaurarAn() { const d = rascAn.dados; setAnalise(d); analiseRef.current = d; marcarAn(true); setRascAn(null); }
+  function descartarAn() { apagarRasc(chaveRasc("ana", turmaId, matricula, docSel)); setRascAn(null); }
 
   return (
     <>
@@ -125,15 +243,26 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
       <div className="panel">
         <div className="panel-head">
           <h3>Nota a trabalhar</h3>
-          <select className="mono" style={{ padding: "6px 8px" }} value={docSel} onChange={(e) => setDocSel(e.target.value)}>
+          <select className="mono" style={{ padding: "6px 8px" }} value={docSel} onChange={(e) => trocarNota(e.target.value)}>
             {documentos.map((d) => <option key={d.id} value={d.id}>Nº {d.numero} — {d.direcao === "entrada" ? "Entrada" : "Saída"}</option>)}
           </select>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-head"><h3>1. Digitação da NF-e</h3></div>
+        <div className="panel-head"><h3>1. Digitação da NF-e
+          {dirtyDig
+            ? <span style={{ marginLeft: 10, fontSize: 12, fontWeight: "normal", background: "#FBF1DC", border: "1px solid #9C6B1F", color: "#9C6B1F", borderRadius: 14, padding: "2px 10px" }}>● alterações não salvas</span>
+            : salvoEmDig && <span style={{ marginLeft: 10, fontSize: 12, fontWeight: "normal", background: "#E5EFEA", border: "1px solid #1F5C4A", color: "#1F5C4A", borderRadius: 14, padding: "2px 10px" }}>✓ salvo às {salvoEmDig}</span>}
+        </h3></div>
         <div className="panel-body">
+          {rascDig && (
+            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", marginBottom: 12 }}>
+              ⚠ Encontramos uma digitação desta nota que <b>não foi salva</b> (guardada neste computador às {new Date(rascDig.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}).{" "}
+              <button className="btn" onClick={restaurarDig}>Restaurar</button>{" "}
+              <button className="btn secondary" onClick={descartarDig}>Descartar</button>
+            </div>
+          )}
           <div className="helper-note">Os valores reais estão apenas no PDF que o professor disponibiliza fora do sistema. Aqui você digita o que enxerga no documento — o rascunho é salvo no Firestore assim que você clicar em salvar.</div>
           <div className="grid-2">
             <div className="field"><label>Número da nota</label><input className="mono" value={form.numero} onChange={(e) => setField("numero", e.target.value)} /></div>
@@ -219,6 +348,7 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
             <button className="btn" disabled={salvandoDigitacao} onClick={salvarDigitacao}>{salvandoDigitacao ? "Salvando…" : "Salvar digitação"}</button>
           </div>
           {salvoDigitacao && <div className="balance-check ok" style={{ marginTop: 10 }}>✓ digitação salva</div>}
+          {erroSalvar && <div className="balance-check bad" style={{ marginTop: 10 }}>{erroSalvar}</div>}
           {conferido && conferido.semGabarito && (
             <div className="helper-note" style={{ marginTop: 10 }}>
               O professor ainda não cadastrou um gabarito para este documento — a conferência automática não está disponível. Digite com atenção conforme o PDF; seu professor vai revisar na correção.
@@ -233,8 +363,17 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
       </div>
 
       <div className="panel">
-        <div className="panel-head"><h3>2. Análise fiscal</h3></div>
+        <div className="panel-head"><h3>2. Análise fiscal
+          {dirtyAn && <span style={{ marginLeft: 10, fontSize: 12, fontWeight: "normal", background: "#FBF1DC", border: "1px solid #9C6B1F", color: "#9C6B1F", borderRadius: 14, padding: "2px 10px" }}>● alterações não salvas</span>}
+        </h3></div>
         <div className="panel-body">
+          {rascAn && (
+            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", marginBottom: 12 }}>
+              ⚠ Encontramos uma análise desta nota que <b>não foi salva</b> (guardada neste computador às {new Date(rascAn.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}).{" "}
+              <button className="btn" onClick={restaurarAn}>Restaurar</button>{" "}
+              <button className="btn secondary" onClick={descartarAn}>Descartar</button>
+            </div>
+          )}
           <div className="helper-note">Estes dados vêm do documento cadastrado pelo professor (o gabarito) — não do que você digitou acima. Julgue se estão corretos para esta operação; pesquise se tiver dúvida.</div>
           <div className="grid-2">
             <div>
