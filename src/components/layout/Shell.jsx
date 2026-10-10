@@ -135,40 +135,43 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte }) {
 // em quando"). Sem numeração — ao contrário do aluno, o professor não segue
 // uma sequência fixa de telas.
 const MENU_PROFESSOR_GRUPOS = [
+  { label: null, itens: [{ key: "guia", label: "🧭 Guia do professor" }] },
   {
-    label: null,
+    label: "hoje",
     itens: [
-      { key: "guia", label: "🧭 Guia do professor" },
       { key: "painel", label: "Painel do professor" },
-      { key: "notas", label: "Notas" },
-      { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
+      { key: "fila", label: "Fila de correção" },
+      { key: "suporte", label: "Suporte" },
     ],
   },
   {
-    label: "gestão da turma",
+    label: "acompanhar",
+    itens: [
+      { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
+      { key: "historico", label: "Histórico do aluno" },
+      { key: "registro", label: "Registro do processo" },
+      { key: "documentos", label: "Documentos fiscais" },
+    ],
+  },
+  {
+    label: "corrigir e orientar",
+    itens: [
+      { key: "relatorio", label: "Relatório de orientação" },
+      { key: "modelos", label: "Modelos de mensagens" },
+      { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
+    ],
+  },
+  { label: "notas", itens: [{ key: "notas", label: "Notas" }] },
+  {
+    id: "preparar",
+    label: "preparar e consultar",
+    recolhivel: true,
     itens: [
       { key: "turmas", label: "Turmas" },
-      { key: "fila", label: "Fila de correção" },
-      { key: "historico", label: "Histórico do aluno" },
-      { key: "suporte", label: "Suporte" },
-      { key: "relatorio", label: "Relatório de orientação" },
-      { key: "refazer", label: "Refazer nota do aluno" },
-      { key: "registro", label: "Registro do processo" },
-    ],
-  },
-  {
-    label: "apoio e consulta",
-    itens: [
       { key: "roteiro", label: "Roteiro do Aluno" },
-      { key: "documentos", label: "Documentos fiscais" },
       { key: "consulta", label: "Consulta CFOP/NCM" },
       { key: "plano", label: "Plano de contas" },
-      { key: "modelos", label: "Modelos de mensagens" },
     ],
-  },
-  {
-    label: "ferramentas",
-    itens: [{ key: "modoteste", label: "Modo de teste" }],
   },
 ];
 
@@ -183,7 +186,11 @@ function gruposMenuProfessor({ papel, badgeFila, badgeSuporte }) {
         : item.key === "suporte" && badgeSuporte > 0 ? { ...item, badge: badgeSuporte } : item
     ),
   }));
-  grupos.push({ label: "manuais", itens: manuaisPara(papel) });
+  // Modo de teste + manuais ficam juntos num grupo recolhível (2026-10-09).
+  grupos.push({
+    id: "ferramentas", label: "ferramentas e manuais", recolhivel: true,
+    itens: [{ key: "modoteste", label: "Modo de teste" }, ...manuaisPara(papel)],
+  });
   return grupos;
 }
 
@@ -544,6 +551,18 @@ function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos, co
 export default function Shell({ usuario, perfil, onSair }) {
   const ehProfessorOuAdmin = perfil.papel === "professor" || perfil.papel === "admin";
 
+  // Grupos recolhíveis do menu do professor: lembra o que ficou aberto
+  // (só no navegador; não grava nada no Firestore).
+  const [gruposAbertos, setGruposAbertos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("menuProf_abertos") || "{}") || {}; } catch { return {}; }
+  });
+  function alternarGrupo(id) {
+    setGruposAbertos((a) => {
+      const novo = { ...a, [id]: !a[id] };
+      try { localStorage.setItem("menuProf_abertos", JSON.stringify(novo)); } catch { /* sem armazenamento */ }
+      return novo;
+    });
+  }
   const [screen, setScreen] = useState(ehProfessorOuAdmin ? "painel" : "dashboard");
   const [menuAberto, setMenuAberto] = useState(false);
 
@@ -746,22 +765,37 @@ export default function Shell({ usuario, perfil, onSair }) {
         <div className="nav-group">
           <div className="nav-group-label">{emTeste ? "aluno (modo de teste)" : perfil.papel}</div>
         </div>
-        {menuGrupos.map((grupo, gi) => (
-          <div className="nav-group" key={gi}>
-            {grupo.label && <div className="nav-group-label">{grupo.label}</div>}
-            {grupo.itens.map((item, ii) => (
-              <div
-                key={item.key}
-                className={"nav-item" + (screen === item.key ? " active" : "")}
-                onClick={() => { setScreen(item.key); setMenuAberto(false); }}
-              >
-                {grupo.numerado && <span className="num">{ii + 1}</span>}
-                <span>{item.label}</span>
-                {!!item.badge && <span className="nav-badge">{item.badge}</span>}
-              </div>
-            ))}
-          </div>
-        ))}
+        {menuGrupos.map((grupo, gi) => {
+          const temAtivo = grupo.itens.some((it) => it.key === screen);
+          const aberto = !grupo.recolhivel || !!gruposAbertos[grupo.id] || temAtivo;
+          const pendencias = grupo.itens.reduce((t, it) => t + (it.badge || 0), 0);
+          return (
+            <div className="nav-group" key={gi}>
+              {grupo.label && (grupo.recolhivel ? (
+                <div
+                  className="nav-group-label"
+                  style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                  onClick={() => { if (!temAtivo) alternarGrupo(grupo.id); }}
+                >
+                  <span>{grupo.label}</span>
+                  <span>{!aberto && pendencias > 0 && <span className="nav-badge" style={{ marginRight: 6 }}>{pendencias}</span>}{aberto ? "▾" : "▸"}</span>
+                </div>
+              ) : <div className="nav-group-label">{grupo.label}</div>)}
+              {aberto && grupo.itens.map((item, ii) => (
+                <div
+                  key={item.key}
+                  className={"nav-item" + (screen === item.key ? " active" : "")}
+                  onClick={() => { setScreen(item.key); setMenuAberto(false); }}
+                >
+                  {grupo.numerado && <span className="num">{ii + 1}</span>}
+                  <span>{item.label}</span>
+                  {item.aviso && <span style={{ fontSize: 11, color: "#e9c77d", marginLeft: 6 }}>{item.aviso}</span>}
+                  {!!item.badge && <span className="nav-badge">{item.badge}</span>}
+                </div>
+              ))}
+            </div>
+          );
+        })}
         <div className="sidebar-foot">{usuario.email}</div>
       </div>
       <div className="main">
