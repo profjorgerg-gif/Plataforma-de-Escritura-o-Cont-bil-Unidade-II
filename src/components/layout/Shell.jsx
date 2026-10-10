@@ -716,7 +716,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "bp") {
     tela = <BalancoPatrimonial bp={esc.bp} />;
   } else if (ehProfessorOuAdmin && screen === "painel") {
-    tela = <Painel turma={turmaSelecionada} />;
+    tela = <Painel turma={turmaSelecionada} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
   } else if (ehProfessorOuAdmin && screen === "notas") {
     tela = <Notas turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
