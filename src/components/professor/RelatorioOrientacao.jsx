@@ -10,23 +10,69 @@ import { gerarRelatorioOrientacao, relatorioEmTexto } from "../../lib/relatorioO
 // Regras fixas calculadas no navegador (src/lib/relatorioOrientacao.js) — sem
 // IA e sem Cloud Functions. Só LÊ os dados; não altera nada do aluno.
 
+// Cores por etapa (opção C aprovada): a cor diz ONDE está o problema; o formato
+// da pílula diz a gravidade — cheia (●) = corrigir, só contorno (○) = conferir.
+const ETAPAS = {
+  dig:   { nome: "Digitação",      n: 3, cor: "#2F5B8C", fundo: "#E3ECF5" },
+  ana:   { nome: "Análise fiscal", n: 3, cor: "#6B4A8C", fundo: "#EEE6F5" },
+  cla:   { nome: "Classificação",  n: 4, cor: "#1F6F78", fundo: "#DDF0F1" },
+  lan:   { nome: "Lançamento",     n: 5, cor: "#7A4B2A", fundo: "#F3E6DA" },
+  geral: { nome: "Prazo / geral",  n: 0, cor: "#555555", fundo: "#EAEAEA" },
+};
+const VERMELHO = "#8C2F2F", AMBAR = "#9C6B1F";
+
+function PilulaGravidade({ g }) {
+  const erro = g === "erro";
+  const cor = erro ? VERMELHO : AMBAR;
+  const base = { display: "inline-block", padding: "1px 9px", borderRadius: 99, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", color: cor };
+  return erro
+    ? <span style={{ ...base, background: VERMELHO, color: "#fff" }}>● corrigir</span>
+    : <span style={{ ...base, border: `1.5px solid ${AMBAR}`, background: "#fff" }}>○ conferir</span>;
+}
+
 function TabelaAchados({ achados }) {
+  const [filtro, setFiltro] = useState("todos");
   if (achados.length === 0) return <div className="helper-note">Nenhuma pendência encontrada.</div>;
+  const etapasPresentes = Object.keys(ETAPAS).filter((k) => achados.some((a) => a.etapa === k));
+  const lista = filtro === "todos" ? achados : achados.filter((a) => a.etapa === filtro);
+  const chip = (id, rotulo, qtd, cor) => (
+    <button key={id} type="button" className="no-print" onClick={() => setFiltro(id)}
+      style={{ border: `1.5px solid ${cor}`, background: filtro === id ? cor : "#fff", color: filtro === id ? "#fff" : cor,
+        borderRadius: 99, padding: "3px 11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+      {rotulo} {qtd}
+    </button>
+  );
   return (
-    <table>
-      <thead><tr><th></th><th>Documento</th><th>Problema</th><th>O que o aluno deve fazer</th><th>Onde corrigir</th></tr></thead>
-      <tbody>
-        {achados.map((a, i) => (
-          <tr key={i}>
-            <td><span className={"tag-pill " + (a.gravidade === "erro" ? "bad" : "warn")}>{a.gravidade === "erro" ? "corrigir" : "conferir"}</span></td>
-            <td className="mono">{a.documento}</td>
-            <td>{a.titulo}</td>
-            <td>{a.orientacao}</td>
-            <td style={{ fontSize: 12.5 }}>{a.onde}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      {etapasPresentes.length > 1 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+          {chip("todos", "Todos", achados.length, "#444")}
+          {etapasPresentes.map((k) => chip(k, ETAPAS[k].nome, achados.filter((a) => a.etapa === k).length, ETAPAS[k].cor))}
+        </div>
+      )}
+      <table>
+        <thead><tr><th>Etapa</th><th></th><th>Documento</th><th>Problema</th><th>O que o aluno deve fazer</th><th>Onde corrigir</th></tr></thead>
+        <tbody>
+          {lista.map((a, i) => {
+            const e = ETAPAS[a.etapa] || ETAPAS.geral;
+            return (
+              <tr key={i}>
+                <td style={{ borderLeft: `5px solid ${e.cor}` }}>
+                  <span style={{ background: e.fundo, color: e.cor, padding: "2px 9px", borderRadius: 99, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {e.n ? `${e.n} · ` : ""}{e.nome}
+                  </span>
+                </td>
+                <td><PilulaGravidade g={a.gravidade} /></td>
+                <td className="mono">{a.documento}</td>
+                <td>{a.titulo}</td>
+                <td>{a.orientacao}</td>
+                <td style={{ fontSize: 12.5 }}>{a.onde}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -167,7 +213,7 @@ export default function RelatorioOrientacao({ turma }) {
           <div className="panel-body">
             <p style={{ marginTop: 0 }}>Documentos em dia: <b>{gerado.rel.nOk}</b> de <b>{gerado.rel.total}</b>. Gerado agora, com os dados atuais do aluno.</p>
             <TabelaAchados achados={gerado.rel.achados} />
-            <p className="helper-note" style={{ marginBottom: 0 }}>Regras fixas do sistema, sem IA: elas apontam o que dá para detectar sozinho (duplicata, rascunho, histórico genérico, débito ≠ crédito, etapa faltando). Não avaliam se a conta contábil escolhida é a certa para a operação — isso continua sendo sua correção.</p>
+            <p className="helper-note" style={{ marginBottom: 0 }}>Regras fixas do sistema, sem IA: elas apontam o que dá para detectar sozinho (duplicata, rascunho, histórico genérico, débito ≠ crédito, total diferente do gabarito, etapa faltando). Não avaliam se a conta contábil escolhida é a certa para a operação — isso continua sendo sua correção.</p>
           </div>
         </div>
       )}
