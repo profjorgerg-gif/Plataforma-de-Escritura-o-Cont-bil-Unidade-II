@@ -19,7 +19,11 @@ function diasAteHoje(prazo) {
 
 export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analises, classificacoes, lancamentos, prazo }) {
   const achados = [];
-  const add = (gravidade, documento, titulo, orientacao, onde = "", etapa = "geral") => achados.push({ gravidade, documento, titulo, orientacao, onde, etapa });
+  const linhas = [];
+  // "quem" = quem precisa agir: o aluno, ou o professor (ex.: o aluno não consegue excluir repetidos).
+  const QUEM_PROFESSOR = /^(Lançamento duplicado|Duas classificações)/;
+  const add = (gravidade, documento, titulo, orientacao, onde = "", etapa = "geral") =>
+    achados.push({ gravidade, documento, titulo, orientacao, onde, etapa, quem: QUEM_PROFESSOR.test(titulo) ? "professor" : "aluno" });
 
   let nOk = 0;
   for (const d of documentos) {
@@ -32,7 +36,13 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
     const aprovados = lans.filter((l) => l.status === "aprovado");
     const devolvidos = lans.filter((l) => l.status === "correcao");
 
-    if (aprovados.length > 0 && lans.length === aprovados.length && lans.length === 1) { nOk++; continue; }
+    const antes = achados.length;
+    const emDia = aprovados.length > 0 && lans.length === aprovados.length && lans.length === 1;
+    if (emDia) {
+      nOk++;
+      linhas.push({ documento: nomeDoc(d), dig: "ok", ana: "ok", cla: "ok", lan: "ok", situacao: "emdia", quem: [] });
+      continue;
+    }
 
     if (!dig) add("erro", nomeDoc(d), "Digitação não feita", "Digite os dados da NF-e e salve.", `Menu → Digitação e análise fiscal (etapa 3) → escolha o documento ${nomeDoc(d)} → seção Digitação → Salvar digitação`);
     else if (!ana || ana.status !== "enviado") add("erro", nomeDoc(d), "Análise fiscal não enviada", "Conclua a análise de CFOP, NCM e CST e clique em Enviar (rascunho não conta).", `Menu → Digitação e análise fiscal (etapa 3) → documento ${nomeDoc(d)} → seção Análise fiscal → Enviar análise`);
@@ -48,7 +58,7 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
     }
 
     if (clas.length > 1)
-      add("atencao", nomeDoc(d), `Duas classificações para a mesma nota (${clas.length})`, "Mantenha só a classificação correta. Avise o professor se precisar apagar a repetida.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas", "cla");
+      add("atencao", nomeDoc(d), `Duas classificações para a mesma nota (${clas.length})`, "O professor confere e remove a classificação repetida.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas", "cla");
 
     if (dig && ana?.status === "enviado" && clas.length === 0 && lans.length === 0)
       add("erro", nomeDoc(d), "Classificação contábil não feita", "Defina a conta de débito e a de crédito deste documento.", "Menu → Classificação contábil (etapa 4) → Nova classificação → Salvar classificação");
@@ -57,7 +67,7 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
       add("atencao", nomeDoc(d), "Classificação ainda marcada como pendente", "O lançamento existe, mas a classificação não foi marcada como lançada. Clique em “marcar como lançada no Diário”.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas → botão “marcar como lançada no Diário”");
 
     if (lans.length > 1)
-      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "Fique com um só lançamento para este documento: edite o correto e envie. Não envie o repetido (hoje o sistema não permite excluir; avise o professor).", "Menu → Livro diário (etapa 5) → tabela de lançamentos, linhas deste documento → coluna Ações → ✏️ Editar");
+      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "O aluno não consegue excluir o lançamento repetido: o professor remove o repetido. Enquanto isso, não envie o repetido.", "Menu → Livro diário (etapa 5) → tabela de lançamentos, linhas deste documento → coluna Ações → ✏️ Editar");
 
     if (rascunhos.length === 1 && lans.length === 1)
       add("erro", nomeDoc(d), "Lançamento parado em rascunho", "O professor não vê rascunho. Abra o lançamento e clique em Enviar.", "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar → Enviar para análise do professor");
@@ -81,6 +91,24 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
     if (enviados.length > 0 && rascunhos.length === 0 && devolvidos.length === 0 && aprovados.length === 0 && lans.length === 1) {
       // aguardando o professor — não é problema do aluno
     }
+
+    // Situação por etapa deste documento (✓ feito e salvo, ✗ problema, ⏳ aguardando professor, – não chegou)
+    const meus = achados.slice(antes);
+    const digBranca = dig && String(dig.total ?? "").trim() === "" && (dig.itens || []).length === 0;
+    const digDifere = dig && !digBranca && String(dig.total ?? "").trim() !== "" && Number(d.valorTotal) > 0 && Math.abs((Number(dig.total) || 0) - Number(d.valorTotal)) >= 0.02;
+    const sDig = !dig || digBranca || digDifere ? "no" : "ok";
+    const sAna = !dig ? "-" : ana?.status === "enviado" ? "ok" : "no";
+    const sCla = clas.length > 0 || lans.length > 0 ? "ok" : (dig && ana?.status === "enviado" ? "no" : "-");
+    let sLan = "-";
+    if (aprovados.length > 0) sLan = "ok";
+    else if (enviados.length > 0) sLan = "wa";
+    else if (lans.length > 0) sLan = "no";
+    else if (clas.length > 0) sLan = "no";
+    const quem = [];
+    if (meus.some((a) => a.quem === "aluno")) quem.push("aluno");
+    if (meus.some((a) => a.quem === "professor") || (meus.length === 0 && enviados.length > 0)) quem.push("professor");
+    const situacao = meus.some((a) => a.gravidade === "erro") ? "problema" : meus.length > 0 ? "conferir" : enviados.length > 0 ? "aguardando" : "emdia";
+    linhas.push({ documento: nomeDoc(d), dig: sDig, ana: sAna, cla: sCla, lan: sLan, situacao, quem });
   }
 
   const dias = diasAteHoje(prazo);
@@ -102,17 +130,21 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
   }
 
   achados.sort((a, b) => (a.gravidade === b.gravidade ? 0 : a.gravidade === "erro" ? -1 : 1));
-  return { aluno, total: documentos.length, nOk, achados };
+  const ordem = { problema: 0, conferir: 1, aguardando: 2, emdia: 3 };
+  linhas.sort((a, b) => ordem[a.situacao] - ordem[b.situacao]);
+  const comAluno = linhas.filter((l) => l.quem.includes("aluno")).length;
+  const comProfessor = linhas.filter((l) => l.quem.includes("professor")).length;
+  return { aluno, total: documentos.length, nOk, achados, linhas, comAluno, comProfessor, contaTeste: !!aluno?.contaTeste };
 }
 
 export function relatorioEmTexto(rel) {
   const L = [];
   L.push(`Orientação — ${rel.aluno?.nome || "Aluno"}`);
-  L.push(`Documentos em dia: ${rel.nOk} de ${rel.total}.`);
+  L.push(`Documentos em dia: ${rel.nOk} de ${rel.total}. Com o aluno: ${rel.comAluno ?? 0}. Com o professor: ${rel.comProfessor ?? 0}.`);
   if (rel.achados.length === 0) { L.push("", "Nenhuma pendência encontrada. Parabéns, continue assim!"); return L.join("\n"); }
   L.push("", "O que precisa de ajuste:");
   rel.achados.forEach((a, i) => {
-    L.push(`${i + 1}. [${a.documento}] ${a.titulo}`);
+    L.push(`${i + 1}. [${a.documento}] ${a.titulo}  (quem age: ${a.quem === "professor" ? "Professor" : "Aluno"})`);
     L.push(`   O que fazer: ${a.orientacao}`);
     if (a.onde) L.push(`   Onde: ${a.onde}`);
   });
