@@ -157,3 +157,6 @@ function Caixa2({ a }) {
   const [bg, borda] = COR[a[0]];
   return <div style={{ background: bg, border: "2px solid " + borda, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, marginTop: 6 }}>{a[1]}</div>;
 }
+
+// Exportações para a aba "Caminho do aluno" do Guia do professor (somente leitura).
+export { FLUXOS, COR, Linha, Caixa2 };

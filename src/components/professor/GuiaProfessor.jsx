@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CaminhoAluno from "./CaminhoAluno.jsx";
 
 // Guia do professor (2026-10-09): mapa do sistema dentro do próprio menu.
 // Só LEITURA e navegação — não grava nada no Firestore. O "✓ feito" fica no
@@ -95,7 +96,7 @@ export default function GuiaProfessor({ turma, onIr, contadores = {} }) {
           {turma?.nome ? <> Turma selecionada: <strong>{turma.nome}</strong>.</> : null} Clique em “Abrir” para ir direto à tela.
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {[["fluxo", "Fluxo da turma"], ["resolver", "Preciso resolver…"], ["cuidados", "Boas práticas / cuidados"]].map(([k, r]) => (
+          {[["fluxo", "Fluxo da turma"], ["resolver", "Preciso resolver…"], ["cuidados", "Boas práticas / cuidados"], ["caminho", "Caminho do aluno"]].map(([k, r]) => (
             <button key={k} className={"btn " + (aba === k ? "" : "secondary")} onClick={() => setAba(k)}>{r}</button>
           ))}
         </div>
@@ -169,6 +170,8 @@ export default function GuiaProfessor({ turma, onIr, contadores = {} }) {
           </div>
         </div>
       )}
+
+      {aba === "caminho" && <CaminhoAluno />}
 
       {aba === "cuidados" && (
         <div className="panel">
