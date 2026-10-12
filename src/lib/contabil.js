@@ -16,8 +16,11 @@ function calcularRazao(lancamentos, contas){
     l.partidas.forEach(p => {
       const bucket = porConta[p.conta];
       if(!bucket) return;
-      bucket.movimentos.push({ data:l.data, historico:l.historico, documento:l.documento, tipo:p.tipo, valor:p.valor, lancamentoId:l.id });
-      if(p.tipo === "D") bucket.totalD += p.valor; else bucket.totalC += p.valor;
+      // Correção: o valor vem como texto do campo de digitação; converte para número antes de somar
+      // (sem isso, 1345 + 200 virava "1345200"). Só afeta o cálculo/exibição, não altera o que está gravado.
+      const v = Number(p.valor) || 0;
+      bucket.movimentos.push({ data:l.data, historico:l.historico, documento:l.documento, tipo:p.tipo, valor:v, lancamentoId:l.id });
+      if(p.tipo === "D") bucket.totalD += v; else bucket.totalC += v;
     });
   });
   return porConta;
