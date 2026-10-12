@@ -8,6 +8,7 @@ import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
 import { useTurma } from "../../hooks/useTurma.js";
 import { useAgbTurma, useTrabalhoAgb } from "../../hooks/useAgb.js";
+import { useCaTurma, useTrabalhoCa } from "../../hooks/useCa.js";
 import {
   fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica,
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
@@ -55,6 +56,12 @@ import Indicadores from "../aluno/Indicadores.jsx";
 import CapitalGiro from "../aluno/CapitalGiro.jsx";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
+import FolhaMes from "../aluno/FolhaMes.jsx";
+import ProvisoesEncargos from "../aluno/ProvisoesEncargos.jsx";
+import ContabilizacaoFolha from "../aluno/ContabilizacaoFolha.jsx";
+import EfeitosFolha from "../aluno/EfeitosFolha.jsx";
+import ParecerFolha from "../aluno/ParecerFolha.jsx";
+import CaProfessor from "../professor/CaProfessor.jsx";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
@@ -122,6 +129,19 @@ const MENU_ALUNO_GRUPOS = [
 
 // Fase 3 — Análise Gerencial de Balanços (AGB). Grupo NOVO: só aparece para o aluno
 // quando o professor libera (ou na conta de teste). Não altera nenhum item acima.
+// Fase 2 — Contabilidade Avançada (folha de pagamento e provisões). Mesmo esquema: grupo NOVO,
+// só aparece quando o professor libera (ou na conta de teste).
+const MENU_ALUNO_CA = {
+  label: "fase 2 · contabilidade avançada (CA)",
+  itens: [
+    { key: "ca-folha", label: "Folha do mês" },
+    { key: "ca-prov", label: "Provisões e encargos" },
+    { key: "ca-cont", label: "Contabilização" },
+    { key: "ca-efeitos", label: "Efeitos nas demonstrações" },
+    { key: "ca-parecer", label: "Parecer técnico" },
+  ],
+};
+
 const MENU_ALUNO_AGB = {
   label: "fase 3 · análise gerencial (AGB)",
   itens: [
@@ -135,7 +155,7 @@ const MENU_ALUNO_AGB = {
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarCa }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
@@ -143,6 +163,10 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
         : item.key === "suporte" && badgeSuporte > 0 ? { ...item, badge: badgeSuporte } : item
     ),
   }));
+  if (mostrarCa) {
+    const posAgb = grupos.findIndex((g) => g.label === "apoio e consulta");
+    grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, MENU_ALUNO_CA);
+  }
   if (mostrarAgb) {
     const posApoio = grupos.findIndex((g) => g.label === "apoio e consulta");
     grupos.splice(posApoio < 0 ? grupos.length : posApoio, 0, MENU_ALUNO_AGB);
@@ -183,7 +207,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ],
   },
-  { label: "fase 3 · análise gerencial", itens: [{ key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
+  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
   { label: "notas", itens: [{ key: "notas", label: "Notas" }] },
   {
     id: "preparar",
@@ -624,6 +648,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   const minhaTurma = useTurma(turmaId);
   // Fase 3 (AGB): liberação/período anterior da turma e o trabalho do aluno (um listener só para as 4 telas)
   const agbAluno = useAgbTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const caAluno = useCaTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const trabCa = useTrabalhoCa(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
   const trabAgb = useTrabalhoAgb(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
 
   // Indicativo no menu: lançamentos com "correção necessária" ainda não
@@ -675,6 +701,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
       mostrarAgb: emTeste || agbAluno.liberado,
+      mostrarCa: emTeste || caAluno.liberado,
     });
   } else {
     menuGrupos = gruposMenuProfessor({
@@ -684,7 +711,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     });
   }
 
-  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer"];
+  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "ca-cont", "ca-efeitos"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
@@ -742,6 +769,18 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DRE dre={esc.dre} />;
   } else if (papelEfetivo === "aluno" && screen === "bp") {
     tela = <BalancoPatrimonial bp={esc.bp} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-folha") {
+    tela = <FolhaMes trab={trabCa} ca={caAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-prov") {
+    tela = <ProvisoesEncargos trab={trabCa} ca={caAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-cont") {
+    tela = <ContabilizacaoFolha trab={trabCa} ca={caAluno} esc={esc} onLevar={usarClassificacaoNoLancamento} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-efeitos") {
+    tela = <EfeitosFolha trab={trabCa} esc={esc} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-parecer") {
+    tela = <ParecerFolha trab={trabCa} />;
+  } else if (ehProfessorOuAdmin && screen === "ca-prof") {
+    tela = <CaProfessor turma={turmaSelecionada} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-av") {
     tela = <AnaliseVH esc={esc} trab={trabAgb} agb={agbAluno} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-ind") {

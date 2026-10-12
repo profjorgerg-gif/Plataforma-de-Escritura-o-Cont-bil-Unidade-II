@@ -73,7 +73,9 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
       <div className="panel-body">
         {!editando && valoresIniciais && (
           <div className="helper-note" style={{ marginBottom: 14 }}>
-            Lançamento pré-preenchido a partir da classificação contábil que você salvou. Confira a data e o histórico e complete o que faltar antes de enviar.
+            {valoresIniciais.origem === "folha"
+              ? "Lançamento da folha de pagamento, montado e conferido na Fase 2. Revise a data e o histórico e envie ao professor."
+              : "Lançamento pré-preenchido a partir da classificação contábil que você salvou. Confira a data e o histórico e complete o que faltar antes de enviar."}
           </div>
         )}
         {editando && lancamentoExistente.historicoCorrecoes?.length > 0 && (
@@ -171,10 +173,14 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setValoresIniciais({
       documento: rascunhoDeClassificacao.documento || "",
       historico: rascunhoDeClassificacao.historico || rascunhoDeClassificacao.fato || "",
-      partidas: [
-        { conta: rascunhoDeClassificacao.contaDebito || "", tipo: "D", valor: rascunhoDeClassificacao.valor ?? "" },
-        { conta: rascunhoDeClassificacao.contaCredito || "", tipo: "C", valor: rascunhoDeClassificacao.valor ?? "" },
-      ],
+      // Fase 2 (folha): o lançamento já vem montado, com várias partidas e a data da competência
+      ...(rascunhoDeClassificacao.origem === "folha" ? { origem: "folha", data: rascunhoDeClassificacao.data || "" } : {}),
+      partidas: rascunhoDeClassificacao.origem === "folha" && rascunhoDeClassificacao.partidas
+        ? rascunhoDeClassificacao.partidas.map((p) => ({ conta: p.conta, tipo: p.tipo, valor: p.valor }))
+        : [
+          { conta: rascunhoDeClassificacao.contaDebito || "", tipo: "D", valor: rascunhoDeClassificacao.valor ?? "" },
+          { conta: rascunhoDeClassificacao.contaCredito || "", tipo: "C", valor: rascunhoDeClassificacao.valor ?? "" },
+        ],
     });
     setClassificacaoVinculada(rascunhoDeClassificacao.id || null);
     setMostrarForm(true);
