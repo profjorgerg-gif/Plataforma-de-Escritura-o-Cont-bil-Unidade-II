@@ -9,10 +9,10 @@ export { conferirLancamento };
 
 export const MODALIDADES = [
   { id: "sjc", nome: "Dispensa sem justa causa", iniciativa: "Iniciativa do empregador, sem falta grave do empregado." },
-  { id: "ped", nome: "Pedido de demissão", iniciativa: "Iniciativa do empregado." },
+  { id: "ped", nome: "Pedido de demissão", iniciativa: "Iniciativa do empregado. Não há aviso indenizado a receber: o aviso é trabalhado ou, se não cumprido, pode ser descontado (CLT art. 487 §2º), sem projeção." },
   { id: "jc", nome: "Dispensa por justa causa", iniciativa: "Iniciativa do empregador, por falta grave do empregado." },
-  { id: "aco", nome: "Acordo entre as partes (art. 484-A)", iniciativa: "Iniciativa de comum acordo entre empregador e empregado." },
-  { id: "ter", nome: "Término de contrato a prazo", iniciativa: "O contrato por prazo determinado chegou ao fim." },
+  { id: "aco", nome: "Acordo entre as partes (art. 484-A)", iniciativa: "Iniciativa de comum acordo entre empregador e empregado. O aviso indenizado é pago pela metade (art. 484-A); neste exercício a projeção para férias e 13º também é feita pela metade, como critério de cálculo adotado." },
+  { id: "ter", nome: "Término normal de contrato a prazo", iniciativa: "O contrato por prazo determinado chegou ao fim normalmente, sem rescisão antecipada (a rescisão antecipada e a cláusula do art. 481 não fazem parte deste exercício)." },
 ];
 export const nomeModalidade = (id) => (MODALIDADES.find((m) => m.id === id) || {}).nome || "";
 

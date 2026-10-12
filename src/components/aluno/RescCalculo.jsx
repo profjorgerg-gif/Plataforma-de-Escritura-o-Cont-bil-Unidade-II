@@ -32,7 +32,7 @@ export default function RescCalculo({ trab, resc }) {
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />
 
       {sec("Prazos e avos", prazos.map(([k, n, e]) => [k, n, e, 70]),
-        "O aviso prévio indenizado conta como tempo de serviço: projete a data de desligamento e conte os avos de férias e 13º até a data projetada (CLT art. 487 §1º; Súmula 371 do TST). Mês com 15 dias ou mais conta como mês inteiro.")}
+        "O aviso prévio indenizado conta como tempo de serviço: projete a data de desligamento e conte os avos de férias e 13º até a data projetada (CLT art. 487 §1º; Súmula 371 do TST). Mês com 15 dias ou mais conta como mês inteiro. No acordo (art. 484-A) o aviso indenizado é pago pela metade; a CLT não fixa a projeção, então este exercício adota a projeção também pela metade (critério de cálculo, não regra literal da lei).")}
       {sec("Verbas rescisórias (brutas)", [
         ["saldo", "Saldo de salário (dias trabalhados no mês, base de 30 dias)", r.saldo],
         ["aviso", "Aviso prévio indenizado", r.aviso],

@@ -109,7 +109,7 @@ function EditorCaso({ turma, resc }) {
           </div>
         )}
         <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 10 }}>
-          Critérios do gabarito: aviso de 30 dias + 3 por ano completo (máx. 90); projeção do aviso indenizado conta para férias e 13º (na dispensa sem justa causa o aviso inteiro; no acordo, metade); mês com 15 dias ou mais conta como mês inteiro; férias e 1/3 indenizados fora da base do FGTS e do INSS; INSS e IRRF do empregado não são calculados. Confira com a legislação vigente.
+          Critérios do gabarito: aviso de 30 dias + 3 por ano completo (máx. 90); projeção do aviso indenizado conta para férias e 13º (na dispensa sem justa causa o aviso inteiro; no acordo, aviso pela metade conforme o art. 484-A e projeção também pela metade, que é critério de cálculo adotado neste exercício e não regra literal da CLT); mês com 15 dias ou mais conta como mês inteiro; férias e 1/3 indenizados fora da base do FGTS e do INSS; INSS e IRRF do empregado não são calculados. Confira com a legislação vigente.
         </div>
         <button className="btn green" onClick={salvar}>Salvar caso</button> {msg && <span style={{ marginLeft: 8, fontSize: 13 }}>{msg}</span>}
       </div>
