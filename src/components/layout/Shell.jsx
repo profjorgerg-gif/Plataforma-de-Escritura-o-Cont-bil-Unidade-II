@@ -62,6 +62,14 @@ import ContabilizacaoFolha from "../aluno/ContabilizacaoFolha.jsx";
 import EfeitosFolha from "../aluno/EfeitosFolha.jsx";
 import ParecerFolha from "../aluno/ParecerFolha.jsx";
 import CaProfessor from "../professor/CaProfessor.jsx";
+import RescisaoProfessor from "../professor/RescisaoProfessor.jsx";
+import RescCaso from "../aluno/RescCaso.jsx";
+import RescCalculo from "../aluno/RescCalculo.jsx";
+import RescIncidencias from "../aluno/RescIncidencias.jsx";
+import RescContabilizacao from "../aluno/RescContabilizacao.jsx";
+import RescDocumentos from "../aluno/RescDocumentos.jsx";
+import RescConferencia from "../aluno/RescConferencia.jsx";
+import { useRescisaoTurma } from "../../hooks/useRescisao.js";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
@@ -142,6 +150,19 @@ const MENU_ALUNO_CA = {
   ],
 };
 
+// Fase 2 — Rescisão trabalhista. Grupo NOVO: aparece só quando o professor libera a rescisão (ou na conta de teste).
+const MENU_ALUNO_RESC = {
+  label: "fase 2 · rescisão trabalhista",
+  itens: [
+    { key: "resc-caso", label: "Caso e direitos" },
+    { key: "resc-calc", label: "Cálculo das verbas" },
+    { key: "resc-inc", label: "Incidências" },
+    { key: "resc-cont", label: "Contabilização" },
+    { key: "resc-doc", label: "Documentos e prazos" },
+    { key: "resc-final", label: "Conferência final" },
+  ],
+};
+
 const MENU_ALUNO_AGB = {
   label: "fase 3 · análise gerencial (AGB)",
   itens: [
@@ -155,7 +176,7 @@ const MENU_ALUNO_AGB = {
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarCa }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarCa, mostrarResc }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
@@ -166,6 +187,10 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
   if (mostrarCa) {
     const posAgb = grupos.findIndex((g) => g.label === "apoio e consulta");
     grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, MENU_ALUNO_CA);
+  }
+  if (mostrarResc) {
+    const posResc = grupos.findIndex((g) => g.label === "apoio e consulta");
+    grupos.splice(posResc < 0 ? grupos.length : posResc, 0, MENU_ALUNO_RESC);
   }
   if (mostrarAgb) {
     const posApoio = grupos.findIndex((g) => g.label === "apoio e consulta");
@@ -207,7 +232,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ],
   },
-  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
+  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "resc-prof", label: "Fase 2 · Rescisão (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
   { label: "notas", itens: [{ key: "notas", label: "Notas" }] },
   {
     id: "preparar",
@@ -649,6 +674,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   // Fase 3 (AGB): liberação/período anterior da turma e o trabalho do aluno (um listener só para as 4 telas)
   const agbAluno = useAgbTurma(papelEfetivo === "aluno" ? turmaId : null);
   const caAluno = useCaTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const rescAluno = useRescisaoTurma(papelEfetivo === "aluno" ? turmaId : null);
   const trabCa = useTrabalhoCa(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
   const trabAgb = useTrabalhoAgb(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
 
@@ -702,6 +728,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeSuporte: suporteNaoLidoAluno,
       mostrarAgb: emTeste || agbAluno.liberado,
       mostrarCa: emTeste || caAluno.liberado,
+      mostrarResc: emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada),
     });
   } else {
     menuGrupos = gruposMenuProfessor({
@@ -779,6 +806,20 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <EfeitosFolha trab={trabCa} esc={esc} />;
   } else if (papelEfetivo === "aluno" && screen === "ca-parecer") {
     tela = <ParecerFolha trab={trabCa} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-caso") {
+    tela = <RescCaso trab={trabCa} resc={rescAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-calc") {
+    tela = <RescCalculo trab={trabCa} resc={rescAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-inc") {
+    tela = <RescIncidencias trab={trabCa} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-cont") {
+    tela = <RescContabilizacao trab={trabCa} resc={rescAluno} esc={esc} onLevar={usarClassificacaoNoLancamento} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-doc") {
+    tela = <RescDocumentos trab={trabCa} resc={rescAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "resc-final") {
+    tela = <RescConferencia trab={trabCa} resc={rescAluno} esc={esc} />;
+  } else if (ehProfessorOuAdmin && screen === "resc-prof") {
+    tela = <RescisaoProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "ca-prof") {
     tela = <CaProfessor turma={turmaSelecionada} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-av") {
