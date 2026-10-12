@@ -35,7 +35,7 @@ export default function ParecerFinal({ esc, trab, agb, empresaNome }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 5 · análise gerencial de balanços</div>
       <h2 className="screen-title">Parecer e relatório final</h2>
       <p className="screen-sub">Reúna o que você concluiu na análise em um parecer para a administração da empresa. Quando terminar, envie ao professor.</p>
       {dados.exemplo && <AvisoExemplo onSair={() => setExemplo(false)} />}

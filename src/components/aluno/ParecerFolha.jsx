@@ -21,7 +21,7 @@ export default function ParecerFolha({ trab }) {
   const devolutiva = (trab.dados || {}).devolutiva;
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
+      <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
       <h2 className="screen-title">Parecer técnico</h2>
       <p className="screen-sub">Escreva um parecer de 15 a 20 linhas sobre as provisões trabalhistas, usando o que você calculou e contabilizou.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

@@ -11,7 +11,7 @@ export const PODC = [
 ];
 export const PODC_PROF = [
   { letra: "P", titulo: "Planejamento", sub: "etapas, prazos e critérios" },
-  { letra: "O", titulo: "Organização", sub: "turmas, fases e material" },
+  { letra: "O", titulo: "Organização", sub: "turmas, etapas e material" },
   { letra: "D", titulo: "Direção", sub: "liberar, orientar e responder" },
   { letra: "C", titulo: "Controle", sub: "entregas, avaliação e notas" },
 ];
@@ -20,7 +20,7 @@ const [PP, PO, PD, PC] = PODC_PROF;
 
 // As 6 etapas do projeto, na ordem do roteiro. "id" é o mesmo de lib/avaliacao.js.
 export const ETAPAS_MENU_ALUNO = [
-  { id: "f1", n: 1, titulo: "Fase 1 · Escrituração", disc: "CI", numerado: true, itens: [
+  { id: "f1", n: 1, titulo: "Escrituração", disc: "CI", numerado: true, itens: [
     { key: "empresa", label: "Empresa didática" },
     { key: "documentos", label: "Documentos fiscais" },
     { key: "digitacao", label: "Digitação e análise fiscal" },
@@ -111,7 +111,7 @@ export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTest
     { podc: C, itens: [
       { key: "dashboard", label: "Meu progresso" },
       ...(mostrarPi ? [{ key: "notas-etapas", label: "Notas e retornos" }] : []),
-      { key: "minha-nota", label: "Minha nota (Fase 1)" },
+      { key: "minha-nota", label: "Minha nota (Etapa 1)" },
       { key: "suporte", label: "Suporte", ...(badgeSuporte > 0 ? { badge: badgeSuporte } : {}) },
     ] },
   ];

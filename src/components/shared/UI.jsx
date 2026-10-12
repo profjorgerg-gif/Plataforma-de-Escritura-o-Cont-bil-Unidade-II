@@ -30,7 +30,7 @@ function subCriterio(nome, desc, resultado) {
 export function CriteriosAvaliacao({ turma, qualidade, mostrarSugestao = true }) {
   return (
     <div className="panel">
-      <div className="panel-head"><h3>O que será avaliado — Fase 1 · Escrituração</h3></div>
+      <div className="panel-head"><h3>O que será avaliado — Etapa 1 · Escrituração</h3></div>
       <div className="panel-body">
         <div className="criterio-avaliacao-row">
           <div className="criterio-avaliacao-peso">{Math.round(PESOS_RUBRICA.completude * 100)}%</div>

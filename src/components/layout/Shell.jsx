@@ -154,7 +154,7 @@ const MENU_ALUNO_GRUPOS = [
 // Fase 2 — Contabilidade Avançada (folha de pagamento e provisões). Mesmo esquema: grupo NOVO,
 // só aparece quando o professor libera (ou na conta de teste).
 const MENU_ALUNO_CA = {
-  label: "fase 2 · contabilidade avançada (CA)",
+  label: "etapas 2 e 3 · contabilidade avançada (CA)",
   itens: [
     { key: "ca-folha", label: "Folha do mês" },
     { key: "ca-prov", label: "Provisões e encargos" },
@@ -166,7 +166,7 @@ const MENU_ALUNO_CA = {
 
 // Fase 2 — Rescisão trabalhista. Grupo NOVO: aparece só quando o professor libera a rescisão (ou na conta de teste).
 const MENU_ALUNO_RESC = {
-  label: "fase 2 · rescisão trabalhista",
+  label: "etapa 4 · rescisão trabalhista",
   itens: [
     { key: "resc-caso", label: "Caso e direitos" },
     { key: "resc-calc", label: "Cálculo das verbas" },
@@ -187,7 +187,7 @@ const MENU_ALUNO_PI = {
 };
 
 const MENU_ALUNO_AGB = {
-  label: "fase 3 · análise gerencial (AGB)",
+  label: "etapas 5 e 6 · análise gerencial (AGB)",
   itens: [
     { key: "agb-av", label: "Análise vertical e horizontal" },
     { key: "agb-ind", label: "Indicadores" },
@@ -263,7 +263,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ],
   },
-  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "resc-prof", label: "Fase 2 · Rescisão (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }, { key: "roteiro-prof", label: "Roteiro por etapas (turma)" }] },
+  { label: "etapas do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Etapa 3 · CA (turma)" }, { key: "resc-prof", label: "Etapa 4 · Rescisão (turma)" }, { key: "agb-prof", label: "Etapas 5–6 · AGB (turma)" }, { key: "roteiro-prof", label: "Roteiro por etapas (turma)" }] },
   { label: "notas", itens: [{ key: "notas", label: "Notas" }, { key: "aval-prof", label: "Avaliação das etapas (0 a 10)" }] },
   {
     id: "preparar",
@@ -370,7 +370,7 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
 
   return (
     <div className="panel">
-      <div className="panel-head"><h3>Minha nota — Fase 1 · Escrituração</h3></div>
+      <div className="panel-head"><h3>Minha nota — Etapa 1 · Escrituração</h3></div>
       <div className="panel-body">
         <div className="kpi-row">
           <div className="kpi"><div className="kpi-label">Completude do ciclo ({Math.round(PESOS_RUBRICA.completude * 100)}%)</div><div className="kpi-value mono">{completudePct === null ? "—" : completudePct + "%"}</div></div>
@@ -602,7 +602,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
   return (
     <>
       <div className="screen-eyebrow">01 · visão geral</div>
-      <h2 className="screen-title">Meu progresso — Fase 1 · Escrituração</h2>
+      <h2 className="screen-title">Meu progresso — Etapa 1 · Escrituração</h2>
       <p className="screen-sub">{identificacao}. Dados ao vivo do Firestore.</p>
       {rascunhos > 0 && (
         <div className="aviso-pedagogico" style={{ marginBottom: 14 }}>
@@ -640,8 +640,8 @@ function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos, co
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
-      <h2 className="screen-title">Minha nota — Fase 1 · Escrituração</h2>
-      <p className="screen-sub">Sua avaliação da Fase 1, liberada pelo professor quando estiver pronta.</p>
+      <h2 className="screen-title">Minha nota — Etapa 1 · Escrituração</h2>
+      <p className="screen-sub">Sua avaliação da etapa 1, liberada pelo professor quando estiver pronta.</p>
       <CriteriosAvaliacao turma={turma} qualidade={qualidadeAuto} mostrarSugestao={false} />
       <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {(!registro || !registro.notaLiberada) && (
@@ -936,7 +936,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && !emTeste && ["ca-folha", "ca-prov", "ca-cont", "ca-efeitos", "ca-parecer"].includes(screen)
     && caAluno.config && caAluno.config.fpObrigatoria
     && !(rotAluno.estado && rotAluno.estado.etapas && rotAluno.estado.etapas.fp && rotAluno.estado.etapas.fp.status === "aprovada")) {
-    tela = <div className="empty-state">{rotAluno.carregando ? "Carregando…" : <>Esta etapa abre depois que o professor aprovar a atividade <b>“Elaborar a folha de pagamento”</b>. Faça a atividade no menu da Fase 2 e marque como entregue em “Meu roteiro por etapas”.</>}</div>;
+    tela = <div className="empty-state">{rotAluno.carregando ? "Carregando…" : <>Esta etapa abre depois que o professor aprovar a atividade <b>“Elaborar a folha de pagamento”</b>. Faça a atividade no menu da etapa 2 e marque como entregue em “Meu roteiro por etapas”.</>}</div>;
   } else if (papelEfetivo === "aluno" && screen === "ca-folha") {
     tela = <FolhaMes trab={trabCa} ca={caAluno} />;
   } else if (papelEfetivo === "aluno" && screen === "ca-prov") {

@@ -12,7 +12,7 @@ export default function RescDocumentos({ trab, resc }) {
   const marcados = DOCUMENTOS.reduce((s, g, gi) => s + g.itens.filter((_, i) => campos.get("rdoc", "i_" + gi + "_" + i) === "1").length, 0);
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Documentos, obrigações e prazos</h2>
       <p className="screen-sub">Marque o que você já preparou e informe a data do pagamento. Na vida real cada item precisa de comprovante; aqui o objetivo é você saber o que existe e em que ordem.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

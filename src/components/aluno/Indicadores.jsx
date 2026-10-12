@@ -64,7 +64,7 @@ export default function Indicadores({ esc, trab, agb }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 5 · análise gerencial de balanços</div>
       <h2 className="screen-title">Indicadores</h2>
       <p className="screen-sub">Liquidez, prazos, estrutura de capitais e rentabilidade, calculados do Balanço e da DRE <b>aprovados</b>. Calcule você mesmo e confira.</p>
       {dados.exemplo && <AvisoExemplo onSair={() => setExemplo(false)} />}

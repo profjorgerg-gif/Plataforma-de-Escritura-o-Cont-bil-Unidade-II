@@ -51,7 +51,7 @@ export default function RescConferencia({ trab, resc, esc }) {
   }
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Conferência final e parecer</h2>
       <p className="screen-sub">Cinco níveis de validação antes de encerrar a rescisão. Regra do processo: não encerre enquanto houver valor, data, evento ou documento divergente.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

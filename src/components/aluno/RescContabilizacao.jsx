@@ -27,7 +27,7 @@ export default function RescContabilizacao({ trab, resc, esc, onLevar }) {
   }
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Contabilização da rescisão</h2>
       <p className="screen-sub">Monte os {esperados.length} lançamentos da rescisão de {c.nome}: escolha as contas, o lado (D/C) e o valor. As provisões já constituídas devem ser baixadas até o saldo existente; o excedente vai para despesa. O sistema confere, sem mostrar a resposta.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

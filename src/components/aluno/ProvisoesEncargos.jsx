@@ -18,7 +18,7 @@ export default function ProvisoesEncargos({ trab, ca }) {
   ];
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
+      <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
       <h2 className="screen-title">Provisões e encargos — {nomeDoMes(f.competencia)}</h2>
       <p className="screen-sub">
         Base: remuneração do mês de <b>R$ {fmt(f.remuneracao)}</b>{f.fixa ? " (valor fixado pelo professor)" : " (total da folha)"}. Calcule as provisões e os encargos de cada uma. Arredonde cada parcela para centavos.

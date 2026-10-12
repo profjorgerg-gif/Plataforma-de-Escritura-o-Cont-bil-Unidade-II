@@ -22,7 +22,7 @@ export default function CapitalGiro({ esc, trab, agb }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 5 · análise gerencial de balanços</div>
       <h2 className="screen-title">Capital de giro</h2>
       <p className="screen-sub">Análise dinâmica (modelo Fleuriet): separa o que é da operação do que é financeiro.</p>
       {dados.exemplo && <AvisoExemplo onSair={() => setExemplo(false)} />}

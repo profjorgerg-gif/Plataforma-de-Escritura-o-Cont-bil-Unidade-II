@@ -14,7 +14,7 @@ export default function RescCaso({ trab, resc }) {
   const modOk = modAluno ? modAluno === c.modalidade : null;
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Rescisão: caso e direitos</h2>
       <p className="screen-sub">Leia o caso, identifique a modalidade da rescisão e diga a que verbas o empregado tem direito. O sistema confere, sem mostrar a resposta.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

@@ -28,7 +28,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
+      <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
       <h2 className="screen-title">Contabilização da folha e das provisões</h2>
       <p className="screen-sub">Monte os 6 lançamentos de {mes}: escolha as contas, o lado (D/C) e o valor. O sistema confere contas e valores, sem mostrar a resposta. Depois de conferido, leve para o Livro diário; o professor aprova como os demais.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

@@ -35,7 +35,7 @@ export default function AgbComparativo({ esc, trab, agb, emTeste }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 6 · análise comparativa</div>
       <h2 className="screen-title">Comparativo entre empresas</h2>
       <p className="screen-sub">Sua empresa e as empresas dos exercícios, lado a lado. <span style={{ background: "#e3f3e6", padding: "0 4px" }}>verde</span> = melhor · <span style={{ background: "#fbe4e1", padding: "0 4px" }}>vermelho</span> = pior.</p>
       {visiveis.length === 0 && <div className="empty-state">O professor ainda não liberou exercícios para comparar.</div>}

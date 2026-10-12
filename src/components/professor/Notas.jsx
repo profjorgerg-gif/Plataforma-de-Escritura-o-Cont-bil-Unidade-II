@@ -63,7 +63,7 @@ export default function Notas({ turma }) {
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
-      <h2 className="screen-title">Notas — Fase 1 · Escrituração</h2>
+      <h2 className="screen-title">Notas — Etapa 1 · Escrituração</h2>
       <p className="screen-sub">Avaliação da turma {turma.nome}.</p>
 
       <CriteriosAvaliacao turma={turma} />

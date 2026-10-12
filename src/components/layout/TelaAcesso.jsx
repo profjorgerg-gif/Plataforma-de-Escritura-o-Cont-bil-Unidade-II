@@ -23,7 +23,7 @@ const CORES = {
 
 // As 6 etapas do projeto (mesma ordem do roteiro em lib/avaliacao.js).
 const ETAPAS = [
-  ["1", "Fase 1 · Escrituração", "CI", "Da empresa didática ao balanço patrimonial, em 10 passos"],
+  ["1", "Escrituração", "CI", "Da empresa didática ao balanço patrimonial, em 10 passos"],
   ["2", "Folha de pagamento", "CA", "Cálculo do contracheque até o salário líquido"],
   ["3", "Folha, provisões e contabilização", "CA", "Encargos, provisões e lançamentos"],
   ["4", "Rescisão trabalhista", "CA", "Cálculo, contabilização e conferência"],

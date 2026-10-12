@@ -81,7 +81,7 @@ function ExerciciosComparativos({ turma, agb }) {
       <div className="panel-head"><h3>Exercícios comparativos (4 empresas fictícias)</h3></div>
       <div className="panel-body">
         <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>
-          Libere um por vez. Os alunos analisam cada empresa e depois comparam com a própria empresa. Você e a conta de teste veem todos. Só aparecem para os alunos se a Fase 3 estiver liberada.
+          Libere um por vez. Os alunos analisam cada empresa e depois comparam com a própria empresa. Você e a conta de teste veem todos. Só aparecem para os alunos se as etapas 5 e 6 estiverem liberadas.
         </p>
         {EXERCICIOS.map((e) => (
           <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
@@ -142,10 +142,10 @@ function Liberacao({ turma, agb }) {
   return (
     <>
       <div className="panel">
-        <div className="panel-head"><h3>Liberação da Fase 3 para os alunos</h3></div>
+        <div className="panel-head"><h3>Liberação das etapas 5 e 6 (AGB) para os alunos</h3></div>
         <div className="panel-body">
           <p style={{ marginTop: 0 }}>
-            Enquanto não estiver liberada, os alunos <b>não veem</b> o menu da Fase 3. Você (e a conta de teste) sempre veem.
+            Enquanto não estiver liberada, os alunos <b>não veem</b> as etapas 5 e 6. Você (e a conta de teste) sempre veem.
           </p>
           <span className={"tag-pill " + (agb.liberado ? "ok" : "warn")}>{agb.liberado ? "Liberada aos alunos" : "Ainda não liberada"}</span>{" "}
           <button className="btn secondary" onClick={alternarLiberacao}>{agb.liberado ? "Ocultar dos alunos" : "Liberar aos alunos"}</button>
@@ -267,7 +267,7 @@ function Trabalhos({ turma }) {
 
   return (
     <div className="panel">
-      <div className="panel-head"><h3>Trabalhos da Fase 3 — {turma.nome}</h3><button className="btn secondary" onClick={recarregar}>Atualizar</button></div>
+      <div className="panel-head"><h3>Trabalhos das etapas 5 e 6 — {turma.nome}</h3><button className="btn secondary" onClick={recarregar}>Atualizar</button></div>
       <div className="panel-body" style={{ padding: 0 }}>
         <table>
           <thead><tr><th>Matrícula</th><th>Aluno</th><th className="num">Cálculos</th><th className="num">Interpretações</th><th>Parecer</th><th></th></tr></thead>
@@ -298,9 +298,9 @@ export default function AgbProfessor({ turma }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
-      <h2 className="screen-title">Fase 3 — AGB (professor)</h2>
-      <p className="screen-sub">Libere a Fase 3, cadastre o período anterior e acompanhe os trabalhos dos alunos.</p>
+      <div className="screen-eyebrow">etapas 5 e 6 · análise gerencial de balanços</div>
+      <h2 className="screen-title">Etapas 5 e 6 — AGB (professor)</h2>
+      <p className="screen-sub">Libere as etapas 5 e 6, cadastre o período anterior e acompanhe os trabalhos dos alunos.</p>
       <Abas abas={[{ key: "lib", label: "Liberação e período anterior" }, { key: "trab", label: "Trabalhos dos alunos" }]} ativa={aba} onChange={setAba} />
       {aba === "lib" ? <Liberacao turma={turma} agb={agb} /> : <Trabalhos turma={turma} />}
     </>

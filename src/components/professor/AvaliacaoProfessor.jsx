@@ -113,7 +113,7 @@ export default function AvaliacaoProfessor({ turma }) {
         <label>Etapa</label>
         <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)}>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.titulo}</option>)}</select>
       </div>
-      {etapa.semAtraso && <div className="balance-check ok" style={{ marginBottom: 12 }}>Fase 1: digite a nota que aparece na tela Notas. Ela já traz o desconto por atraso daquela tela; por isso aqui não há desconto de {DESCONTO_ATRASO},0 pontos.</div>}
+      {etapa.semAtraso && <div className="balance-check ok" style={{ marginBottom: 12 }}>Etapa 1: digite a nota que aparece na tela Notas. Ela já traz o desconto por atraso daquela tela; por isso aqui não há desconto de {DESCONTO_ATRASO},0 pontos.</div>}
       <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 10 }}>As sugestões automáticas conferem os números digitados pelo aluno. Pareceres e interpretações só recebem sugestão pelo preenchimento; a qualidade do texto é avaliação sua.</div>
       {!pronto ? <div className="empty-state">Carregando dados dos alunos…</div> : ordem.map((a) => {
         const av = (mapa[a.matricula] || {});

@@ -19,7 +19,7 @@ export default function RescIncidencias({ trab }) {
   const certas = INCIDENCIAS.reduce((s, v) => s + ["inss", "fgts", "irrf"].filter((t) => campos.get("rinc", v.key + "_" + t) === v[t]).length, 0);
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Incidências: INSS, FGTS e IRRF</h2>
       <p className="screen-sub">Para cada verba rescisória, classifique se há incidência de INSS, de FGTS e de imposto de renda. Aqui você só classifica; os descontos do empregado não são calculados nesta etapa.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

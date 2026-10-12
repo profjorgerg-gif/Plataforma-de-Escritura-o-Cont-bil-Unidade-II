@@ -17,7 +17,7 @@ export default function EmpresaDidatica({ usuario, perfil }) {
     <>
       <div className="screen-eyebrow">02 · empresa didática</div>
       <h2 className="screen-title">{EMPRESA_NOME}</h2>
-      <p className="screen-sub">Empresa fictícia vinculada à sua matrícula. Todos os fatos contábeis da Fase 1 são acumulados aqui, formando um ciclo contábil completo.</p>
+      <p className="screen-sub">Empresa fictícia vinculada à sua matrícula. Todos os fatos contábeis da etapa 1 são acumulados aqui, formando um ciclo contábil completo.</p>
       <div className="panel">
         <div className="panel-body">
           <div className="grid-2">

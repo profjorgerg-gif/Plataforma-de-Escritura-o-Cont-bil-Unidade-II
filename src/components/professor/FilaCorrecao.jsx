@@ -25,7 +25,7 @@ function montarPromptIA(l, contas, documentoInfo) {
     ? `Documento de origem: NF-e nº ${documentoInfo.numero}, ${documentoInfo.direcao === "entrada" ? "entrada" : "saída"}, natureza "${documentoInfo.natureza}", CFOP ${documentoInfo.cfop}.`
     : "Sem documento de origem vinculado.";
 
-  return `Você é um professor de Contabilidade Intermediária revisando o lançamento de um aluno do ensino técnico, na Fase 1 (Operações com Mercadorias e Operações Financeiras).
+  return `Você é um professor de Contabilidade Intermediária revisando o lançamento de um aluno do ensino técnico, na etapa 1 (Operações com Mercadorias e Operações Financeiras).
 
 ${docTexto}
 

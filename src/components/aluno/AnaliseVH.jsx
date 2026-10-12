@@ -20,7 +20,7 @@ export default function AnaliseVH({ esc, trab, agb }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 5 · análise gerencial de balanços</div>
       <h2 className="screen-title">Análise vertical e horizontal</h2>
       <p className="screen-sub">Calculada a partir dos <b>seus lançamentos aprovados</b>. Você faz a conta, o sistema confere.</p>
       {dados.exemplo && <AvisoExemplo onSair={() => setExemplo(false)} />}

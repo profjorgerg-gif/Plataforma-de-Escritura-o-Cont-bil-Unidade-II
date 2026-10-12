@@ -3,7 +3,7 @@ export default function ManualProfessor() {
     <>
       <div className="screen-eyebrow">manual</div>
       <h2 className="screen-title">Manual do Professor</h2>
-      <p className="screen-sub">Como conduzir a Fase 1 · Escrituração pela plataforma.</p>
+      <p className="screen-sub">Como conduzir a etapa 1 · Escrituração pela plataforma.</p>
       <div className="btn-row no-print" style={{ marginBottom: 18 }}>
         <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
       </div>
@@ -21,7 +21,7 @@ export default function ManualProfessor() {
         <div className="panel-body">
           <p>Em <b>Turmas</b>, crie a turma e cadastre os alunos — nome + matrícula, um por um, ou de uma vez importando um <b>PDF</b> com a lista (o sistema tenta reconhecer nome e matrícula automaticamente; sempre revise antes de confirmar).</p>
           <p>É essa matrícula que cada aluno vai digitar a cada login — sem ela cadastrada aqui antes, o aluno não consegue confirmar acesso.</p>
-          <p>Ainda em Turmas, defina o <b>prazo da Fase 1</b> e a política de desconto por atraso (penalidade no 1º dia + valor por dia adicional) — isso alimenta o cálculo automático que aparece depois em Avaliação.</p>
+          <p>Ainda em Turmas, defina o <b>prazo da etapa 1</b> e a política de desconto por atraso (penalidade no 1º dia + valor por dia adicional) — isso alimenta o cálculo automático que aparece depois em Avaliação.</p>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>6. Avaliação</h3></div>
         <div className="panel-body">
-          <p>A nota da Fase 1 é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação. Cada componente aparece como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5) — não em porcentagem nem solto de 0 a 10 — para que o peso e o resultado apareçam juntos, e os três valores somados batam visivelmente com a nota final:</p>
+          <p>A nota da etapa 1 é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação. Cada componente aparece como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5) — não em porcentagem nem solto de 0 a 10 — para que o peso e o resultado apareçam juntos, e os três valores somados batam visivelmente com a nota final:</p>
           <ul style={{ margin: "0 0 12px", paddingLeft: 20, lineHeight: 1.9 }}>
             <li><b>Completude do ciclo (até 4,5 pontos, automático)</b> — proporcional ao % de documentos liberados em que o aluno concluiu as 4 etapas (Digitação → Análise fiscal → Classificação → Lançamento aprovado).</li>
             <li><b>Qualidade técnica (até 3,5 pontos, manual)</b> — o único campo que você preenche, de 0 a 10: seu julgamento sobre a coerência do raciocínio contábil, olhando classificações e justificativas.</li>

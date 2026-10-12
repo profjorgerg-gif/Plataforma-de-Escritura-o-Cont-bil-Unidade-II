@@ -44,7 +44,7 @@ export default function AgbExercicios({ trab, agb, emTeste }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 3 · análise gerencial de balanços</div>
+      <div className="screen-eyebrow">etapa 6 · análise comparativa</div>
       <h2 className="screen-title">Exercícios comparativos</h2>
       <p className="screen-sub">Empresas fictícias, só para treinar e comparar. Nada aqui mexe nos seus lançamentos.</p>
       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>

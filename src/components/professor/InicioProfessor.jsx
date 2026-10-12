@@ -10,7 +10,7 @@ const fmtPrazo = (iso) => (iso ? iso.split("-").reverse().join("/") : "—");
 
 const ROTINA = [
   ["Antes da etapa", "Conferir prazos e, na etapa 2, publicar os empregados da folha", "Planejamento", "roteiro-prazos"],
-  ["Antes da etapa", "Configurar a fase da turma (CA, Rescisão ou AGB)", "Organização", "turmas"],
+  ["Antes da etapa", "Configurar as etapas da turma (CA, Rescisão ou AGB)", "Organização", "turmas"],
   ["Durante", "Corrigir a fila e responder o suporte", "Direção", "fila"],
   ["No prazo", "Avaliar de 0 a 10 e mostrar a nota ao aluno", "Controle", "aval-prof"],
   ["Depois da análise", "Aprovar e liberar a próxima etapa", "Direção", "roteiro-lib"],
@@ -22,7 +22,7 @@ export default function InicioProfessor({ turma, contadores, onIr }) {
   const lista = etapasEfetivas(config || null);
   const explicacao = {
     P: "Defina etapas, prazos, empregados da folha e critérios.",
-    O: "Organize turmas, fases da turma e material de apoio.",
+    O: "Organize turmas, etapas da turma e material de apoio.",
     D: "Libere etapas, responda dúvidas e oriente quem precisa.",
     C: "Acompanhe entregas, avalie de 0 a 10 e registre as notas.",
   };

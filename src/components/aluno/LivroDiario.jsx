@@ -74,7 +74,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
         {!editando && valoresIniciais && (
           <div className="helper-note" style={{ marginBottom: 14 }}>
             {valoresIniciais.origem === "folha"
-              ? "Lançamento da folha de pagamento ou da rescisão, montado e conferido na Fase 2. Revise a data e o histórico e envie ao professor."
+              ? "Lançamento da folha de pagamento ou da rescisão, montado e conferido nas etapas 3 e 4. Revise a data e o histórico e envie ao professor."
               : "Lançamento pré-preenchido a partir da classificação contábil que você salvou. Confira a data e o histórico e complete o que faltar antes de enviar."}
           </div>
         )}

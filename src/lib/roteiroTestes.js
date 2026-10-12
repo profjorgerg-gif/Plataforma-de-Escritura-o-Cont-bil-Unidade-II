@@ -157,14 +157,14 @@ export const BLOCOS_TESTE = [
       {
         "id": "5.2",
         "fazer": "Leia o \"Comece aqui\".",
-        "esperado": "\"Você está aqui: etapa 1 de 6 · Fase 1 · Escrituração\", os 4 grupos e a tabela das 6 etapas.",
+        "esperado": "\"Você está aqui: etapa 1 de 6 · Escrituração\", os 4 grupos e a tabela das 6 etapas.",
         "quem": "aluno",
         "tela": "inicio"
       },
       {
         "id": "5.3",
         "fazer": "Confira o menu do aluno.",
-        "esperado": "P Planejamento, O Organização, D Direção com as 6 etapas, C Controle. A Fase 1 mostra os 10 passos numerados.",
+        "esperado": "P Planejamento, O Organização, D Direção com as 6 etapas, C Controle. A etapa 1 mostra os 10 passos numerados.",
         "quem": "aluno",
         "tela": "inicio"
       },
@@ -324,7 +324,7 @@ export const BLOCOS_TESTE = [
     "passos": [
       {
         "id": "9.1",
-        "fazer": "Libere a Fase 2 aos alunos (botão \"Liberar aos alunos\").",
+        "fazer": "Libere as etapas 2 e 3 (CA) aos alunos (botão \"Liberar aos alunos\").",
         "esperado": "A etiqueta passa a \"Liberada aos alunos\".",
         "quem": "prof",
         "tela": "ca-prof"
@@ -387,7 +387,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "11.2",
-        "fazer": "Libere a Fase 3 aos alunos e libere os exercícios comparativos.",
+        "fazer": "Libere as etapas 5 e 6 (AGB) aos alunos e libere os exercícios comparativos.",
         "esperado": "A etiqueta fica \"Liberada aos alunos\" e os exercícios liberados aparecem na lista.",
         "quem": "prof",
         "tela": "agb-prof"

@@ -28,7 +28,7 @@ export default function EtapasAluno({ config, rot, nomeAluno }) {
       {aba === "etapas" ? (
         <>
           <div className="balance-check ok" style={{ marginBottom: 14 }}>Você está na <b>etapa {atual + 1}</b>: {lista[atual].titulo}.</div>
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>Entrega depois do prazo desconta {DESCONTO_ATRASO},0 pontos da nota da etapa (a Fase 1 tem a regra própria de atraso). {RESERVA_TEXTO}</div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>Entrega depois do prazo desconta {DESCONTO_ATRASO},0 pontos da nota da etapa (a etapa 1 tem a regra própria de atraso). {RESERVA_TEXTO}</div>
           {msg && <div className="no-print" style={{ marginBottom: 10, fontSize: 13.5 }}>{msg}</div>}
           {lista.map((e, i) => {
             const s = situacaoEtapa(lista, i, rot.estado, rot.entregas);

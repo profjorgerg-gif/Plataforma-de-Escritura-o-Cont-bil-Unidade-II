@@ -23,7 +23,7 @@ export default function RescCalculo({ trab, resc }) {
   const prazos = [["anos", "Anos completos de serviço", r.anos], ["avisoDias", "Dias de aviso prévio (30 dias + 3 por ano completo, máximo 90)", r.avisoDias], ["projDias", "Dias de projeção do aviso indenizado (0 se não houver)", r.projDias], ["avF", "Avos de férias proporcionais (com a projeção)", r.avF], ["av13", "Avos de 13º (com a projeção)", r.av13]];
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada · rescisão</div>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
       <h2 className="screen-title">Cálculo das verbas rescisórias</h2>
       <p className="screen-sub">
         {c.nome} · {nomeModalidade(c.modalidade)} · admissão {fmtData(c.admissao)} · desligamento {fmtData(c.desligamento)} · salário R$ {fmt(c.salario)}.

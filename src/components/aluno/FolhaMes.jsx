@@ -15,7 +15,7 @@ export default function FolhaMes({ trab, ca }) {
 
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
+      <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
       <h2 className="screen-title">Folha do mês — {nomeDoMes(f.competencia)}</h2>
       <p className="screen-sub">Calcule a remuneração bruta de cada empregado e os encargos. Você faz a conta, o sistema confere. Arredonde cada valor para centavos antes de somar.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

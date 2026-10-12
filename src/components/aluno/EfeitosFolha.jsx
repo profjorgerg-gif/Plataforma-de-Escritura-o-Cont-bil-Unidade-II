@@ -32,7 +32,7 @@ export default function EfeitosFolha({ trab, esc }) {
   );
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
+      <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
       <h2 className="screen-title">Efeitos nas demonstrações</h2>
       <p className="screen-sub">Veja o que os lançamentos <b>aprovados</b> da folha já fizeram na DRE e no Balanço e responda às perguntas.</p>
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />

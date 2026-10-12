@@ -33,9 +33,9 @@ function Liberacao({ turma, ca }) {
   return (
     <>
       <div className="panel">
-        <div className="panel-head"><h3>Liberação da Fase 2 para os alunos</h3></div>
+        <div className="panel-head"><h3>Liberação das etapas 2 e 3 (CA) para os alunos</h3></div>
         <div className="panel-body">
-          <p style={{ marginTop: 0 }}>Enquanto não estiver liberada, os alunos <b>não veem</b> o menu da Fase 2. Você (e a conta de teste) sempre veem.</p>
+          <p style={{ marginTop: 0 }}>Enquanto não estiver liberada, os alunos <b>não veem</b> as etapas 2 e 3. Você (e a conta de teste) sempre veem.</p>
           <span className={"tag-pill " + (ca.liberado ? "ok" : "warn")}>{ca.liberado ? "Liberada aos alunos" : "Ainda não liberada"}</span>{" "}
           <button className="btn secondary" onClick={alternar}>{ca.liberado ? "Ocultar dos alunos" : "Liberar aos alunos"}</button>
           {msg && <span style={{ marginLeft: 8, fontSize: 13 }}>{msg}</span>}
@@ -187,7 +187,7 @@ function Trabalhos({ turma }) {
   }
   return (
     <div className="panel">
-      <div className="panel-head"><h3>Trabalhos da Fase 2 — {turma.nome}</h3><button className="btn secondary" onClick={recarregar}>Atualizar</button></div>
+      <div className="panel-head"><h3>Trabalhos das etapas 2 e 3 — {turma.nome}</h3><button className="btn secondary" onClick={recarregar}>Atualizar</button></div>
       <div className="panel-body" style={{ padding: 0 }}>
         <table>
           <thead><tr><th>Matrícula</th><th>Aluno</th><th className="num">Folha</th><th className="num">Provisões</th><th className="num">Lançam. (linhas)</th><th>Parecer</th><th></th></tr></thead>
@@ -217,9 +217,9 @@ export default function CaProfessor({ turma }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
-      <h2 className="screen-title">Fase 2 — CA (professor)</h2>
-      <p className="screen-sub">Libere a Fase 2, confira as contas, defina a folha do mês e acompanhe os trabalhos dos alunos.</p>
+      <div className="screen-eyebrow">etapas 2 e 3 · contabilidade avançada</div>
+      <h2 className="screen-title">Etapas 2 e 3 — CA (professor)</h2>
+      <p className="screen-sub">Libere as etapas 2 e 3, confira as contas, defina a folha do mês e acompanhe os trabalhos dos alunos.</p>
       <Abas abas={[{ key: "lib", label: "Liberação e contas" }, { key: "folha", label: "Folha e percentuais" }, { key: "trab", label: "Trabalhos dos alunos" }]} ativa={aba} onChange={setAba} />
       {aba === "lib" ? <Liberacao turma={turma} ca={ca} /> : aba === "folha" ? <EditorFolha turma={turma} ca={ca} /> : <Trabalhos turma={turma} />}
     </>

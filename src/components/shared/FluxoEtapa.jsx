@@ -10,7 +10,7 @@ const FLUXOS = {
   empresa: {
     titulo: "1 · Empresa didática",
     passos: [
-      ["al", "1. Conheça a empresa", "é a empresa fictícia da sua matrícula; todos os fatos da Fase 1 são acumulados nela"],
+      ["al", "1. Conheça a empresa", "é a empresa fictícia da sua matrícula; todos os fatos da etapa 1 são acumulados nela"],
       ["al", "2. Siga a sequência", "use o menu na ordem numerada, de cima para baixo"],
       ["sy", "O sistema acumula", "tudo que você lança vai formando o ciclo contábil completo"],
     ],

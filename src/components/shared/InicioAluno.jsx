@@ -30,7 +30,7 @@ export default function InicioAluno({ etapas, mostrarPi, onIr, nome }) {
     C: "Confira seu progresso, suas notas e o retorno do professor.",
   };
   const proximo = atual.id === "f1"
-    ? "Abra “Meu progresso” para ver qual passo da Fase 1 falta, e siga a ordem numerada do menu."
+    ? "Abra “Meu progresso” para ver qual passo da etapa 1 falta, e siga a ordem numerada do menu."
     : "Abra a primeira atividade da etapa e siga a ordem do menu.";
 
   return (

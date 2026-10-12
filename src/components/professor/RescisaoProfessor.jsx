@@ -190,8 +190,8 @@ export default function RescisaoProfessor({ turma }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   return (
     <>
-      <div className="screen-eyebrow">fase 2 · contabilidade avançada</div>
-      <h2 className="screen-title">Fase 2 — Rescisão (professor)</h2>
+      <div className="screen-eyebrow">etapa 4 · rescisão trabalhista</div>
+      <h2 className="screen-title">Etapa 4 — Rescisão (professor)</h2>
       <p className="screen-sub">Libere a rescisão trabalhista, confira as contas, defina o caso e acompanhe os trabalhos dos alunos.</p>
       <Abas abas={[{ key: "lib", label: "Liberação e contas" }, { key: "caso", label: "Caso e gabarito" }, { key: "trab", label: "Trabalhos dos alunos" }]} ativa={aba} onChange={setAba} />
       {aba === "lib" ? <Liberacao turma={turma} ca={ca} /> : aba === "caso" ? <EditorCaso turma={turma} resc={resc} /> : <Trabalhos turma={turma} />}
