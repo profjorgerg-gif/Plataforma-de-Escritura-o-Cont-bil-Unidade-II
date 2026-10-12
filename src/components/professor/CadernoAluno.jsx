@@ -23,9 +23,10 @@ function lerCab() {
 function htmlCabecalho(c) {
   const linhas = c.linhas.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 5);
   if (!linhas.length && !c.logo) return "";
-  const img = c.logo ? '<img src="' + esc(c.logo) + '" alt="" style="max-height:78px;max-width:130px;object-fit:contain;flex:none">' : "";
+  // Imagem na largura útil da página (proporcional, centralizada); texto centralizado abaixo dela.
+  const img = c.logo ? '<img src="' + esc(c.logo) + '" alt="" style="display:block;margin:0 auto;width:100%;max-height:118px;object-fit:contain">' : "";
   const txt = linhas.map((l, i) => '<div style="' + (i === 0 ? "font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;" : "font-size:12.5px;") + 'line-height:1.35">' + esc(l) + "</div>").join("");
-  return '  <div style="display:flex;align-items:center;gap:18px;border-bottom:3px solid #1B1F1C;padding-bottom:12px">' + img + '<div style="flex:1;text-align:' + (img ? "left" : "center") + '">' + txt + "</div></div>\n";
+  return '  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border-bottom:3px solid #1B1F1C;padding-bottom:12px">' + img + (txt ? '<div style="width:100%;text-align:center">' + txt + "</div>" : "") + "</div>\n";
 }
 function montar(pagina, d) {
   let h = pagina.html;
@@ -92,11 +93,15 @@ export default function CadernoAluno({ nomePadrao, turma }) {
     leitor.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const f = Math.min(1, 240 / img.height, 400 / img.width);
+        const f = Math.min(1, 1400 / img.width, 400 / img.height);
         const c = document.createElement("canvas");
         c.width = Math.max(1, Math.round(img.width * f)); c.height = Math.max(1, Math.round(img.height * f));
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        mudarCab({ logo: c.toDataURL("image/png"), ativo: true });
+        const g = c.getContext("2d");
+        g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        let url = c.toDataURL("image/png");
+        if (url.length > 1500000) url = c.toDataURL("image/jpeg", 0.88);
+        mudarCab({ logo: url, ativo: true });
       };
       img.onerror = () => setErroLogo("Não consegui abrir essa imagem. Use PNG ou JPG.");
       img.src = String(leitor.result);
@@ -193,14 +198,14 @@ export default function CadernoAluno({ nomePadrao, turma }) {
                 <textarea rows={4} value={cab.linhas} onChange={(e) => mudarCab({ linhas: e.target.value })} placeholder={"Ex.:\nGoverno do Estado\nSecretaria de Estado da Educação\nCEDUP Hermann Hering"} style={{ width: "100%" }} />
               </div>
               <div style={{ flex: "1 1 200px" }}>
-                <label>Brasão / logotipo (opcional, PNG ou JPG)</label>
+                <label>Imagem do cabeçalho: brasão, logotipo ou faixa completa (opcional, PNG ou JPG)</label>
                 <input type="file" accept="image/png,image/jpeg" onChange={escolherLogo} />
                 {cab.logo && <div style={{ marginTop: 6 }}><img src={cab.logo} alt="" style={{ maxHeight: 60, maxWidth: 120 }} /> <button className="btn secondary" onClick={() => mudarCab({ logo: "" })}>Tirar imagem</button></div>}
               </div>
             </div>
           )}
           {erroLogo && <div style={{ color: "var(--red, #b00020)", fontSize: 13, marginTop: 6 }}>{erroLogo}</div>}
-          <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>O cabeçalho fica guardado só neste navegador e substitui a faixa padrão do topo da capa. Se ficar em branco, a capa usa a faixa padrão.</div>
+          <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>A imagem ocupa a largura da página, centralizada, e o texto fica centralizado abaixo dela. O cabeçalho fica guardado só neste navegador e substitui a faixa padrão do topo da capa. Se ficar em branco, a capa usa a faixa padrão.</div>
         </div>
         {modo === "todos" && (
           <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
