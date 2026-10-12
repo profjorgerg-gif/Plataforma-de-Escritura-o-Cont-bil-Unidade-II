@@ -482,6 +482,13 @@ export const BLOCOS_TESTE = [
         "esperado": "A capa mostra o cabeçalho que você escreveu, o nome, a turma e a matrícula do aluno e o seu nome como professor. O PDF tem 39 páginas A4, sem menu nem botões, e o cabeçalho só aparece na capa. Na conta de teste (modo aluno) o item não existe no menu.",
         "quem": "prof",
         "tela": "caderno"
+      },
+      {
+        "id": "13.7",
+        "fazer": "Como professor: Planejamento → \"Diretriz da semana (quadro)\". Veja se abre na semana de hoje, toque em outra semana, use A+ e A− e o botão \"Copiar texto\". Se puder, abra também no celular.",
+        "esperado": "A tela mostra o quadro da semana escolhida (etapa, prazo, meta, caminho, erros comuns, antes de entregar e regras), o texto aumenta e diminui, e \"Copiar texto\" avisa que copiou. Na conta de teste (modo aluno) o item não existe no menu.",
+        "quem": "prof",
+        "tela": "diretriz"
       }
     ]
   }

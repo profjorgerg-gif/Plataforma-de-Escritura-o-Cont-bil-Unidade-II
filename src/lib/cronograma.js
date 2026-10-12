@@ -15,9 +15,11 @@ export function hojeISO() {
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
 export const diasEntre = (aISO, bISO) => Math.round((toD(bISO) - toD(aISO)) / DIA);
+// Feriados sem aula no período do projeto (plano de 12/10 a 04/12/2026): não contam como dia útil.
+export const FERIADOS_PROJETO = ["2026-10-12", "2026-10-15", "2026-11-02", "2026-11-20"];
 export function proximoDiaUtil(iso) {
   let d = new Date(toD(iso).getTime() + DIA);
-  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d = new Date(d.getTime() + DIA);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6 || FERIADOS_PROJETO.includes(toISO(d))) d = new Date(d.getTime() + DIA);
   return toISO(d);
 }
 

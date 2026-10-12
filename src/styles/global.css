@@ -394,3 +394,39 @@
   .caderno-moldura:last-child{ break-after:auto; page-break-after:auto; }
   .caderno-pagina{ transform:none !important; }
 }
+
+/* ============================================================
+   DIRETRIZ DA SEMANA (2026-10-12): quadro por semana, só professor; pensado para o celular.
+   ============================================================ */
+.diretriz-semanas{display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; -webkit-overflow-scrolling:touch;}
+.diretriz-chip{flex:0 0 auto; min-height:44px; padding:8px 14px; border:1px solid var(--line-strong); background:#fff; color:var(--ink); font-family:inherit; font-size:15px; cursor:pointer;}
+.diretriz-chip.on{background:var(--green); color:#fff; border-color:var(--green); font-weight:600;}
+.diretriz-barra{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;}
+.diretriz-barra .btn{min-height:44px;}
+.diretriz-tam{display:flex; gap:6px;}
+.diretriz-aviso{font-size:13.5px; color:var(--green);}
+.diretriz-quadro{background:#fff; border:1px solid var(--line-strong); padding:18px 18px 8px; margin-bottom:14px;}
+.diretriz-kicker{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--green);}
+.diretriz-titulo{margin:4px 0 8px; font-size:1.35em; line-height:1.2; font-weight:700;}
+.diretriz-linha{margin-bottom:4px;}
+.diretriz-prazo{display:inline-block; margin:4px 0; padding:4px 10px; background:var(--red-pale); color:var(--red); border:1px solid var(--red);}
+.diretriz-extra{margin-top:6px; font-style:italic;}
+.diretriz-sec{margin:16px 0; padding-top:12px; border-top:1px solid var(--line);}
+.diretriz-sec h4{margin:0 0 6px; font-size:.85em; letter-spacing:.08em; text-transform:uppercase; color:var(--green);}
+.diretriz-sec p{margin:0;}
+.diretriz-sec ol, .diretriz-sec ul{margin:0; padding-left:22px;}
+.diretriz-sec li{margin-bottom:5px;}
+.diretriz-meta p{font-weight:600; color:var(--green-dark);}
+.diretriz-caixas{list-style:none; padding-left:0 !important;}
+.diretriz-nav{display:flex; justify-content:space-between; gap:8px; margin-bottom:24px;}
+.diretriz-nav .btn{min-height:44px;}
+.diretriz{font-size:16px; line-height:1.5;}
+.diretriz-t1{font-size:19px;}
+.diretriz-t2{font-size:23px;}
+@media (max-width:480px){
+  .diretriz-quadro{padding:14px 12px 4px;}
+}
+@media print{
+  .diretriz-semanas, .diretriz-barra, .diretriz-nav, .helper-note{display:none !important;}
+  .diretriz-quadro{border:none; padding:0;}
+}

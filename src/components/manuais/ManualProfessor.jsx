@@ -120,7 +120,7 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>13. Roteiro de testes</h3></div>
         <div className="panel-body">
-          <p>O item <b>🧪 Roteiro de testes</b> traz 56 passos em 13 blocos, cada um com o que fazer e o resultado esperado. O botão do passo abre a tela certa e troca sozinho para professor ou aluno de teste. Durante o passo, uma faixa amarela oferece <b>✓ Concluído · voltar ao roteiro</b> e <b>Voltar sem concluir</b>.</p>
+          <p>O item <b>🧪 Roteiro de testes</b> traz 57 passos em 13 blocos, cada um com o que fazer e o resultado esperado. O botão do passo abre a tela certa e troca sozinho para professor ou aluno de teste. Durante o passo, uma faixa amarela oferece <b>✓ Concluído · voltar ao roteiro</b> e <b>Voltar sem concluir</b>.</p>
           <p>Faça os testes numa turma com “TESTE” no nome (com três alunos fictícios e a conta de teste) para não misturar com a turma real. O progresso do roteiro fica só no navegador, por professor e turma; ele não grava nada no Firestore. O roteiro e o modo de teste são exclusivos do professor: os alunos não veem nenhum dos dois.</p>
         </div>
       </div>
