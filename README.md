@@ -1,6 +1,6 @@
-# CI — Unidade II · Escrituração Contábil
+# Projeto Interdisciplinar CI–CA–AGB
 
-Módulo da Unidade II (Operações com Mercadorias e Operações Financeiras) da plataforma **CI - Contabilidade Intermediária**, CEDUP Hermann Hering. React + Firebase (Auth, Firestore, Hosting), seguindo o mesmo padrão técnico dos demais projetos da escola.
+Plataforma didática que integra **Contabilidade Intermediária (CI)**, **Contabilidade Avançada (CA)** e **Análise Gerencial de Balanços (AGB)**, CEDUP Hermann Hering. A Fase 1 · Escrituração (antes chamada Unidade II) cobre Operações com Mercadorias e Operações Financeiras. O ID técnico do projeto no Firebase (`plataforma-ci-unidade-ii`) não muda. React + Firebase (Auth, Firestore, Hosting), seguindo o mesmo padrão técnico dos demais projetos da escola.
 
 Este repositório nasce **isolado** (branch/projeto à parte) e é pensado para depois ser incorporado ao repositório principal do CI, uma vez validado — não é uma substituição do projeto CI existente.
 
