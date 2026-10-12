@@ -56,6 +56,12 @@ import Indicadores from "../aluno/Indicadores.jsx";
 import CapitalGiro from "../aluno/CapitalGiro.jsx";
 import AgbExercicios, { exerciciosVisiveis } from "../aluno/AgbExercicios.jsx";
 import AgbComparativo from "../aluno/AgbComparativo.jsx";
+import EtapasAluno from "../aluno/EtapasAluno.jsx";
+import NotasEtapas from "../aluno/NotasEtapas.jsx";
+import FolhaAtividade from "../aluno/FolhaAtividade.jsx";
+import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
+import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
+import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
 import FolhaMes from "../aluno/FolhaMes.jsx";
@@ -165,6 +171,15 @@ const MENU_ALUNO_RESC = {
   ],
 };
 
+// Projeto interdisciplinar: roteiro por etapas e notas. Aparece quando o professor configura o roteiro (ou na conta de teste).
+const MENU_ALUNO_PI = {
+  label: "projeto interdisciplinar",
+  itens: [
+    { key: "etapas", label: "Meu roteiro por etapas" },
+    { key: "notas-etapas", label: "Notas e retornos" },
+  ],
+};
+
 const MENU_ALUNO_AGB = {
   label: "fase 3 · análise gerencial (AGB)",
   itens: [
@@ -178,7 +193,7 @@ const MENU_ALUNO_AGB = {
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarExAgb, mostrarCa, mostrarResc }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarExAgb, mostrarCa, mostrarResc, mostrarPi, mostrarAtivFolha }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
@@ -188,7 +203,8 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
   }));
   if (mostrarCa) {
     const posAgb = grupos.findIndex((g) => g.label === "apoio e consulta");
-    grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, MENU_ALUNO_CA);
+    const menuCa = mostrarAtivFolha ? { ...MENU_ALUNO_CA, itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }].concat(MENU_ALUNO_CA.itens) } : MENU_ALUNO_CA;
+    grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, menuCa);
   }
   if (mostrarResc) {
     const posResc = grupos.findIndex((g) => g.label === "apoio e consulta");
@@ -200,6 +216,10 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
       ? { ...MENU_ALUNO_AGB, itens: MENU_ALUNO_AGB.itens.concat([{ key: "agb-ex", label: "Exercícios comparativos" }, { key: "agb-comp", label: "Comparativo entre empresas" }]) }
       : MENU_ALUNO_AGB;
     grupos.splice(posApoio < 0 ? grupos.length : posApoio, 0, menuAgb);
+  }
+  if (mostrarPi) {
+    const posPi = grupos.findIndex((g) => g.label === "apoio e consulta");
+    grupos.splice(posPi < 0 ? grupos.length : posPi, 0, MENU_ALUNO_PI);
   }
   if (incluirManuais) grupos.push({ label: "manuais", itens: manuaisPara("aluno") });
   return grupos;
@@ -237,8 +257,8 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ],
   },
-  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "resc-prof", label: "Fase 2 · Rescisão (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
-  { label: "notas", itens: [{ key: "notas", label: "Notas" }] },
+  { label: "fases do projeto interdisciplinar", itens: [{ key: "ca-prof", label: "Fase 2 · CA (turma)" }, { key: "resc-prof", label: "Fase 2 · Rescisão (turma)" }, { key: "agb-prof", label: "Fase 3 · AGB (turma)" }, { key: "roteiro-prof", label: "Roteiro por etapas (turma)" }] },
+  { label: "notas", itens: [{ key: "notas", label: "Notas" }, { key: "aval-prof", label: "Avaliação das etapas (0 a 10)" }] },
   {
     id: "preparar",
     label: "preparar e consultar",
@@ -681,6 +701,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   const caAluno = useCaTurma(papelEfetivo === "aluno" ? turmaId : null);
   const rescAluno = useRescisaoTurma(papelEfetivo === "aluno" ? turmaId : null);
   const trabCa = useTrabalhoCa(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
+  const roteiroCfg = useRoteiroTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const rotAluno = useRoteiroAluno(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
+  const avalAluno = useAvaliacoesAluno(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
   const trabAgb = useTrabalhoAgb(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
 
   // Indicativo no menu: lançamentos com "correção necessária" ainda não
@@ -735,6 +758,8 @@ export default function Shell({ usuario, perfil, onSair }) {
       mostrarExAgb: exerciciosVisiveis(agbAluno, emTeste).length > 0,
       mostrarCa: emTeste || caAluno.liberado,
       mostrarResc: emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada),
+      mostrarPi: emTeste || !!roteiroCfg,
+      mostrarAtivFolha: emTeste || !!(caAluno.config && caAluno.config.empregados && caAluno.config.empregados.length > 0),
     });
   } else {
     menuGrupos = gruposMenuProfessor({
@@ -802,6 +827,16 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DRE dre={esc.dre} />;
   } else if (papelEfetivo === "aluno" && screen === "bp") {
     tela = <BalancoPatrimonial bp={esc.bp} />;
+  } else if (papelEfetivo === "aluno" && screen === "etapas") {
+    tela = <EtapasAluno config={roteiroCfg} rot={rotAluno} nomeAluno={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
+  } else if (papelEfetivo === "aluno" && screen === "notas-etapas") {
+    tela = <NotasEtapas avaliacoes={avalAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-ativ") {
+    tela = <FolhaAtividade trab={trabCa} ca={caAluno} />;
+  } else if (papelEfetivo === "aluno" && !emTeste && ["ca-folha", "ca-prov", "ca-cont", "ca-efeitos", "ca-parecer"].includes(screen)
+    && caAluno.config && caAluno.config.fpObrigatoria
+    && !(rotAluno.estado && rotAluno.estado.etapas && rotAluno.estado.etapas.fp && rotAluno.estado.etapas.fp.status === "aprovada")) {
+    tela = <div className="empty-state">{rotAluno.carregando ? "Carregando…" : <>Esta etapa abre depois que o professor aprovar a atividade <b>“Elaborar a folha de pagamento”</b>. Faça a atividade no menu da Fase 2 e marque como entregue em “Meu roteiro por etapas”.</>}</div>;
   } else if (papelEfetivo === "aluno" && screen === "ca-folha") {
     tela = <FolhaMes trab={trabCa} ca={caAluno} />;
   } else if (papelEfetivo === "aluno" && screen === "ca-prov") {
@@ -840,6 +875,10 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <AgbComparativo esc={esc} trab={trabAgb} agb={agbAluno} emTeste={emTeste} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-parecer") {
     tela = <ParecerFinal esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (ehProfessorOuAdmin && screen === "roteiro-prof") {
+    tela = <RoteiroProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "aval-prof") {
+    tela = <AvaliacaoProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "agb-prof") {
     tela = <AgbProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "painel") {
