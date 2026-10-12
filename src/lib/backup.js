@@ -19,15 +19,16 @@ async function subcolecao(turmaId, matricula, nome) {
 // (o protótipo exportava todos os alunos simulados de uma vez, o que não
 // faz sentido com usuários reais).
 export async function backupDoAluno(perfil) {
-  const [lancamentos, digitacoesNFe, classificacoes, analisesFiscais] = await Promise.all([
+  const [lancamentos, digitacoesNFe, classificacoes, analisesFiscais, agb] = await Promise.all([
     subcolecao(perfil.turmaId, perfil.matricula, "lancamentos"),
     subcolecao(perfil.turmaId, perfil.matricula, "digitacoesNFe"),
     subcolecao(perfil.turmaId, perfil.matricula, "classificacoes"),
     subcolecao(perfil.turmaId, perfil.matricula, "analisesFiscais"),
+    subcolecao(perfil.turmaId, perfil.matricula, "agb").catch(() => []), // Fase 3 (AGB)
   ]);
   baixarJson(
     `backup-ci-unidadeII-aluno-${perfil.matricula}-${new Date().toISOString().slice(0, 10)}.json`,
-    { geradoEm: new Date().toISOString(), matricula: perfil.matricula, turmaId: perfil.turmaId, lancamentos, digitacoesNFe, classificacoes, analisesFiscais }
+    { geradoEm: new Date().toISOString(), matricula: perfil.matricula, turmaId: perfil.turmaId, lancamentos, digitacoesNFe, classificacoes, analisesFiscais, agb }
   );
 }
 
@@ -41,13 +42,14 @@ export async function backupDaTurma(turma) {
   const alunos = alunosSnap.docs.map((d) => ({ matricula: d.id, ...d.data() }));
   const alunosCompletos = await Promise.all(
     alunos.map(async (a) => {
-      const [lancamentos, digitacoesNFe, classificacoes, analisesFiscais] = await Promise.all([
+      const [lancamentos, digitacoesNFe, classificacoes, analisesFiscais, agb] = await Promise.all([
         subcolecao(turma.id, a.matricula, "lancamentos"),
         subcolecao(turma.id, a.matricula, "digitacoesNFe"),
         subcolecao(turma.id, a.matricula, "classificacoes"),
         subcolecao(turma.id, a.matricula, "analisesFiscais"),
+        subcolecao(turma.id, a.matricula, "agb").catch(() => []), // Fase 3 (AGB)
       ]);
-      return { ...a, lancamentos, digitacoesNFe, classificacoes, analisesFiscais };
+      return { ...a, lancamentos, digitacoesNFe, classificacoes, analisesFiscais, agb };
     })
   );
   baixarJson(

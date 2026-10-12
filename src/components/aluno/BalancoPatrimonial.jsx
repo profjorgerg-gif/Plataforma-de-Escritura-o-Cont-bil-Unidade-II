@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { saldoConta, fmt } from "../../lib/contabil.js";
+import { saldoConta, valorBP, fmt } from "../../lib/contabil.js";
 import { DrillModal } from "../shared/UI.jsx";
 
 export default function BalancoPatrimonial({ bp }) {
@@ -13,7 +13,7 @@ export default function BalancoPatrimonial({ bp }) {
         : contas.map((c) => (
           <div className="dre-row clickable" key={c.conta.codigo}
             onClick={() => setDrill({ title: c.conta.nome, legenda: "Lançamentos que compõem este saldo.", linhas: c.movimentos })}>
-            <span>{c.conta.nome}</span><span className="val mono">{fmt(Math.abs(saldoConta(c)))}</span>
+            <span>{c.conta.nome}</span><span className="val mono">{fmt(valorBP(c))}</span>
           </div>
         ))}
     </>
@@ -31,9 +31,9 @@ export default function BalancoPatrimonial({ bp }) {
             <Grupo contas={bp.passivos} titulo="PASSIVO CIRCULANTE" />
             <div className="bp-group-label">PATRIMÔNIO LÍQUIDO</div>
             {bp.pl.map((c) => (
-              <div className="dre-row" key={c.conta.codigo}><span>{c.conta.nome}</span><span className="val mono">{fmt(saldoConta(c))}</span></div>
+              <div className="dre-row" key={c.conta.codigo}><span>{c.conta.nome}</span><span className="val mono">{fmt(valorBP(c))}</span></div>
             ))}
-            <div className="dre-row"><span>Resultado do Exercício</span><span className="val mono">{fmt(bp.totalPL - bp.pl.reduce((s, l) => s + saldoConta(l), 0))}</span></div>
+            <div className="dre-row"><span>Resultado do Exercício</span><span className="val mono">{fmt(bp.resultadoExercicio)}</span></div>
           </div>
         </div>
         <div style={{ padding: "10px 18px", borderTop: "1px solid var(--line-strong)" }}>

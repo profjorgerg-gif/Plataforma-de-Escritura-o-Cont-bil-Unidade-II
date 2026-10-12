@@ -7,6 +7,7 @@ import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoAluno } from "../../hooks/useProgressoAluno.js";
 import { useMeuRegistroDeAluno } from "../../hooks/useMeuRegistroDeAluno.js";
 import { useTurma } from "../../hooks/useTurma.js";
+import { useAgbTurma, useTrabalhoAgb } from "../../hooks/useAgb.js";
 import {
   fmt, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica,
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, PESOS_RUBRICA,
@@ -49,6 +50,11 @@ import ManualProfessor from "../manuais/ManualProfessor.jsx";
 import ManualOperacao from "../manuais/ManualOperacao.jsx";
 import RoteiroAluno from "../manuais/RoteiroAluno.jsx";
 import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
+import AnaliseVH from "../aluno/AnaliseVH.jsx";
+import Indicadores from "../aluno/Indicadores.jsx";
+import CapitalGiro from "../aluno/CapitalGiro.jsx";
+import ParecerFinal from "../aluno/ParecerFinal.jsx";
+import AgbProfessor from "../professor/AgbProfessor.jsx";
 
 // Casca do app: sidebar + topbar + área de conteúdo, com o papel vindo de
 // verdade do Firestore (perfil.papel), não mais de um botão de demonstração.
@@ -114,10 +120,22 @@ const MENU_ALUNO_GRUPOS = [
   },
 ];
 
+// Fase 3 — Análise Gerencial de Balanços (AGB). Grupo NOVO: só aparece para o aluno
+// quando o professor libera (ou na conta de teste). Não altera nenhum item acima.
+const MENU_ALUNO_AGB = {
+  label: "fase 3 · análise gerencial (AGB)",
+  itens: [
+    { key: "agb-av", label: "Análise vertical e horizontal" },
+    { key: "agb-ind", label: "Indicadores" },
+    { key: "agb-giro", label: "Capital de giro" },
+    { key: "agb-parecer", label: "Parecer e relatório final" },
+  ],
+};
+
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
@@ -125,6 +143,10 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte }) {
         : item.key === "suporte" && badgeSuporte > 0 ? { ...item, badge: badgeSuporte } : item
     ),
   }));
+  if (mostrarAgb) {
+    const posApoio = grupos.findIndex((g) => g.label === "apoio e consulta");
+    grupos.splice(posApoio < 0 ? grupos.length : posApoio, 0, MENU_ALUNO_AGB);
+  }
   if (incluirManuais) grupos.push({ label: "manuais", itens: manuaisPara("aluno") });
   return grupos;
 }
@@ -161,6 +183,7 @@ const MENU_PROFESSOR_GRUPOS = [
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ],
   },
+  { label: "fase 3 · análise gerencial", itens: [{ key: "agb-prof", label: "Fase 3 · AGB (turma)" }] },
   { label: "notas", itens: [{ key: "notas", label: "Notas" }] },
   {
     id: "preparar",
@@ -599,6 +622,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   const progresso = useProgressoAluno(turmaId, matricula);
   const meuRegistro = useMeuRegistroDeAluno(turmaId, matricula);
   const minhaTurma = useTurma(turmaId);
+  // Fase 3 (AGB): liberação/período anterior da turma e o trabalho do aluno (um listener só para as 4 telas)
+  const agbAluno = useAgbTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const trabAgb = useTrabalhoAgb(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
 
   // Indicativo no menu: lançamentos com "correção necessária" ainda não
   // reenviados pelo aluno — enquanto o ciclo aluno/professor não fecha
@@ -648,6 +674,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       incluirManuais: !emTeste,
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
+      mostrarAgb: emTeste || agbAluno.liberado,
     });
   } else {
     menuGrupos = gruposMenuProfessor({
@@ -657,7 +684,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     });
   }
 
-  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp"];
+  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
@@ -715,6 +742,16 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DRE dre={esc.dre} />;
   } else if (papelEfetivo === "aluno" && screen === "bp") {
     tela = <BalancoPatrimonial bp={esc.bp} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-av") {
+    tela = <AnaliseVH esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-ind") {
+    tela = <Indicadores esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-giro") {
+    tela = <CapitalGiro esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-parecer") {
+    tela = <ParecerFinal esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (ehProfessorOuAdmin && screen === "agb-prof") {
+    tela = <AgbProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "painel") {
     tela = <Painel turma={turmaSelecionada} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
   } else if (ehProfessorOuAdmin && screen === "notas") {

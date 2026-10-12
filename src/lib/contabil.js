@@ -51,15 +51,24 @@ function calcularDRE(razao){
   return { linhas, receitaBruta, deducoes, cmv, despesasOp, receitasFin, despesasFin, receitaLiquida, resultadoBruto, resultadoFinanceiro, resultadoExercicio };
 }
 
+function valorBP(b){
+  // Valor com sinal para o Balanço: conta redutora (depreciação acumulada, PCLD,
+  // capital a integralizar, prejuízos acumulados etc.) SUBTRAI do total do grupo.
+  const s = saldoConta(b);
+  return b.conta.redutora ? -s : s;
+}
+
 function calcularBP(razao, resultadoExercicio){
   const ativos = Object.values(razao).filter(b => b.conta.grupo===1 && b.movimentos.length > 0);
   const passivos = Object.values(razao).filter(b => b.conta.grupo===2 && b.movimentos.length > 0);
   const pl = Object.values(razao).filter(b => b.conta.grupo===3 && b.movimentos.length > 0);
-  const totalAtivo = ativos.reduce((s,l)=>s+saldoConta(l),0);
-  const totalPassivo = passivos.reduce((s,l)=>s+saldoConta(l),0);
-  const totalPLContas = pl.reduce((s,l)=>s+saldoConta(l),0);
+  // Correção: antes as contas redutoras eram SOMADAS ao total (ex.: depreciação acumulada
+  // aumentava o Ativo e o balanço "não fechava"). Agora são subtraídas.
+  const totalAtivo = ativos.reduce((s,l)=>s+valorBP(l),0);
+  const totalPassivo = passivos.reduce((s,l)=>s+valorBP(l),0);
+  const totalPLContas = pl.reduce((s,l)=>s+valorBP(l),0);
   const totalPL = totalPLContas + resultadoExercicio;
-  return { ativos, passivos, pl, totalAtivo, totalPassivo, totalPL, fecha: Math.abs(totalAtivo - (totalPassivo + totalPL)) < 0.005 };
+  return { ativos, passivos, pl, totalAtivo, totalPassivo, totalPL, totalPLContas, resultadoExercicio, fecha: Math.abs(totalAtivo - (totalPassivo + totalPL)) < 0.005 };
 }
 
 function fmt(v){
@@ -213,7 +222,7 @@ function notaFinalPonderada({ completudePct, qualidadeNota, autonomiaPct, descon
 
 export {
   contaInfo, lancamentosAprovados, calcularRazao, saldoConta, calcularBalancete,
-  calcularDRE, calcularBP, fmt, prazoEfetivo, diasAtraso, fmtData,
+  calcularDRE, calcularBP, valorBP, fmt, prazoEfetivo, diasAtraso, fmtData,
   descontoSugerido, descontoEfetivo, estatisticasAluno,
   PESOS_RUBRICA, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada,
   qualidadeTecnicaAutomatica,
