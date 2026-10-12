@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
@@ -269,7 +269,7 @@ function RelatorioAluno({ aluno, turma, docsEntrada, docsSaida, progressoTurma, 
 }
 
 export default function DashboardCiclo({ turma, onSelecionarAluno }) {
-  const alunos = useAlunosDaTurma(turma?.id);
+  const alunos = useAlunosReaisDaTurma(turma?.id);
   const documentos = useDocumentosDaTurma(turma?.id);
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const progressoTurma = useProgressoTurma(turma?.id, alunos);

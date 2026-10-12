@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase.js";
 
@@ -12,4 +12,11 @@ export function useAlunosDaTurma(turmaId) {
     return unsub;
   }, [turmaId]);
   return alunos;
+}
+
+// Só os alunos de verdade (sem as contas de teste do professor). Usado nos relatórios e estatísticas da turma,
+// para que o teste do professor não entre em médias, contagens e notas.
+export function useAlunosReaisDaTurma(turmaId) {
+  const todos = useAlunosDaTurma(turmaId);
+  return useMemo(() => (todos ? todos.filter((a) => !a.contaTeste) : todos), [todos]);
 }

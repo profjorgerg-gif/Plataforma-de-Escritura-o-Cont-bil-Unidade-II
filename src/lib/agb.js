@@ -75,7 +75,9 @@ export const LINHAS_DRE = [
 export function dreParaLinhas(dre) {
   return {
     receitaBruta: dre.receitaBruta, deducoes: dre.deducoes, receitaLiquida: dre.receitaLiquida,
-    cmv: dre.cmv, resultadoBruto: dre.resultadoBruto, despesasOp: dre.despesasOp,
+    // custos de produção somam-se ao custo das vendas; outras receitas operacionais reduzem as despesas operacionais (líquidas),
+    // para a DRE da análise ter as mesmas linhas de sempre e o mesmo resultado do exercício.
+    cmv: dre.cmv + (dre.custosProducao || 0), resultadoBruto: dre.resultadoBruto, despesasOp: dre.despesasOp - (dre.outrasReceitas || 0),
     resultadoFinanceiro: dre.resultadoFinanceiro, resultadoExercicio: dre.resultadoExercicio,
   };
 }

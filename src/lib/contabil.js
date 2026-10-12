@@ -44,11 +44,15 @@ function calcularDRE(razao){
   const despesasOp = linhas.filter(l => l.conta.grupo===5 && l.conta.subgrupo!=="Despesas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
   const receitasFin = linhas.filter(l => l.conta.grupo===4 && l.conta.subgrupo==="Receitas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
   const despesasFin = linhas.filter(l => l.conta.grupo===5 && l.conta.subgrupo==="Despesas Financeiras").reduce((s,l)=>s+saldoConta(l),0);
+  // Correção (12/10/2026): antes a DRE ignorava as contas 4.4 (Outras Receitas Operacionais) e 6.1 (Custos de Produção).
+  // Quem lançasse nelas via o resultado errado e o Balanço não fechava. Quando essas contas não têm movimento, o resultado é idêntico ao de antes.
+  const outrasReceitas = linhas.filter(l => l.conta.grupo===4 && l.conta.subgrupo==="Outras Receitas Operacionais").reduce((s,l)=>s+saldoConta(l),0);
+  const custosProducao = linhas.filter(l => l.conta.codigo.startsWith("6.1")).reduce((s,l)=>s+saldoConta(l),0);
   const receitaLiquida = receitaBruta - deducoes;
-  const resultadoBruto = receitaLiquida - cmv;
+  const resultadoBruto = receitaLiquida - cmv - custosProducao;
   const resultadoFinanceiro = receitasFin - despesasFin;
-  const resultadoExercicio = resultadoBruto - despesasOp + resultadoFinanceiro;
-  return { linhas, receitaBruta, deducoes, cmv, despesasOp, receitasFin, despesasFin, receitaLiquida, resultadoBruto, resultadoFinanceiro, resultadoExercicio };
+  const resultadoExercicio = resultadoBruto - despesasOp + outrasReceitas + resultadoFinanceiro;
+  return { linhas, receitaBruta, deducoes, cmv, custosProducao, despesasOp, outrasReceitas, receitasFin, despesasFin, receitaLiquida, resultadoBruto, resultadoFinanceiro, resultadoExercicio };
 }
 
 function valorBP(b){

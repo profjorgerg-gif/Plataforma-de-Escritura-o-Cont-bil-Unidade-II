@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../../firebase.js";
-import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
@@ -16,7 +16,7 @@ import {
 // professor" — agora com item próprio no menu, pra acesso rápido sem rolar
 // a página (pedido do professor em 2026-10-08).
 export default function Notas({ turma }) {
-  const alunos = useAlunosDaTurma(turma?.id);
+  const alunos = useAlunosReaisDaTurma(turma?.id);
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const documentos = useDocumentosDaTurma(turma?.id);
   const progressoTurma = useProgressoTurma(turma?.id, alunos);

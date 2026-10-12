@@ -14,6 +14,8 @@ const FILTROS = {
   deducoes: (c) => c.grupo === 4 && c.redutora,
   cmv: (c) => c.codigo.startsWith("6.2"),
   despop: (c) => c.grupo === 5 && c.subgrupo !== "Despesas Financeiras",
+  outras: (c) => c.grupo === 4 && c.subgrupo === "Outras Receitas Operacionais",
+  prod: (c) => c.codigo.startsWith("6.1"),
   finrec: (c) => c.grupo === 4 && c.subgrupo === "Receitas Financeiras",
   findesp: (c) => c.grupo === 5 && c.subgrupo === "Despesas Financeiras",
 };
@@ -44,8 +46,10 @@ export default function DRE({ dre }) {
           <Linha label="(–) Deduções da Receita" valor={"(" + fmt(dre.deducoes) + ")"} filtro="deducoes" cls="sub" />
           <div className="dre-row total"><span>= Receita Líquida</span><span className="val">{fmt(dre.receitaLiquida)}</span></div>
           <Linha label="(–) CMV" valor={"(" + fmt(dre.cmv) + ")"} filtro="cmv" cls="sub" />
+          {!!dre.custosProducao && <Linha label="(–) Custos de Produção" valor={"(" + fmt(dre.custosProducao) + ")"} filtro="prod" cls="sub" />}
           <div className="dre-row total"><span>= Resultado Bruto</span><span className="val">{fmt(dre.resultadoBruto)}</span></div>
           <Linha label="(–) Despesas Operacionais" valor={"(" + fmt(dre.despesasOp) + ")"} filtro="despop" cls="sub" />
+          {!!dre.outrasReceitas && <Linha label="(+) Outras Receitas Operacionais" valor={fmt(dre.outrasReceitas)} filtro="outras" cls="sub" />}
           <Linha label="(+) Receitas Financeiras" valor={fmt(dre.receitasFin)} filtro="finrec" cls="sub" />
           <Linha label="(–) Despesas Financeiras" valor={"(" + fmt(dre.despesasFin) + ")"} filtro="findesp" cls="sub" />
           <div className="dre-row total"><span>= Resultado do Exercício</span><span className="val">{fmt(dre.resultadoExercicio)}</span></div>

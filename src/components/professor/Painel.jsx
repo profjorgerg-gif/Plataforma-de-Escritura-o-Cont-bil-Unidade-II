@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
-import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { Kpi } from "../shared/UI.jsx";
@@ -100,7 +100,7 @@ const ROTULO_SIT = {
 };
 
 export default function Painel({ turma, onAbrirHistorico }) {
-  const alunos = useAlunosDaTurma(turma?.id);
+  const alunos = useAlunosReaisDaTurma(turma?.id);
   const { todos } = useLancamentosDaTurma(turma?.id, alunos);
   const documentos = useDocumentosDaTurma(turma?.id);
   const [etapas, setEtapas] = useState(null);
