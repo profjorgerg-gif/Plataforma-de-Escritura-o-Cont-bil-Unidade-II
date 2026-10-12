@@ -91,6 +91,66 @@ service cloud.firestore {
       allow update: if souAdmin() || souProfessorDaTurma(turmaId);
       allow delete: if souAdmin();
 
+      // ---------- turmas/{turmaId}/chamados (Suporte aluno <-> professor) ----------
+      match /chamados/{id} {
+        allow read: if signedIn() && (
+          souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, resource.data.matricula)
+        );
+        allow create: if signedIn() && (
+          souProfessorDaTurma(turmaId) ||
+          (podeAgirComoEsteAluno(turmaId, request.resource.data.matricula) && request.resource.data.iniciadoPor == 'aluno')
+        );
+        // aluno só acrescenta mensagem / muda o estado do próprio chamado
+        allow update: if signedIn() && (
+          souProfessorDaTurma(turmaId) ||
+          (souEsteAlunoNestaTurma(turmaId, resource.data.matricula)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['mensagens', 'status', 'naoLidoProfessor', 'naoLidoAluno', 'atualizadoEm']))
+        );
+        allow delete: if souAdmin() || souProfessorDaTurma(turmaId);
+      }
+
+      // ---------- turmas/{turmaId}/contadores (numeração dos chamados do Suporte) ----------
+      // O aluno só pode somar +1 no contador (ao abrir um chamado); o professor
+      // pode ajustar livremente (ex.: "Numerar chamados antigos").
+      match /contadores/{id} {
+        allow read: if signedIn() && (
+          souAdmin() || souProfessorDaTurma(turmaId) || (souAluno() && meu().turmaId == turmaId)
+        );
+        allow create: if signedIn() && (
+          souProfessorDaTurma(turmaId) ||
+          (souAluno() && meu().turmaId == turmaId && id == 'suporte'
+            && request.resource.data.keys().hasOnly(['ultimo']) && request.resource.data.ultimo == 1)
+        );
+        allow update: if signedIn() && (
+          souProfessorDaTurma(turmaId) ||
+          (souAluno() && meu().turmaId == turmaId && id == 'suporte'
+            && request.resource.data.keys().hasOnly(['ultimo'])
+            && request.resource.data.ultimo == resource.data.ultimo + 1)
+        );
+      }
+
+      // ---------- turmas/{turmaId}/agb (Fase 3 — Análise Gerencial de Balanços) ----------
+      // config (liberação) e periodoAnterior: o professor escreve; alunos da turma só leem.
+      match /agb/{docId} {
+        allow read: if signedIn() && (souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId));
+        allow write: if souAdmin() || souProfessorDaTurma(turmaId);
+      }
+
+      // ---------- turmas/{turmaId}/ca (Fase 2 — Contabilidade Avançada) ----------
+      // config (liberação) e folha (dados do mês): o professor escreve; alunos da turma só leem.
+      match /ca/{docId} {
+        allow read: if signedIn() && (souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId));
+        allow write: if souAdmin() || souProfessorDaTurma(turmaId);
+      }
+
+      // ---------- turmas/{turmaId}/roteiro (roteiro por etapas: prazos e textos) ----------
+      // O professor escreve; alunos da turma só leem.
+      match /roteiro/{docId} {
+        allow read: if signedIn() && (souAdmin() || souProfessorDaTurma(turmaId) || estouNaTurmaDoAluno(turmaId));
+        allow write: if souAdmin() || souProfessorDaTurma(turmaId);
+      }
+
       // ---------- turmas/{turmaId}/alunos ----------
       match /alunos/{matricula} {
         allow read: if signedIn() && (
@@ -130,6 +190,70 @@ service cloud.firestore {
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes']));
           allow delete: if podeAgirComoEsteAluno(turmaId, matricula) && resource.data.status == 'rascunho';
+          // 2026-10-09 — "Refazer nota do aluno": o professor da turma pode apagar
+          // (e restaurar) lançamentos de uma nota para o aluno refazer.
+          allow create, delete: if souProfessorDaTurma(turmaId);
+        }
+
+        // ---------- Fase 3 (AGB): trabalho do aluno ----------
+        // O aluno (ou o professor na conta de teste) grava o próprio trabalho; o campo
+        // "devolutiva" (retorno do professor) só o professor da turma escreve.
+        match /agb/{docId} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+            && !request.resource.data.keys().hasAny(['devolutiva', 'devolutivaEm']);
+          allow update: if (podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+              && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['devolutiva', 'devolutivaEm']))
+            || (souProfessorDaTurma(turmaId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['devolutiva', 'devolutivaEm']));
+          allow delete: if souAdmin();
+        }
+
+        // ---------- Fase 2 (CA): trabalho do aluno ----------
+        // Mesmo esquema da Fase 3: o aluno (ou o professor na conta de teste) grava o próprio trabalho;
+        // "devolutiva" (retorno do professor) só o professor da turma escreve.
+        match /ca/{docId} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+            && !request.resource.data.keys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']);
+          allow update: if (podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+              && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']))
+            || (souProfessorDaTurma(turmaId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']));
+          allow delete: if souAdmin();
+        }
+
+        // ---------- Roteiro por etapas: situação de cada etapa do aluno ----------
+        // "estado" (liberada, aprovada, ajustar, retorno): só o professor escreve.
+        // "entregas" (data em que o aluno marcou como entregue): o aluno (ou o professor na conta de teste) escreve.
+        match /roteiro/{docId} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow create, update: if (docId == 'estado' && (souAdmin() || souProfessorDaTurma(turmaId)))
+            || (docId == 'entregas' && podeAgirComoEsteAluno(turmaId, matricula));
+          allow delete: if souAdmin();
+        }
+
+        // ---------- Avaliação das etapas (nota 0 a 10 e retorno) ----------
+        // Só o professor escreve. O aluno só lê as avaliações que o professor marcou como liberadas.
+        match /avaliacoes/{etapaId} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId)
+            || (souEsteAlunoNestaTurma(turmaId, matricula) && resource.data.liberada == true)
+          );
+          allow write: if souAdmin() || souProfessorDaTurma(turmaId);
+        }
+
+        // ---------- lixeira de segurança (Refazer nota do aluno) ----------
+        // Cópia de tudo que o professor apaga; só o professor da turma lê/escreve.
+        match /lixeira/{id} {
+          allow read, create, delete: if souAdmin() || souProfessorDaTurma(turmaId);
+          allow update: if false;
         }
 
         // ---------- digitações de NF-e ----------
@@ -138,6 +262,8 @@ service cloud.firestore {
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
           allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
+          allow create, delete: if souProfessorDaTurma(turmaId);
         }
 
         // ---------- classificações contábeis ----------
@@ -146,6 +272,8 @@ service cloud.firestore {
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
           allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
+          allow create, delete: if souProfessorDaTurma(turmaId);
         }
 
         // ---------- análises fiscais ----------
@@ -154,6 +282,11 @@ service cloud.firestore {
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
           allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
+          allow create, delete: if souProfessorDaTurma(turmaId);
+          // 2026-10-09 — "Devolver nota ao aluno": professor reabre a análise (status) e registra a devolução
+          allow update: if souProfessorDaTurma(turmaId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'devolucao']);
         }
       }
     }
