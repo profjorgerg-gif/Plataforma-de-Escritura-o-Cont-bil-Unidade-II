@@ -60,11 +60,13 @@ export default function TelaAcesso({ onEntrarGoogle }) {
       <div className="ta-left">
         <div>
           <div className="ta-kicker">CEDUP HERMANN HERING · TÉCNICO EM CONTABILIDADE</div>
-          <h1 className="ta-title">Escrituração<br />Contábil</h1>
+          <h1 className="ta-title">Projeto Interdisciplinar<br />CI–CA–AGB</h1>
+          <div style={{ fontSize: 12.5, opacity: 0.8, margin: "-6px 0 12px", letterSpacing: ".02em" }}>Contabilidade Intermediária · Contabilidade Avançada · Análise Gerencial de Balanços</div>
           <p className="ta-desc">
-            Contabilidade Intermediária — Unidade II. Pratique, passo a passo, o ciclo completo: da nota fiscal ao balanço patrimonial.
+            Pratique, passo a passo, os processos contábeis: da escrituração e apuração dos resultados à elaboração e análise das demonstrações contábeis.
           </p>
         </div>
+        <div style={{ fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", opacity: 0.75, marginBottom: 8 }}>Fase 1 · Escrituração</div>
         <ul className="ta-steps">
           {ETAPAS.map(([n, r]) => <li key={r}><b>{n}</b>{r}</li>)}
         </ul>

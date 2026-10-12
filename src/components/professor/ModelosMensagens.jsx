@@ -12,7 +12,7 @@ const MODELOS = [
   { grupo: "Relatórios", id: "rel-individual", titulo: "Relatório individual, com anexo", texto:
 `Olá, [NOME DO ALUNO]!
 
-Segue em anexo o seu relatório de orientação individual da Unidade II (Escrituração Contábil), gerado a partir do seu andamento na plataforma.
+Segue em anexo o seu relatório de orientação individual da Fase 1 (Escrituração), gerado a partir do seu andamento na plataforma.
 
 Como ler:
 • "Documentos em dia": quantos já estão completos.
@@ -34,7 +34,7 @@ Dúvidas? Me procure em aula.
   { grupo: "Relatórios", id: "rel-turma", titulo: "Aviso para a turma sobre os relatórios", texto:
 `Turma, atenção!
 
-Acabei de conferir o andamento de cada um na plataforma (Unidade II) e vou encaminhar, de forma individual, o relatório de orientação de cada aluno.
+Acabei de conferir o andamento de cada um na plataforma (Fase 1) e vou encaminhar, de forma individual, o relatório de orientação de cada aluno.
 
 No seu relatório você vai encontrar o que precisa corrigir e o caminho exato, no menu da plataforma, para fazer o ajuste.
 
@@ -112,7 +112,7 @@ O que fazer:
   { grupo: "Prazos e reconhecimento", id: "prazo", titulo: "Lembrete de prazo da unidade", texto:
 `Olá, [NOME DO ALUNO]!
 
-Lembrete: o prazo da Unidade II está se aproximando. Acompanhe o seu andamento em Menu → Meu progresso e priorize o que ainda estiver pendente.
+Lembrete: o prazo da Fase 1 está se aproximando. Acompanhe o seu andamento em Menu → Meu progresso e priorize o que ainda estiver pendente.
 
 Lembre-se de que só conta para a correção o que for ENVIADO, não o que estiver em rascunho.
 
@@ -122,7 +122,7 @@ Qualquer dúvida, me procure em aula.
   { grupo: "Prazos e reconhecimento", id: "parabens", titulo: "Parabéns, aluno em dia", texto:
 `Olá, [NOME DO ALUNO]!
 
-Conferi o seu andamento na plataforma (Unidade II) e o seu trabalho está em dia, sem pendências importantes. Parabéns pelo capricho! Continue assim e mantenha o ritmo até o prazo da unidade.
+Conferi o seu andamento na plataforma (Fase 1) e o seu trabalho está em dia, sem pendências importantes. Parabéns pelo capricho! Continue assim e mantenha o ritmo até o prazo da fase.
 
 [SEU NOME]` },
 ];

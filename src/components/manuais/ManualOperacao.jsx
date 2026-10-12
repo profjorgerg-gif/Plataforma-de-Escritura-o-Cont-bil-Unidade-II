@@ -22,7 +22,7 @@ export default function ManualOperacao() {
             <li><b>Visão sistêmica do ciclo contábil</b> — Razão, Balancete, ARE, DRE e Balanço Patrimonial são gerados automaticamente a partir dos lançamentos aprovados, mostrando ao aluno como uma decisão de classificação se propaga até o resultado final.</li>
             <li><b>Progressão com feedback formativo contínuo</b> — "Meu progresso" dá visibilidade constante do avanço por documento, e a nota final (completude 45% + qualidade técnica 35% + autonomia 20%) recompensa tanto a conclusão do ciclo quanto a qualidade do raciocínio.</li>
           </ul>
-          <p>Em resumo: a plataforma transforma a Unidade II de uma sequência de exercícios avaliados isoladamente numa simulação de escrituração contábil real, com responsabilidade e consequência encadeada, onde o aluno pratica o mesmo fluxo de decisão que vai usar profissionalmente.</p>
+          <p>Em resumo: a plataforma transforma a Fase 1 de uma sequência de exercícios avaliados isoladamente numa simulação de escrituração contábil real, com responsabilidade e consequência encadeada, onde o aluno pratica o mesmo fluxo de decisão que vai usar profissionalmente.</p>
         </div>
       </div>
 

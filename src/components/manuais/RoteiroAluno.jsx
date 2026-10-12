@@ -1,4 +1,4 @@
-// Roteiro do Aluno — Ciclo Contábil (Unidade II), disponível dentro do próprio
+// Roteiro do Aluno — Ciclo Contábil (Fase 1), disponível dentro do próprio
 // sistema para consulta direta (antes só existia como um documento Word à
 // parte). O conteúdo e as imagens seguem o roteiro oficial da disciplina;
 // qualquer atualização de regras do sistema (ex.: a trava de Classificação)
@@ -33,7 +33,7 @@ export default function RoteiroAluno() {
   return (
     <>
       <div className="screen-eyebrow">roteiro</div>
-      <h2 className="screen-title">Roteiro do Aluno — Ciclo Contábil (Unidade II)</h2>
+      <h2 className="screen-title">Roteiro do Aluno — Ciclo Contábil (Fase 1)</h2>
       <p className="screen-sub">
         Siga esta sequência, documento por documento, do início ao fim do ciclo contábil. O roteiro resume o que fazer
         em cada etapa — não substitui o Manual do Aluno, que mostra tela por tela.

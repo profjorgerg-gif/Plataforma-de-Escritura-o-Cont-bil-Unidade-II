@@ -28,7 +28,7 @@ export async function backupDoAluno(perfil) {
     subcolecao(perfil.turmaId, perfil.matricula, "ca").catch(() => []), // Fase 2 (CA)
   ]);
   baixarJson(
-    `backup-ci-unidadeII-aluno-${perfil.matricula}-${new Date().toISOString().slice(0, 10)}.json`,
+    `backup-pi-ci-ca-agb-aluno-${perfil.matricula}-${new Date().toISOString().slice(0, 10)}.json`,
     { geradoEm: new Date().toISOString(), matricula: perfil.matricula, turmaId: perfil.turmaId, lancamentos, digitacoesNFe, classificacoes, analisesFiscais, agb, ca }
   );
 }
@@ -55,7 +55,7 @@ export async function backupDaTurma(turma) {
     })
   );
   baixarJson(
-    `backup-ci-unidadeII-turma-${turma.nome.replace(/\s+/g, "_")}-${new Date().toISOString().slice(0, 10)}.json`,
+    `backup-pi-ci-ca-agb-turma-${turma.nome.replace(/\s+/g, "_")}-${new Date().toISOString().slice(0, 10)}.json`,
     { geradoEm: new Date().toISOString(), turma: { id: turma.id, nome: turma.nome }, alunos: alunosCompletos }
   );
 }

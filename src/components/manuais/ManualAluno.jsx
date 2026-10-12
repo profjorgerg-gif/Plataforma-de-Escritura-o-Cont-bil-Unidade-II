@@ -49,7 +49,7 @@ export default function ManualAluno() {
       <div className="screen-eyebrow">manual</div>
       <h2 className="screen-title">Manual do Aluno</h2>
       <p className="screen-sub">
-        Passo a passo de como usar a plataforma de Escrituração Contábil — Unidade II. Os quadros tracejados marcam onde uma
+        Passo a passo de como usar a Projeto Interdisciplinar CI–CA–AGB — Fase 1 · Escrituração. Os quadros tracejados marcam onde uma
         captura de tela real deve entrar — use o nome de arquivo sugerido para manter tudo organizado.
       </p>
       <div className="btn-row no-print" style={{ marginBottom: 18 }}>

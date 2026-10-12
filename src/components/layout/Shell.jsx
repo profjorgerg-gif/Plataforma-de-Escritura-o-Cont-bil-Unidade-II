@@ -349,7 +349,7 @@ function ChecklistProgresso({ documentos, progresso, lancamentos }) {
   );
 }
 
-// Mostra a nota da Unidade II decomposta nos três componentes da rubrica,
+// Mostra a nota da Fase 1 decomposta nos três componentes da rubrica,
 // não só um número seco — o aluno vê exatamente o que pesou em cada parte.
 // Só aparece quando o professor já liberou (mesma regra de sempre).
 function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
@@ -364,7 +364,7 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
 
   return (
     <div className="panel">
-      <div className="panel-head"><h3>Minha nota — Unidade II</h3></div>
+      <div className="panel-head"><h3>Minha nota — Fase 1 · Escrituração</h3></div>
       <div className="panel-body">
         <div className="kpi-row">
           <div className="kpi"><div className="kpi-label">Completude do ciclo ({Math.round(PESOS_RUBRICA.completude * 100)}%)</div><div className="kpi-value mono">{completudePct === null ? "—" : completudePct + "%"}</div></div>
@@ -596,7 +596,7 @@ function TelaDashboardAluno({ identificacao, esc, documentos, progresso, registr
   return (
     <>
       <div className="screen-eyebrow">01 · visão geral</div>
-      <h2 className="screen-title">Meu progresso — Unidade II</h2>
+      <h2 className="screen-title">Meu progresso — Fase 1 · Escrituração</h2>
       <p className="screen-sub">{identificacao}. Dados ao vivo do Firestore.</p>
       {rascunhos > 0 && (
         <div className="aviso-pedagogico" style={{ marginBottom: 14 }}>
@@ -634,8 +634,8 @@ function TelaMinhaNota({ registro, turma, documentos, progresso, lancamentos, co
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
-      <h2 className="screen-title">Minha nota — Unidade II</h2>
-      <p className="screen-sub">Sua avaliação da Unidade II, liberada pelo professor quando estiver pronta.</p>
+      <h2 className="screen-title">Minha nota — Fase 1 · Escrituração</h2>
+      <p className="screen-sub">Sua avaliação da Fase 1, liberada pelo professor quando estiver pronta.</p>
       <CriteriosAvaliacao turma={turma} qualidade={qualidadeAuto} mostrarSugestao={false} />
       <MinhaNota registro={registro} turma={turma} documentos={documentos} progresso={progresso} lancamentos={lancamentos} />
       {(!registro || !registro.notaLiberada) && (
@@ -925,8 +925,8 @@ export default function Shell({ usuario, perfil, onSair }) {
       <div className={"sidebar-backdrop" + (menuAberto ? " open" : "")} onClick={() => setMenuAberto(false)} />
       <div className={"sidebar" + (menuAberto ? " open" : "")}>
         <div className="sidebar-head">
-          <div className="kicker">CI · UNIDADE II</div>
-          <h1>Escrituração Contábil</h1>
+          <div className="kicker">CI–CA–AGB</div>
+          <h1>Projeto Interdisciplinar</h1>
         </div>
         <div className="nav-group">
           <div className="nav-group-label">{emTeste ? "aluno (modo de teste)" : perfil.papel}</div>

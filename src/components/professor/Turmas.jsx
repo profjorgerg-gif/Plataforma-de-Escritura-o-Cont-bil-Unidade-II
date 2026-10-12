@@ -138,7 +138,7 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
     <>
       <div className="screen-eyebrow">turmas</div>
       <h2 className="screen-title">Turmas</h2>
-      <p className="screen-sub">Crie turmas e cadastre os alunos que terão empresa didática própria na Unidade II.</p>
+      <p className="screen-sub">Crie turmas e cadastre os alunos que terão empresa didática própria na Fase 1.</p>
 
       <div className="panel">
         <div className="panel-head"><h3>Suas turmas</h3></div>
@@ -189,7 +189,7 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
           <div className="panel-head"><h3>Prazo e pontualidade — {turmaAtual.nome}</h3></div>
           <div className="panel-body">
             <div className="field">
-              <label>Prazo da Unidade II (vale para toda a turma)</label>
+              <label>Prazo da Fase 1 (vale para toda a turma)</label>
               <input type="date" className="mono" value={turmaAtual.prazoUnidadeII || ""}
                 onChange={(e) => updateDoc(doc(db, "turmas", turmaAtual.id), { prazoUnidadeII: e.target.value })} />
             </div>

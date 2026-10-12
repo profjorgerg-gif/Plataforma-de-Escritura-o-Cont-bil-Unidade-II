@@ -135,7 +135,7 @@ export default function Painel({ turma, onAbrirHistorico }) {
   return (
     <>
       <div className="screen-eyebrow">painel do professor</div>
-      <h2 className="screen-title">Painel do Professor — Unidade II</h2>
+      <h2 className="screen-title">Painel do Professor — Fase 1 · Escrituração</h2>
       <p className="screen-sub">Visão geral da turma {turma.nome} e lançamentos pendentes. A avaliação ficou em "Notas", no menu.</p>
 
       <div className="btn-row no-print" style={{ marginBottom: 16 }}>
