@@ -54,6 +54,8 @@ import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
 import AnaliseVH from "../aluno/AnaliseVH.jsx";
 import Indicadores from "../aluno/Indicadores.jsx";
 import CapitalGiro from "../aluno/CapitalGiro.jsx";
+import AgbExercicios, { exerciciosVisiveis } from "../aluno/AgbExercicios.jsx";
+import AgbComparativo from "../aluno/AgbComparativo.jsx";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
 import FolhaMes from "../aluno/FolhaMes.jsx";
@@ -176,7 +178,7 @@ const MENU_ALUNO_AGB = {
 // Monta os grupos do menu do aluno já com o badge de pendências (no item
 // "Livro diário") e, quando for o caso, o grupo de manuais ao final — mesmo
 // padrão usado no modo de teste (sem manuais) e no aluno de verdade (com).
-function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarCa, mostrarResc }) {
+function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb, mostrarExAgb, mostrarCa, mostrarResc }) {
   const grupos = MENU_ALUNO_GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.map((item) =>
@@ -194,7 +196,10 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
   }
   if (mostrarAgb) {
     const posApoio = grupos.findIndex((g) => g.label === "apoio e consulta");
-    grupos.splice(posApoio < 0 ? grupos.length : posApoio, 0, MENU_ALUNO_AGB);
+    const menuAgb = mostrarExAgb
+      ? { ...MENU_ALUNO_AGB, itens: MENU_ALUNO_AGB.itens.concat([{ key: "agb-ex", label: "Exercícios comparativos" }, { key: "agb-comp", label: "Comparativo entre empresas" }]) }
+      : MENU_ALUNO_AGB;
+    grupos.splice(posApoio < 0 ? grupos.length : posApoio, 0, menuAgb);
   }
   if (incluirManuais) grupos.push({ label: "manuais", itens: manuaisPara("aluno") });
   return grupos;
@@ -727,6 +732,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
       mostrarAgb: emTeste || agbAluno.liberado,
+      mostrarExAgb: exerciciosVisiveis(agbAluno, emTeste).length > 0,
       mostrarCa: emTeste || caAluno.liberado,
       mostrarResc: emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada),
     });
@@ -738,7 +744,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     });
   }
 
-  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "ca-cont", "ca-efeitos"];
+  const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "agb-comp", "ca-cont", "ca-efeitos"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
@@ -828,6 +834,10 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <Indicadores esc={esc} trab={trabAgb} agb={agbAluno} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-giro") {
     tela = <CapitalGiro esc={esc} trab={trabAgb} agb={agbAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-ex") {
+    tela = <AgbExercicios trab={trabAgb} agb={agbAluno} emTeste={emTeste} />;
+  } else if (papelEfetivo === "aluno" && screen === "agb-comp") {
+    tela = <AgbComparativo esc={esc} trab={trabAgb} agb={agbAluno} emTeste={emTeste} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-parecer") {
     tela = <ParecerFinal esc={esc} trab={trabAgb} agb={agbAluno} />;
   } else if (ehProfessorOuAdmin && screen === "agb-prof") {
