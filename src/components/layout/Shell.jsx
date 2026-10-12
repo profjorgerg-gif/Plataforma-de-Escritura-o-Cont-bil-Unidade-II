@@ -60,6 +60,9 @@ import EtapasAluno from "../aluno/EtapasAluno.jsx";
 import NotasEtapas from "../aluno/NotasEtapas.jsx";
 import FolhaAtividade from "../aluno/FolhaAtividade.jsx";
 import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
+import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
+import InicioProfessor from "../professor/InicioProfessor.jsx";
+import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, montarEtapasAluno, etapaDaTela, ABA_DO_ROTEIRO } from "../../lib/menuPodc.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
@@ -660,7 +663,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       return novo;
     });
   }
-  const [screen, setScreen] = useState(ehProfessorOuAdmin ? "painel" : "dashboard");
+  const [screen, setScreen] = useState("inicio");
   const [menuAberto, setMenuAberto] = useState(false);
 
   // Classificação → Livro diário: ao clicar em "usar no lançamento" na tela
@@ -678,11 +681,11 @@ export default function Shell({ usuario, perfil, onSair }) {
 
   function sairDoModoTeste() {
     setTesteAtivo(null);
-    setScreen("painel");
+    setScreen("inicio");
   }
   function entrarNoModoTeste(alvo) {
     setTesteAtivo(alvo);
-    setScreen("dashboard");
+    setScreen("inicio");
   }
 
   // papelEfetivo/turmaId/matricula: o que as telas de aluno realmente usam,
@@ -748,24 +751,48 @@ export default function Shell({ usuario, perfil, onSair }) {
   // Menu do aluno (e do modo de teste, que usa as mesmas telas): agrupado e
   // numerado na ordem real do exercício. Menu do professor: agrupado por
   // função, sem numeração (2026-10-08).
+  // Menu PODC (Planejamento, Organização, Direção e Controle) — aprovado em 2026-10-12.
+  // Só muda o agrupamento do menu: as chaves das telas e as regras de liberação são as mesmas de antes.
+  const mostrarAgb = emTeste || agbAluno.liberado;
+  const mostrarExAgb = exerciciosVisiveis(agbAluno, emTeste).length > 0;
+  const mostrarCa = emTeste || caAluno.liberado;
+  const mostrarResc = emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada);
+  const mostrarPi = emTeste || !!roteiroCfg;
+  const mostrarAtivFolha = emTeste || !!(caAluno.config && caAluno.config.empregados && caAluno.config.empregados.length > 0);
+  const etapasAluno = papelEfetivo === "aluno"
+    ? montarEtapasAluno({
+        roteiroCfg, rot: rotAluno,
+        disp: { fp: mostrarCa && mostrarAtivFolha, ca: mostrarCa, resc: mostrarResc, agb: mostrarAgb, comp: mostrarAgb && mostrarExAgb },
+      })
+    : null;
   let menuGrupos;
   if (papelEfetivo === "aluno") {
-    menuGrupos = gruposMenuAluno({
+    menuGrupos = gruposMenuAlunoPodc({
+      etapas: etapasAluno,
       incluirManuais: !emTeste,
+      mostrarPi,
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
-      mostrarAgb: emTeste || agbAluno.liberado,
-      mostrarExAgb: exerciciosVisiveis(agbAluno, emTeste).length > 0,
-      mostrarCa: emTeste || caAluno.liberado,
-      mostrarResc: emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada),
-      mostrarPi: emTeste || !!roteiroCfg,
-      mostrarAtivFolha: emTeste || !!(caAluno.config && caAluno.config.empregados && caAluno.config.empregados.length > 0),
     });
   } else {
-    menuGrupos = gruposMenuProfessor({
+    menuGrupos = gruposMenuProfessorPodc({
       papel: perfil.papel,
       badgeFila: correcoesPendentesProfessor,
       badgeSuporte: suporteNaoLidoProfessor,
+    });
+  }
+  const etapaDaTelaAtual = papelEfetivo === "aluno" ? etapaDaTela(screen) : null;
+  const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
+
+  // Etapas abertas/fechadas no menu do aluno (só no navegador; não grava nada no Firestore).
+  const [subsAbertas, setSubsAbertas] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("menuAluno_etapas") || "{}") || {}; } catch { return {}; }
+  });
+  function alternarEtapa(id, abertoAgora) {
+    setSubsAbertas((a) => {
+      const novo = { ...a, [id]: !abertoAgora };
+      try { localStorage.setItem("menuAluno_etapas", JSON.stringify(novo)); } catch { /* sem armazenamento */ }
+      return novo;
     });
   }
 
@@ -773,7 +800,13 @@ export default function Shell({ usuario, perfil, onSair }) {
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
-  if (screen === "roteiro") {
+  if (screen === "inicio" && papelEfetivo === "aluno") {
+    tela = <InicioAluno etapas={etapasAluno} mostrarPi={mostrarPi} onIr={setScreen} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
+  } else if (screen === "inicio" && ehProfessorOuAdmin) {
+    tela = <InicioProfessor turma={turmaSelecionada} onIr={setScreen} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
+  } else if (infoEtapaTela && !infoEtapaTela.disponivel) {
+    tela = <EtapaBloqueada info={infoEtapaTela} etapas={etapasAluno} onIr={setScreen} mostrarPi={mostrarPi} />;
+  } else if (screen === "roteiro") {
     tela = <RoteiroAluno />;
   } else if (screen === "manual-aluno") {
     tela = <ManualAluno />;
@@ -875,8 +908,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <AgbComparativo esc={esc} trab={trabAgb} agb={agbAluno} emTeste={emTeste} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-parecer") {
     tela = <ParecerFinal esc={esc} trab={trabAgb} agb={agbAluno} />;
-  } else if (ehProfessorOuAdmin && screen === "roteiro-prof") {
-    tela = <RoteiroProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && ABA_DO_ROTEIRO[screen]) {
+    tela = <RoteiroProfessor key={screen} turma={turmaSelecionada} abaInicial={ABA_DO_ROTEIRO[screen]} />;
   } else if (ehProfessorOuAdmin && screen === "aval-prof") {
     tela = <AvaliacaoProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "agb-prof") {
@@ -932,11 +965,33 @@ export default function Shell({ usuario, perfil, onSair }) {
           <div className="nav-group-label">{emTeste ? "aluno (modo de teste)" : perfil.papel}</div>
         </div>
         {menuGrupos.map((grupo, gi) => {
-          const temAtivo = grupo.itens.some((it) => it.key === screen);
+          const itensDaEtapa = (grupo.etapas || []).flatMap((e) => e.itens);
+          const temAtivo = grupo.itens.some((it) => it.key === screen) || itensDaEtapa.some((it) => it.key === screen);
           const aberto = !grupo.recolhivel || !!gruposAbertos[grupo.id] || temAtivo;
           const pendencias = grupo.itens.reduce((t, it) => t + (it.badge || 0), 0);
+          function irPara(key) { setScreen(key); setMenuAberto(false); }
+          function renderItem(item, num) {
+            return (
+              <div
+                key={item.key}
+                className={"nav-item" + (screen === item.key ? " active" : "") + (item.bloqueado ? " bloq" : "")}
+                onClick={() => irPara(item.key)}
+              >
+                {num != null && <span className="num">{num}</span>}
+                <span>{item.label}</span>
+                {item.aviso && <span style={{ fontSize: 11, color: "#e9c77d", marginLeft: 6 }}>{item.aviso}</span>}
+                {!!item.badge && <span className="nav-badge">{item.badge}</span>}
+              </div>
+            );
+          }
           return (
             <div className="nav-group" key={gi}>
+              {grupo.podc && (
+                <div className="nav-group-label podc">
+                  <span className="podc-letra">{grupo.podc.letra}</span>
+                  <span><b>{grupo.podc.titulo}</b><small>{grupo.podc.sub}</small></span>
+                </div>
+              )}
               {grupo.label && (grupo.recolhivel ? (
                 <div
                   className="nav-group-label"
@@ -947,18 +1002,27 @@ export default function Shell({ usuario, perfil, onSair }) {
                   <span>{!aberto && pendencias > 0 && <span className="nav-badge" style={{ marginRight: 6 }}>{pendencias}</span>}{aberto ? "▾" : "▸"}</span>
                 </div>
               ) : <div className="nav-group-label">{grupo.label}</div>)}
-              {aberto && grupo.itens.map((item, ii) => (
-                <div
-                  key={item.key}
-                  className={"nav-item" + (screen === item.key ? " active" : "")}
-                  onClick={() => { setScreen(item.key); setMenuAberto(false); }}
-                >
-                  {grupo.numerado && <span className="num">{ii + 1}</span>}
-                  <span>{item.label}</span>
-                  {item.aviso && <span style={{ fontSize: 11, color: "#e9c77d", marginLeft: 6 }}>{item.aviso}</span>}
-                  {!!item.badge && <span className="nav-badge">{item.badge}</span>}
-                </div>
-              ))}
+              {aberto && grupo.itens.map((item) => renderItem(item, null))}
+              {(grupo.etapas || []).map((e) => {
+                const contemAtiva = e.itens.some((it) => it.key === screen);
+                const salvo = subsAbertas[e.id];
+                const aberta = contemAtiva || (salvo !== undefined ? !!salvo : !!e.atual);
+                const pend = e.itens.reduce((t, it) => t + (it.badge || 0), 0);
+                return (
+                  <div key={e.id} className={"nav-etapa" + (e.disponivel ? "" : " bloq") + (e.atual ? " atual" : "")}>
+                    <div className="nav-etapa-head" onClick={() => { if (!contemAtiva) alternarEtapa(e.id, aberta); }} title={e.rotulo}>
+                      <span className="nav-etapa-n">{e.n}</span>
+                      <span className="nav-etapa-t">
+                        {e.label}<small>{e.disc}</small>
+                        <span className={"nav-chip " + (e.classe || "")}>{e.disponivel ? e.curto : "Bloqueada"}</span>
+                      </span>
+                      {!aberta && pend > 0 && <span className="nav-badge">{pend}</span>}
+                      <span className="nav-etapa-seta">{aberta ? "▾" : "▸"}</span>
+                    </div>
+                    {aberta && e.itens.map((item, ii) => renderItem({ ...item, bloqueado: !e.disponivel }, e.numerado ? ii + 1 : null))}
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -989,6 +1053,9 @@ export default function Shell({ usuario, perfil, onSair }) {
             <div className="balance-check bad no-print" style={{ marginBottom: 18 }}>
               🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.
             </div>
+          )}
+          {papelEfetivo === "aluno" && infoEtapaTela && infoEtapaTela.disponivel && (
+            <FaixaEtapa info={infoEtapaTela} total={etapasAluno.length} mostrarLink={mostrarPi} onRoteiro={() => setScreen("etapas")} />
           )}
           {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} />}
           {tela}

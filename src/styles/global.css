@@ -91,6 +91,28 @@
     color:#FBF8EF; font-weight:600;
   }
   .nav-item.active .num{color:#C9A24A;}
+  /* Menu PODC (2026-10-12): letras P/O/D/C, etapas recolhíveis com situação e etapas bloqueadas visíveis */
+  .nav-group-label.podc{display:flex; gap:10px; align-items:baseline; padding:4px 20px 6px; color:#D9B25E;}
+  .nav-group-label.podc .podc-letra{font-family:'IBM Plex Mono', monospace; font-size:12px; min-width:14px;}
+  .nav-group-label.podc b{font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:600;}
+  .nav-group-label.podc small{display:block; font-size:11px; letter-spacing:0; text-transform:none; color:#8FA79C; font-weight:400; margin-top:1px;}
+  .nav-etapa{margin:2px 0;}
+  .nav-etapa-head{display:flex; align-items:flex-start; gap:8px; padding:7px 14px 7px 20px; cursor:pointer; color:#E8E2D2; font-size:14px; line-height:1.3;}
+  .nav-etapa-head:hover{background:rgba(237,231,216,0.06);}
+  .nav-etapa-n{font-family:'IBM Plex Mono', monospace; font-size:11px; color:#C9A24A; width:16px; flex-shrink:0;}
+  .nav-etapa-t{flex:1; min-width:0; font-weight:600;}
+  .nav-etapa-t small{margin-left:6px; font-family:'IBM Plex Mono', monospace; font-size:10px; color:#8FA79C; font-weight:400;}
+  .nav-etapa-seta{font-size:11px; color:#8FA79C; width:10px; flex-shrink:0;}
+  .nav-etapa .nav-item{padding-left:44px;}
+  .nav-etapa.atual .nav-etapa-head{border-left:2px solid #C9A24A; padding-left:18px;}
+  .nav-etapa.bloq .nav-etapa-head, .nav-etapa.bloq .nav-item{opacity:0.6;}
+  .nav-etapa-t .nav-chip{display:block; width:fit-content; margin-top:3px;}
+  .nav-chip{font-size:10px; font-weight:600; border-radius:4px; padding:1px 6px; white-space:nowrap; flex-shrink:0; background:rgba(237,231,216,0.12); color:#C9D4CD;}
+  .nav-chip.warn{background:rgba(217,164,78,0.22); color:#EBC27A;}
+  .nav-chip.ok{background:rgba(111,207,160,0.2); color:#8FE0B6;}
+  .nav-chip.bad{background:rgba(224,120,120,0.22); color:#F0A0A0;}
+  .nav-chip.gray{background:rgba(237,231,216,0.1); color:#9FB3A8;}
+
   .sidebar-foot{
     margin-top:auto; padding:16px 20px; border-top:1px solid rgba(237,231,216,0.18);
     font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8FA79C;

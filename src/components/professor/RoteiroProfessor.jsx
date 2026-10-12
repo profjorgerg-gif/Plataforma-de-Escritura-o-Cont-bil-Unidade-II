@@ -199,8 +199,8 @@ function AtividadeFolha({ turma }) {
   );
 }
 
-export default function RoteiroProfessor({ turma }) {
-  const [aba, setAba] = useState("sit");
+export default function RoteiroProfessor({ turma, abaInicial }) {
+  const [aba, setAba] = useState(abaInicial || "sit");
   const config = useRoteiroTurma(turma ? turma.id : null);
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   return (
