@@ -204,3 +204,36 @@ export function confere(txt, esperado, tolerancia = 0.15) {
   if (n === null || esperado === null || esperado === undefined) return null; // null = ainda não respondeu
   return Math.abs(n - esperado) <= tolerancia;
 }
+
+// ---------------------------------------------------------------------------
+// 7) Linhas das tabelas de análise vertical/horizontal (usadas pela tela e pela nota automática)
+// ---------------------------------------------------------------------------
+// Monta as linhas da tabela do Balanço (com subtotais) para um período.
+export function linhasBalanco(bpv, bpAnt) {
+  const t = totaisBP(bpv);
+  const ta = bpAnt ? totaisBP(bpAnt) : null;
+  const rows = [];
+  const blocos = [["AC", "ATIVO CIRCULANTE", "ativo"], ["ANC", "ATIVO NÃO CIRCULANTE", "ativo"], ["_TA"],
+    ["PC", "PASSIVO CIRCULANTE", "pass"], ["PNC", "PASSIVO NÃO CIRCULANTE", "pass"], ["PL", "PATRIMÔNIO LÍQUIDO", "pass"], ["_TP"]];
+  blocos.forEach(([b, titulo]) => {
+    if (b === "_TA") { rows.push({ tipo: "total", key: "TOTAL_ATIVO", nome: "TOTAL DO ATIVO", atual: t.ativo, ant: ta ? ta.ativo : null, base: "ativo" }); return; }
+    if (b === "_TP") { rows.push({ tipo: "total", key: "TOTAL_PASSIVO", nome: "TOTAL DO PASSIVO + PL", atual: t.passivoPL, ant: ta ? ta.passivoPL : null, base: "ativo" }); return; }
+    const itens = [];
+    LINHAS_BP.filter((l) => l.bloco === b).forEach((l) => {
+      const atual = bpv[l.key] || 0, ant = bpAnt ? (Number(bpAnt[l.key]) || 0) : null;
+      if (atual === 0 && !ant) return; // oculta linhas sem saldo
+      itens.push({ tipo: "linha", key: l.key, nome: l.nome, atual, ant, base: "ativo" });
+    });
+    if (itens.length === 0 && t[b] === 0 && !(ta && ta[b])) return; // bloco inteiro sem saldo
+    rows.push({ tipo: "bloco", nome: titulo }, ...itens);
+    rows.push({ tipo: "sub", key: "SUB_" + b, nome: "Total do " + titulo.toLowerCase(), atual: t[b], ant: ta ? ta[b] : null, base: "ativo" });
+  });
+  return { rows, base: t.ativo, baseAnt: ta ? ta.ativo : null };
+}
+
+export function linhasDre(dre, dreAnt) {
+  const ant = dreAnt ? dreCompletaDeLinhas(dreAnt) : null;
+  const rows = LINHAS_DRE.map((l) => ({ tipo: l.tipo === "total" ? "total" : "linha", key: l.key, nome: l.nome, atual: dre[l.key] || 0, ant: ant ? ant[l.key] : null }));
+  return { rows, base: dre.receitaLiquida, baseAnt: ant ? ant.receitaLiquida : null };
+}
+

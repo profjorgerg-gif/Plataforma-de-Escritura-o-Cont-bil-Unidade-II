@@ -32,7 +32,11 @@ export function useRoteiroAluno(turmaId, matricula) {
     return () => { u1(); u2(); };
   }, [turmaId, matricula]);
   async function marcarEntregue(etapaId) {
-    await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "roteiro", "entregas"), { [etapaId]: new Date().toISOString() }, { merge: true });
+    // "p_<etapa>" guarda a PRIMEIRA entrega (vale para o prazo); "<etapa>" guarda a última (reenvios).
+    const agora = new Date().toISOString();
+    const dados = { [etapaId]: agora };
+    if (!(entregas && entregas["p_" + etapaId])) dados["p_" + etapaId] = agora;
+    await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "roteiro", "entregas"), dados, { merge: true });
   }
   return { estado, entregas, carregando: estado === undefined || entregas === undefined, marcarEntregue };
 }
@@ -83,4 +87,26 @@ export async function salvarEstadoEtapa(turmaId, matricula, etapaId, dados) {
 }
 export async function salvarAvaliacao(turmaId, matricula, etapaId, dados) {
   await setDoc(doc(db, "turmas", turmaId, "alunos", matricula, "avaliacoes", etapaId), { ...dados, atualizadoEm: new Date().toISOString() }, { merge: true });
+}
+
+// Professor: lançamentos de cada aluno (para a nota automática de contabilização). Só carrega quando "ativo" for true.
+export function useLancamentosDaTurma(turmaId, alunos, ativo) {
+  const [mapa, setMapa] = useState(null);
+  const chave = (alunos || []).map((a) => a.matricula).join(",");
+  useEffect(() => {
+    if (!turmaId || !alunos || !ativo) return;
+    let vivo = true;
+    (async () => {
+      const out = {};
+      await Promise.all(alunos.map(async (a) => {
+        try {
+          const s = await getDocs(collection(db, "turmas", turmaId, "alunos", a.matricula, "lancamentos"));
+          out[a.matricula] = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch (e) { out[a.matricula] = []; }
+      }));
+      if (vivo) setMapa(out);
+    })();
+    return () => { vivo = false; };
+  }, [turmaId, chave, ativo]); // eslint-disable-line
+  return mapa;
 }

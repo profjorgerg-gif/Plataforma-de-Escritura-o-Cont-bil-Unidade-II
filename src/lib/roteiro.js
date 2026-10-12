@@ -8,7 +8,7 @@ export function etapasEfetivas(config) {
   const salvas = (config && config.etapas) || [];
   return ETAPAS.map((e) => {
     const s = salvas.find((x) => x.id === e.id) || {};
-    return { ...e, prazo: s.prazo || "", descricao: s.descricao || e.descricao, entrega: s.entrega || e.entrega, ativa: s.ativa !== false };
+    return { ...e, prazo: s.prazo || e.prazoPadrao || "", descricao: s.descricao || e.descricao, entrega: s.entrega || e.entrega, ativa: s.ativa !== false };
   }).filter((e) => e.ativa);
 }
 
@@ -17,7 +17,12 @@ export function situacaoEtapa(lista, i, estado, entregas) {
   const reg = ((estado && estado.etapas) || {})[e.id] || {};
   const entregue = !!(entregas && entregas[e.id]);
   if (reg.status === "aprovada") return { cod: "aprovada", rotulo: "Aprovada", classe: "ok", reg, entregue };
-  if (reg.status === "ajustar") return { cod: "ajustar", rotulo: "Ajustar e reenviar", classe: "bad", reg, entregue };
+  if (reg.status === "ajustar") {
+    // reenviado depois do pedido de ajuste → volta a "entregue" para o professor analisar de novo
+    const reenviou = entregue && reg.em && new Date(entregas[e.id]).getTime() > new Date(reg.em).getTime();
+    if (reenviou) return { cod: "entregue", rotulo: "Reenviada, aguardando análise", classe: "info", reg, entregue };
+    return { cod: "ajustar", rotulo: "Ajustar e reenviar", classe: "bad", reg, entregue };
+  }
   const liberada = reg.status === "liberada" || (i === 0 && !reg.status);
   if (!liberada) return { cod: "bloqueada", rotulo: "Bloqueada", classe: "gray", reg, entregue };
   if (entregue) return { cod: "entregue", rotulo: "Entregue, aguardando análise", classe: "info", reg, entregue };

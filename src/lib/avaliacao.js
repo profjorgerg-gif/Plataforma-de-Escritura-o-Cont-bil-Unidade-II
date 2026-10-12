@@ -2,30 +2,44 @@
 // Cada etapa tem critérios com peso (somam 100%). A nota da etapa = soma (nota do critério × peso).
 // Não há média entre etapas: as notas são digitadas no sistema da escola.
 // "auto" = o sistema já calcula/sugere a nota do critério; "manual" = o professor digita (0 a 10).
+export const DESCONTO_ATRASO = 2; // pontos descontados da nota da etapa quando a entrega é feita depois do prazo (exceto Fase 1, que mantém a regra própria)
 export const ETAPAS = [
-  { id: "f1", titulo: "Fase 1 · Escrituração completa", descricao: "Concluir as atividades da escrituração, do Diário ao Balanço.", entrega: "Lançamentos aprovados e parecer",
-    criterios: [{ key: "nota", nome: "Nota da Fase 1 (a mesma da tela Notas: completude, qualidade técnica e autonomia, com o desconto por atraso)", peso: 100, tipo: "manual" }] },
-  { id: "fp", titulo: "Atividade · Elaborar a folha de pagamento", descricao: "Calcular contracheques: proventos, descontos e salário líquido.", entrega: "Contracheques conferidos",
+  { id: "f1", titulo: "Fase 1 · Escrituração completa", aulas: 8, prazoPadrao: "2026-10-16", descricao: "Concluir as atividades da escrituração, do Diário ao Balanço (iniciada na semana de 28/09; termina em 16/10).", entrega: "Lançamentos aprovados e parecer", semAtraso: true,
+    criterios: [{ key: "nota", nome: "Nota da Fase 1 (a mesma da tela Notas: completude, qualidade técnica e autonomia, já com o desconto por atraso daquela tela)", peso: 100, tipo: "manual" }] },
+  { id: "fp", titulo: "Atividade · Elaborar a folha de pagamento", aulas: 8, prazoPadrao: "2026-10-23", descricao: "Calcular contracheques: proventos, descontos e salário líquido.", entrega: "Contracheques conferidos",
     criterios: [
       { key: "calculos", nome: "Cálculos conferidos", peso: 60, tipo: "auto" },
       { key: "quantidade", nome: "Quantidade de contracheques", peso: 20, tipo: "auto" },
       { key: "resumo", nome: "Resumo ou parecer sobre a folha", peso: 20, tipo: "manual" },
     ] },
-  { id: "ca1", titulo: "Fase 2 · Folha do mês e provisões", descricao: "Folha consolidada, encargos, férias e 13º salário.", entrega: "Cálculos e parecer da folha",
-    criterios: [{ key: "calculos", nome: "Cálculos conferidos", peso: 70, tipo: "manual" }, { key: "parecer", nome: "Parecer da folha", peso: 30, tipo: "manual" }] },
-  { id: "ca2", titulo: "Fase 2 · Contabilização e efeitos", descricao: "Lançar a folha e ver o efeito nas demonstrações.", entrega: "Lançamentos da folha",
-    criterios: [{ key: "lancamentos", nome: "Lançamentos conferidos (contas, valores e lados)", peso: 70, tipo: "manual" }, { key: "efeitos", nome: "Leitura dos efeitos nas demonstrações", peso: 30, tipo: "manual" }] },
-  { id: "resc", titulo: "Fase 2 · Rescisão trabalhista", descricao: "Caso, cálculo, incidências, lançamentos e documentos.", entrega: "Conferência final",
+  { id: "ca", titulo: "Fase 2 · Folha, provisões e contabilização", aulas: 12, prazoPadrao: "2026-11-05", descricao: "Folha do mês, provisões e encargos, contabilização, efeitos nas demonstrações e parecer.", entrega: "Cálculos, lançamentos e parecer da folha",
     criterios: [
-      { key: "calculo", nome: "Cálculo das verbas", peso: 30, tipo: "manual" }, { key: "incidencias", nome: "Incidências", peso: 20, tipo: "manual" },
-      { key: "contab", nome: "Contabilização", peso: 20, tipo: "manual" }, { key: "docs", nome: "Documentos e prazos", peso: 10, tipo: "manual" },
-      { key: "parecer", nome: "Parecer", peso: 20, tipo: "manual" },
+      { key: "calculos", nome: "Cálculos conferidos (folha, provisões e encargos)", peso: 35, tipo: "auto" },
+      { key: "lancamentos", nome: "Lançamentos conferidos e aprovados", peso: 35, tipo: "auto" },
+      { key: "efeitos", nome: "Efeitos nas demonstrações (respostas preenchidas)", peso: 10, tipo: "auto" },
+      { key: "parecer", nome: "Parecer técnico da folha", peso: 20, tipo: "manual" },
     ] },
-  { id: "agb", titulo: "Fase 3 · Análise gerencial (AGB)", descricao: "Análise vertical e horizontal, indicadores e capital de giro.", entrega: "Cálculos e interpretações",
-    criterios: [{ key: "calculos", nome: "Cálculos conferidos", peso: 50, tipo: "manual" }, { key: "interpretacoes", nome: "Interpretações", peso: 20, tipo: "manual" }, { key: "parecer", nome: "Parecer final", peso: 30, tipo: "manual" }] },
-  { id: "comp", titulo: "Fase 3 · Comparativo e parecer final", descricao: "Exercícios comparativos e parecer comparativo.", entrega: "Parecer comparativo enviado",
-    criterios: [{ key: "exercicios", nome: "Exercícios conferidos", peso: 50, tipo: "manual" }, { key: "parecer", nome: "Parecer comparativo", peso: 50, tipo: "manual" }] },
+  { id: "resc", titulo: "Fase 2 · Rescisão trabalhista", aulas: 8, prazoPadrao: "2026-11-11", descricao: "Caso, cálculo, incidências, lançamentos e documentos.", entrega: "Conferência final e parecer",
+    criterios: [
+      { key: "calculo", nome: "Fatos, dados e valores das verbas", peso: 30, tipo: "auto" }, { key: "incidencias", nome: "Incidências (INSS, FGTS e IRRF)", peso: 20, tipo: "auto" },
+      { key: "contab", nome: "Contabilização aprovada", peso: 20, tipo: "auto" }, { key: "docs", nome: "Documentos e prazo de pagamento", peso: 10, tipo: "auto" },
+      { key: "parecer", nome: "Parecer da rescisão", peso: 20, tipo: "manual" },
+    ] },
+  { id: "agb", titulo: "Fase 3 · Análise gerencial (AGB)", aulas: 12, prazoPadrao: "2026-11-19", descricao: "Análise vertical e horizontal, indicadores, capital de giro e parecer final.", entrega: "Cálculos, interpretações e parecer final",
+    criterios: [
+      { key: "calculos", nome: "Cálculos conferidos (AV, AH, indicadores e capital de giro)", peso: 50, tipo: "auto" },
+      { key: "interpretacoes", nome: "Interpretações (preenchimento; a qualidade é sua)", peso: 20, tipo: "auto" },
+      { key: "parecer", nome: "Parecer final (sugestão pelo preenchimento das 4 partes)", peso: 30, tipo: "auto" },
+    ] },
+  { id: "comp", titulo: "Fase 3 · Comparativo e parecer", aulas: 4, prazoPadrao: "2026-11-25", descricao: "Exercícios comparativos e parecer comparativo.", entrega: "Parecer comparativo enviado",
+    criterios: [
+      { key: "exercicios", nome: "Exercícios conferidos", peso: 50, tipo: "auto" },
+      { key: "parecer", nome: "Parecer comparativo (sugestão pelo tamanho; a qualidade é sua)", peso: 50, tipo: "auto" },
+    ] },
 ];
+// Reserva e recuperação: de 26/11 a 04/12 (cerca de 12 aulas), mais os dias letivos que sobrarem até o fim do semestre.
+export const RESERVA_TEXTO = "Reserva e recuperação: de 26/11 a 04/12 (cerca de 12 aulas) e os dias letivos restantes do semestre.";
+
 export const etapaPorId = (id) => ETAPAS.find((e) => e.id === id) || null;
 
 export const FAIXAS = [
@@ -49,3 +63,12 @@ export function notaDaEtapa(etapa, notas) {
   }
   return Math.round(soma * 10) / 10;
 }
+
+// Atraso: a entrega vale a PRIMEIRA vez que o aluno marcou como entregue. Prazo no formato "AAAA-MM-DD" (vale até o fim do dia).
+export function entregaEmAtraso(prazo, entregaISO) {
+  if (!prazo) return false;
+  const lim = new Date(prazo + "T23:59:59");
+  const e = entregaISO ? new Date(entregaISO) : new Date();
+  return e.getTime() > lim.getTime();
+}
+export const aplicaDesconto = (notaCriterios, desconto) => (notaCriterios === null ? null : Math.round(Math.max(0, notaCriterios - (Number(desconto) || 0)) * 10) / 10);

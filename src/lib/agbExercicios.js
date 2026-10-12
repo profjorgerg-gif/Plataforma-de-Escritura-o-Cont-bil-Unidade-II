@@ -54,3 +54,16 @@ export const EXERCICIOS = [
       dre: { receitaBruta: 2150000, deducoes: 365500, cmv: 1463000, despesasOp: 296000, resultadoFinanceiro: -60000 } }),
 ];
 export const exercicioPorId = (id) => EXERCICIOS.find((e) => e.id === id) || null;
+
+// Indicadores-chave usados nos exercícios e no comparativo. "melhor": "maior" ou "menor".
+export const INDICADORES_CHAVE = [
+  { k: "liquidezCorrente", nome: "Liquidez corrente", tipo: "x", melhor: "maior" },
+  { k: "liquidezSeca", nome: "Liquidez seca", tipo: "x", melhor: "maior" },
+  { k: "pmr", nome: "Prazo médio de recebimento (PMR)", tipo: "dias", melhor: "menor" },
+  { k: "cicloFinanceiro", nome: "Ciclo financeiro", tipo: "dias", melhor: "menor" },
+  { k: "participacaoCapTerceiros", nome: "Participação de capitais de terceiros (PCT)", tipo: "pct", melhor: "menor" },
+  { k: "imobilizacaoPL", nome: "Imobilização do PL", tipo: "pct", melhor: "menor" },
+  { k: "margemLiquida", nome: "Margem líquida", tipo: "pct", melhor: "maior" },
+  { k: "giroAtivo", nome: "Giro do ativo", tipo: "x", melhor: "maior" },
+  { k: "roe", nome: "ROE (retorno sobre o PL)", tipo: "pct", melhor: "maior" },
+];

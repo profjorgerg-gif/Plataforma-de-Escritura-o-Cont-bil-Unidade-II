@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.js";
-import { ETAPAS } from "../../lib/avaliacao.js";
+import { ETAPAS, RESERVA_TEXTO } from "../../lib/avaliacao.js";
 import { etapasEfetivas, situacaoEtapa } from "../../lib/roteiro.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, salvarConfigCa } from "../../hooks/useCa.js";
@@ -26,10 +26,10 @@ function EtapasEPrazos({ turma, config }) {
     <div className="panel">
       <div className="panel-head"><h3>Etapas e prazos da turma</h3></div>
       <div className="panel-body">
-        <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Preencha o prazo de cada etapa e, se quiser, ajuste o texto. Etapas desmarcadas não aparecem para os alunos. Enquanto você não salvar aqui, os alunos <b>não veem</b> o roteiro por etapas.</p>
+        <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Preencha o prazo de cada etapa e, se quiser, ajuste o texto. Etapas desmarcadas não aparecem para os alunos. Os prazos já vêm preenchidos pelo plano de 8 semanas; altere quando precisar. {RESERVA_TEXTO} Enquanto você não salvar aqui, os alunos <b>não veem</b> o roteiro por etapas.</p>
         {ETAPAS.map((e, i) => (
           <div key={e.id} style={{ borderBottom: "1px solid var(--line)", padding: "8px 0" }}>
-            <label style={{ fontWeight: 700 }}><input type="checkbox" checked={edit[e.id].ativa} onChange={(ev) => up(e.id, "ativa", ev.target.checked)} /> Etapa {i + 1} · {e.titulo}</label>
+            <label style={{ fontWeight: 700 }}><input type="checkbox" checked={edit[e.id].ativa} onChange={(ev) => up(e.id, "ativa", ev.target.checked)} /> Etapa {i + 1} · {e.titulo} <span style={{ fontWeight: 400, color: "var(--ink-soft)", fontSize: 12.5 }}>({e.aulas} aulas previstas)</span></label>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
               <div className="field" style={{ margin: 0 }}><label>Prazo</label><input type="date" value={edit[e.id].prazo} onChange={(ev) => up(e.id, "prazo", ev.target.value)} /></div>
               <div className="field" style={{ margin: 0, flex: 1, minWidth: 220 }}><label>O que fazer</label><input value={edit[e.id].descricao} onChange={(ev) => up(e.id, "descricao", ev.target.value)} /></div>
