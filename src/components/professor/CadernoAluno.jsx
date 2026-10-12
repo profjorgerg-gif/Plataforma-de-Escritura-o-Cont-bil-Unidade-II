@@ -34,7 +34,7 @@ function montar(pagina, d) {
   return h
     .split("%%PROFESSOR%%").join(esc(d.professor))
     .split("%%NOME%%").join(esc(d.nome))
-    .split("%%TURMA%%").join(esc(d.turma))
+    .split("%%TURMA%%").join(d.turma)
     .split("%%MATRICULA%%").join(esc(d.matricula));
 }
 
@@ -52,6 +52,13 @@ export default function CadernoAluno({ nomePadrao, turma }) {
   const alunos = useAlunosReaisDaTurma(turmaId);
   const lista = useMemo(() => (alunos || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")), [alunos]);
   const turmaNome = (turma && turma.nome) || "";
+  // Turmas por disciplina (digitadas em Organização → Turmas). Se nenhuma foi preenchida, usa o nome da turma.
+  const turmaHtml = useMemo(() => {
+    const t = turma || {};
+    const ds = [["CI", t.turmaCI], ["CA", t.turmaCA], ["AGB", t.turmaAGB]].filter((x) => (x[1] || "").trim());
+    if (!ds.length) return esc(turmaNome);
+    return ds.map((x) => '<div style="font-size:11.5px;line-height:1.35;white-space:nowrap"><b>' + x[0] + '</b> · ' + esc(x[1].trim()) + "</div>").join("");
+  }, [turma, turmaNome]);
 
   // A4 retrato, sem margem do navegador, só enquanto esta tela está aberta. Carrega a fonte do caderno.
   useEffect(() => {
@@ -115,13 +122,13 @@ export default function CadernoAluno({ nomePadrao, turma }) {
   const alunoEscolhido = lista.find((a) => a.matricula === matricula) || null;
   const fichas = useMemo(() => {
     const base = { professor: professor.trim(), nome: "", turma: "", matricula: "", cabecalho: cabecalhoHtml };
-    if (modo === "aluno" && alunoEscolhido) return [{ ...base, nome: alunoEscolhido.nome || "", turma: turmaNome, matricula: alunoEscolhido.matricula }];
+    if (modo === "aluno" && alunoEscolhido) return [{ ...base, nome: alunoEscolhido.nome || "", turma: turmaHtml, matricula: alunoEscolhido.matricula }];
     if (modo === "todos" && lista.length) {
-      const todos = lista.map((a) => ({ ...base, nome: a.nome || "", turma: turmaNome, matricula: a.matricula }));
+      const todos = lista.map((a) => ({ ...base, nome: a.nome || "", turma: turmaHtml, matricula: a.matricula }));
       return imprimindo ? todos : todos.slice(0, 1); // na tela só a prévia do primeiro; ao imprimir, todos
     }
     return [base];
-  }, [modo, alunoEscolhido, lista, turmaNome, professor, imprimindo, cabecalhoHtml]);
+  }, [modo, alunoEscolhido, lista, turmaHtml, professor, imprimindo, cabecalhoHtml]);
 
   const paginas = useMemo(() => fichas.flatMap((d, k) => CADERNO_PAGINAS.map((p) => ({
     chave: k + "-" + p.n, n: p.n, titulo: p.titulo, html: montar(p, d),

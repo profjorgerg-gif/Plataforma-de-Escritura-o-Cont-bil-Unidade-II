@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
@@ -16,6 +16,23 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
   const [importandoPdf, setImportandoPdf] = useState(false);
   const [candidatos, setCandidatos] = useState(null);
   const [erroImportacao, setErroImportacao] = useState("");
+
+  // Nome da turma em cada disciplina do projeto (aparece só na capa do Caderno do Aluno).
+  const [discTurmas, setDiscTurmas] = useState({ turmaCI: "", turmaCA: "", turmaAGB: "" });
+  const [discMsg, setDiscMsg] = useState("");
+  useEffect(() => {
+    setDiscTurmas({ turmaCI: turmaAtual?.turmaCI || "", turmaCA: turmaAtual?.turmaCA || "", turmaAGB: turmaAtual?.turmaAGB || "" });
+    setDiscMsg("");
+  }, [turmaAtual?.id, turmaAtual?.turmaCI, turmaAtual?.turmaCA, turmaAtual?.turmaAGB]);
+  async function salvarDiscTurmas() {
+    if (!turmaAtual) return;
+    try {
+      await updateDoc(doc(db, "turmas", turmaAtual.id), {
+        turmaCI: discTurmas.turmaCI.trim(), turmaCA: discTurmas.turmaCA.trim(), turmaAGB: discTurmas.turmaAGB.trim(),
+      });
+      setDiscMsg("Salvo.");
+    } catch (e) { setDiscMsg("Não foi possível salvar agora."); }
+  }
 
   async function criarTurma() {
     if (!novoNomeTurma.trim()) return;
@@ -183,6 +200,26 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
           {resultadoSync && <div className="helper-note" style={{ marginTop: 10 }}>{resultadoSync}</div>}
         </div>
       </div>
+
+      {turmaAtual && (
+        <div className="panel" style={{ marginBottom: 22 }}>
+          <div className="panel-head"><h3>Turma em cada disciplina — {turmaAtual.nome}</h3></div>
+          <div className="panel-body">
+            <p className="helper-note" style={{ marginBottom: 12 }}>
+              Opcional. Digite o nome da turma em cada disciplina do projeto. Eles aparecem na capa do Caderno do Aluno
+              (três linhas: CI, CA e AGB). Os alunos continuam sendo os mesmos desta turma; deixe em branco para usar só o nome acima.
+            </p>
+            <div className="field"><label>Contabilidade Intermediária (CI)</label>
+              <input value={discTurmas.turmaCI} onChange={(e) => setDiscTurmas({ ...discTurmas, turmaCI: e.target.value })} /></div>
+            <div className="field"><label>Contabilidade Avançada (CA)</label>
+              <input value={discTurmas.turmaCA} onChange={(e) => setDiscTurmas({ ...discTurmas, turmaCA: e.target.value })} /></div>
+            <div className="field"><label>Análise Gerencial de Balanços (AGB)</label>
+              <input value={discTurmas.turmaAGB} onChange={(e) => setDiscTurmas({ ...discTurmas, turmaAGB: e.target.value })} /></div>
+            <div className="btn-row"><button className="btn secondary" onClick={salvarDiscTurmas}>Salvar nomes das turmas</button></div>
+            {discMsg && <div className="helper-note" style={{ marginTop: 10 }}>{discMsg}</div>}
+          </div>
+        </div>
+      )}
 
       {turmaAtual && (
         <div className="panel" style={{ marginBottom: 22 }}>
