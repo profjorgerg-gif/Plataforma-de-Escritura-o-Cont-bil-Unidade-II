@@ -984,7 +984,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "cronograma") {
     tela = <CronogramaProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "caderno") {
-    tela = <CadernoAluno nomePadrao={(perfil && perfil.nome) || usuario.displayName || ""} />;
+    tela = <CadernoAluno nomePadrao={(perfil && perfil.nome) || usuario.displayName || ""} turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "aval-prof") {
     tela = <AvaliacaoProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "agb-prof") {

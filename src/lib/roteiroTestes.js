@@ -478,8 +478,8 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "13.6",
-        "fazer": "Como professor: Planejamento → \"Caderno do Aluno (imprimir)\". Digite seu nome no campo e clique em \"Imprimir / Salvar PDF\" (A4, margens Nenhuma, Salvar como PDF).",
-        "esperado": "Aparecem 39 páginas A4. Seu nome sai na capa e no rodapé de todas as páginas. O PDF tem 39 páginas, sem menu nem botões. Na conta de teste (modo aluno) o item não existe no menu.",
+        "fazer": "Como professor (turma TESTE): Planejamento → \"Caderno do Aluno (imprimir)\". Em \"Capa preenchida para\" escolha \"Um aluno da turma\" e um aluno. Marque \"Cabeçalho da escola na capa\", escreva duas linhas e clique em \"Imprimir / Salvar PDF\" (A4, margens Nenhuma, Salvar como PDF).",
+        "esperado": "A capa mostra o cabeçalho que você escreveu, o nome, a turma e a matrícula do aluno e o seu nome como professor. O PDF tem 39 páginas A4, sem menu nem botões, e o cabeçalho só aparece na capa. Na conta de teste (modo aluno) o item não existe no menu.",
         "quem": "prof",
         "tela": "caderno"
       }
