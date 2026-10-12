@@ -135,6 +135,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "guia", label: "Guia do professor" },
       { key: "roteiro-prazos", label: "Etapas e prazos" },
       { key: "cronograma", label: "Cronograma" },
+      { key: "caderno", label: "Caderno do Aluno (imprimir)" },
       { key: "roteiro-folha", label: "Atividade da folha" },
       { key: "roteiro", label: "Roteiro do Aluno" },
     ] },

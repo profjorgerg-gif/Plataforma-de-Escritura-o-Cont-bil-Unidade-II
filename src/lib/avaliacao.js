@@ -37,8 +37,8 @@ export const ETAPAS = [
       { key: "parecer", nome: "Parecer comparativo (sugestão pelo tamanho; a qualidade é sua)", peso: 50, tipo: "auto" },
     ] },
 ];
-// Reserva e recuperação: de 26/11 a 04/12 (cerca de 12 aulas), mais os dias letivos que sobrarem até o fim do semestre.
-export const RESERVA_TEXTO = "Reserva e recuperação: de 26/11 a 04/12 (cerca de 12 aulas) e os dias letivos restantes do semestre.";
+// Sem reserva e recuperação (decisão do professor em 12/10/2026). Mantido vazio: as telas que usam este texto simplesmente não mostram nada.
+export const RESERVA_TEXTO = "";
 
 export const etapaPorId = (id) => ETAPAS.find((e) => e.id === id) || null;
 

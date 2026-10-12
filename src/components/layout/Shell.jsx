@@ -61,6 +61,7 @@ import NotasEtapas from "../aluno/NotasEtapas.jsx";
 import FolhaAtividade from "../aluno/FolhaAtividade.jsx";
 import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
+import CadernoAluno from "../professor/CadernoAluno.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
 import RoteiroTestes, { FaixaTeste } from "../professor/RoteiroTestes.jsx";
@@ -982,6 +983,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <RoteiroProfessor key={screen} turma={turmaSelecionada} abaInicial={ABA_DO_ROTEIRO[screen]} />;
   } else if (ehProfessorOuAdmin && screen === "cronograma") {
     tela = <CronogramaProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "caderno") {
+    tela = <CadernoAluno nomePadrao={usuario.displayName || ""} />;
   } else if (ehProfessorOuAdmin && screen === "aval-prof") {
     tela = <AvaliacaoProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "agb-prof") {

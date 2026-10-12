@@ -475,6 +475,13 @@ export const BLOCOS_TESTE = [
         "esperado": "A barra da etapa 2 termina na data nova e a barra da etapa 3 passa a começar no primeiro dia útil depois dela.",
         "quem": "prof",
         "tela": "roteiro-prazos"
+      },
+      {
+        "id": "13.6",
+        "fazer": "Como professor: Planejamento → \"Caderno do Aluno (imprimir)\". Digite seu nome no campo e clique em \"Imprimir / Salvar PDF\" (A4, margens Nenhuma, Salvar como PDF).",
+        "esperado": "Aparecem 39 páginas A4. Seu nome sai na capa e no rodapé de todas as páginas. O PDF tem 39 páginas, sem menu nem botões. Na conta de teste (modo aluno) o item não existe no menu.",
+        "quem": "prof",
+        "tela": "caderno"
       }
     ]
   }
