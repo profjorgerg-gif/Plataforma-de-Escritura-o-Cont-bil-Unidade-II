@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // Tela de acesso — modelo A aprovado (2026-10-09): painel institucional à
-// esquerda (curso + as 10 etapas) e cartão de entrada à direita. No celular
+// esquerda (curso + as 6 etapas) e cartão de entrada à direita. No celular
 // vira uma coluna só, com o cartão de entrada primeiro.
 // O seletor "Perfil de acesso" é só para ajustar a mensagem mostrada (o papel
 // de verdade vem do Firestore, não do que a pessoa clica aqui): tanto aluno
@@ -21,12 +21,14 @@ const CORES = {
   label: "#7FA3B0",
 };
 
+// As 6 etapas do projeto (mesma ordem do roteiro em lib/avaliacao.js).
 const ETAPAS = [
-  ["1", "Empresa didática"], ["6", "Livro razão"],
-  ["2", "Documentos fiscais"], ["7", "Balancete"],
-  ["3", "Digitação e análise"], ["8–9", "ARE e DRE"],
-  ["4", "Classificação"], ["10", "Balanço patrimonial"],
-  ["5", "Livro diário"], ["💬", "Suporte com o professor"],
+  ["1", "Fase 1 · Escrituração", "CI", "Da empresa didática ao balanço patrimonial, em 10 passos"],
+  ["2", "Folha de pagamento", "CA", "Cálculo do contracheque até o salário líquido"],
+  ["3", "Folha, provisões e contabilização", "CA", "Encargos, provisões e lançamentos"],
+  ["4", "Rescisão trabalhista", "CA", "Cálculo, contabilização e conferência"],
+  ["5", "Análise gerencial de balanços", "AGB", "Análise vertical, horizontal e indicadores"],
+  ["6", "Análise comparativa", "AGB", "Exercícios e parecer final"],
 ];
 
 const CSS = `
@@ -35,8 +37,12 @@ const CSS = `
 .ta-kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:${CORES.accent}}
 .ta-title{font-family:'Lora',Georgia,serif;font-weight:600;font-size:44px;line-height:1.1;margin:14px 0 10px}
 .ta-desc{color:#c3d6cc;font-size:16px;max-width:460px;line-height:1.5;margin:0}
-.ta-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:14px;color:#dbe8e1;list-style:none;padding:0;margin:0}
-.ta-steps b{color:${CORES.accent};margin-right:8px;font-weight:700}
+.ta-steps{display:flex;flex-direction:column;gap:12px;font-size:14px;color:#dbe8e1;list-style:none;padding:0;margin:0}
+.ta-steps li{display:flex;gap:12px;align-items:baseline}
+.ta-steps .n{color:${CORES.accent};font-weight:700;font-family:'IBM Plex Mono',monospace;min-width:16px}
+.ta-steps .t{font-weight:600;color:${CORES.heading}}
+.ta-steps .d{display:block;font-size:12.5px;color:#9FB3A8;margin-top:2px}
+.ta-steps .c{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;border:1px solid ${CORES.accent};color:${CORES.accent};border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:1px}
 .ta-right{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
 .ta-card{width:400px;max-width:100%;background:${CORES.card};border:1px solid ${CORES.cardBorder};border-top:3px solid ${CORES.accent};border-radius:10px;padding:34px;box-sizing:border-box}
 @media (max-width:820px){
@@ -66,10 +72,15 @@ export default function TelaAcesso({ onEntrarGoogle }) {
             Pratique, passo a passo, os processos contábeis: da escrituração e apuração dos resultados à elaboração e análise das demonstrações contábeis.
           </p>
         </div>
-        <div style={{ fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", opacity: 0.75, marginBottom: 8 }}>Fase 1 · Escrituração</div>
-        <ul className="ta-steps">
-          {ETAPAS.map(([n, r]) => <li key={r}><b>{n}</b>{r}</li>)}
-        </ul>
+        <div>
+          <div style={{ fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", opacity: 0.75, marginBottom: 12 }}>Etapas do projeto</div>
+          <ol className="ta-steps">
+            {ETAPAS.map(([n, t, c, d]) => (
+              <li key={n}><span className="n">{n}</span><span><span className="t">{t}</span><span className="c">{c}</span><span className="d">{d}</span></span></li>
+            ))}
+          </ol>
+          <div style={{ fontSize: 12.5, color: CORES.sub, marginTop: 14 }}>💬 Suporte com o professor em todas as etapas</div>
+        </div>
       </div>
 
       <div className="ta-right">
