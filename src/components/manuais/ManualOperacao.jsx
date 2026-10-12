@@ -3,7 +3,7 @@ export default function ManualOperacao() {
     <>
       <div className="screen-eyebrow">manual · restrito ao admin</div>
       <h2 className="screen-title">Manual de Operacionalização</h2>
-      <p className="screen-sub">Como o sistema é construído e mantido por trás das telas.</p>
+      <p className="screen-sub">Como o sistema é construído e mantido por trás das telas, no Projeto Interdisciplinar CI–CA–AGB (6 etapas).</p>
       <div className="btn-row no-print" style={{ marginBottom: 18 }}>
         <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
       </div>
@@ -64,6 +64,44 @@ export default function ManualOperacao() {
             <li>Backup é manual: cada usuário baixa os próprios dados em <code className="mono">.json</code> pelo botão "Baixar backup" — não há rotina automática.</li>
             <li>O app foi desenhado para computador; funciona em celular, mas não foi testado exaustivamente nesse formato.</li>
           </ul>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>7. Menus e telas iniciais (Planejamento, Organização, Direção e Controle)</h3></div>
+        <div className="panel-body">
+          <p>Os menus do aluno e do professor são definidos em um único arquivo, <code className="mono">src/lib/menuPodc.js</code>, que apenas descreve o menu: não lê nem grava no Firestore. As chaves das telas (<code className="mono">key</code>) não mudam, e por isso nada do que os alunos já digitaram é afetado por mudanças de menu.</p>
+          <p>As telas “Comece aqui” (<code className="mono">InicioAluno.jsx</code> e <code className="mono">InicioProfessor.jsx</code>), a faixa “Etapa X de 6” e a tela de etapa bloqueada são só de leitura. O botão “← Voltar” usa uma pilha de telas guardada só na memória do navegador (últimas 30 telas).</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>8. Etapas e liberação</h3></div>
+        <div className="panel-body">
+          <p>As 6 etapas têm identificadores fixos: <code className="mono">f1</code> (Escrituração), <code className="mono">fp</code> (Folha de pagamento), <code className="mono">ca</code>, <code className="mono">resc</code>, <code className="mono">agb</code> e <code className="mono">comp</code>. A etapa fica disponível ao aluno conforme a liberação da turma: <code className="mono">f1</code> sempre; <code className="mono">fp</code> com o CA liberado e a atividade da folha liberada; <code className="mono">ca</code> com o CA liberado; <code className="mono">resc</code> com a rescisão liberada; <code className="mono">agb</code> com o AGB liberado; <code className="mono">comp</code> com o AGB e os exercícios comparativos liberados.</p>
+          <p>A situação (Entregue, Ajustar, Aprovada etc.) vem do roteiro do aluno, e a nota de 0 a 10 de cada etapa fica na coleção de avaliações. A etapa bloqueada aparece no menu, mas a tela real não abre. Só o texto “Fase” deixou de existir: os identificadores internos continuam os mesmos.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>9. Regras do Firestore: arquivo espelho</h3></div>
+        <div className="panel-body">
+          <p>O arquivo <code className="mono">firestore.rules</code> do repositório é um <b>espelho</b> das regras publicadas no Console Firebase. Quem vale é o que está publicado no Console (Firestore → Regras). Quando as regras mudarem, atualize os dois: cole no Console e publique, e depois salve o mesmo conteúdo no repositório.</p>
+          <p>Como o deploy automático publica só o Hosting, enviar o arquivo ao GitHub <b>não</b> altera as regras em produção.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>10. Modo de teste e roteiro de testes</h3></div>
+        <div className="panel-body">
+          <p>O modo de teste é exclusivo de professor e admin: a plataforma só ativa quando o papel do usuário permite. O “🧪 Roteiro de testes” (<code className="mono">RoteiroTestes.jsx</code>, com os passos em <code className="mono">lib/roteiroTestes.js</code>) também só aparece para eles. O progresso dos passos fica no <code className="mono">localStorage</code> do navegador, por professor e turma (<code className="mono">roteiroTestes_v1_&lt;uid&gt;_&lt;turma&gt;</code>), sem Firestore.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>11. Atualizações em ZIP</h3></div>
+        <div className="panel-body">
+          <p>Cada atualização chega num ZIP cumulativo, que substitui o anterior. Para aplicar: (1) use “Baixar backup”; (2) suba a pasta <code className="mono">src</code> em um único commit; (3) suba os arquivos da raiz (<code className="mono">index.html</code>, <code className="mono">README.md</code> e, quando vier, <code className="mono">firestore.rules</code>); (4) depois do deploy, confira a tela alterada com a conta de teste; (5) confira o total de arquivos do ZIP no GitHub.</p>
         </div>
       </div>
 
