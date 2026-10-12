@@ -369,3 +369,14 @@
 @page{
   margin: 16mm;
 }
+
+/* ============================================================
+   CRONOGRAMA (2026-10-12): a folha é um SVG com cores fixas, igual na tela, no PDF e na imagem.
+   ============================================================ */
+.crono-folha{background:#fff; border:1px solid var(--line-strong, #c9c4b4); border-radius:6px; overflow-x:auto;}
+.crono-folha svg{display:block; width:100%; min-width:760px; height:auto;}
+@media print{
+  .nav-topo, .voltar-bar{ display:none !important; }
+  .crono-folha{ border:none; border-radius:0; overflow:visible; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .crono-folha svg{ min-width:0; width:auto; max-width:100%; height:calc(210mm - 20mm); margin:0 auto; }
+}

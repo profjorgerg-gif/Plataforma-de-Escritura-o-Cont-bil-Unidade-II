@@ -33,7 +33,7 @@ export const ETAPAS_MENU_ALUNO = [
     { key: "bp", label: "Balanço patrimonial" },
   ] },
   { id: "fp", n: 2, titulo: "Folha de pagamento", disc: "CA", itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }] },
-  { id: "ca", n: 3, titulo: "Contabilidade Avançada", disc: "CA", itens: [
+  { id: "ca", n: 3, titulo: "Folha, provisões e contabilização", disc: "CA", itens: [
     { key: "ca-folha", label: "Folha do mês" },
     { key: "ca-prov", label: "Provisões e encargos" },
     { key: "ca-cont", label: "Contabilização" },
@@ -102,7 +102,7 @@ export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTest
   return [
     { itens: [{ key: "inicio", label: "🧭 Comece aqui" }, ...(incluirRoteiroTestes ? [{ key: "roteiro-testes", label: "🧪 Roteiro de testes" }] : [])] },
     { podc: P, itens: [
-      ...(mostrarPi ? [{ key: "etapas", label: "Meu roteiro por etapas" }] : []),
+      ...(mostrarPi ? [{ key: "etapas", label: "Meu roteiro por etapas" }, { key: "cronograma", label: "Cronograma" }] : []),
       { key: "roteiro", label: "Roteiro do Aluno" },
       ...(incluirManuais ? [{ key: "manual-aluno", label: "Manual do Aluno" }] : []),
     ] },
@@ -134,6 +134,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
     { podc: PP, itens: [
       { key: "guia", label: "Guia do professor" },
       { key: "roteiro-prazos", label: "Etapas e prazos" },
+      { key: "cronograma", label: "Cronograma" },
       { key: "roteiro-folha", label: "Atividade da folha" },
       { key: "roteiro", label: "Roteiro do Aluno" },
     ] },

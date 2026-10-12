@@ -49,7 +49,7 @@ export default function ManualAluno() {
       <div className="screen-eyebrow">manual</div>
       <h2 className="screen-title">Manual do Aluno</h2>
       <p className="screen-sub">
-        Passo a passo de como usar o Projeto Interdisciplinar CI–CA–AGB, nas 6 etapas: primeiro como se orientar na plataforma (A a E),
+        Passo a passo de como usar o Projeto Interdisciplinar CI–CA–AGB, nas 6 etapas: primeiro como se orientar na plataforma (A a F),
         depois a Etapa 1 · Escrituração (passos 1 a 15) e, por fim, as Etapas 2 a 6 (passos 16 a 20). Os quadros tracejados marcam onde uma
         captura de tela real deve entrar — use o nome de arquivo sugerido para manter tudo organizado.
       </p>
@@ -79,6 +79,11 @@ export default function ManualAluno() {
         <p>No grupo Planejamento, “Meu roteiro por etapas” mostra as 6 etapas, com prazo, situação e o botão <b>Entregar</b>. Quando terminar uma etapa, clique em Entregar: a situação passa a “Entregue” e o professor é avisado.</p>
         <p>Se o professor pedir ajustes, a etapa aparece como <b>Ajustar e reenviar</b>, com o retorno escrito dele. Corrija e entregue de novo (“Reenviada, aguardando análise”). Quando o professor aprovar, a etapa fica <b>Aprovada</b> e a próxima é liberada.</p>
         <p>Entregar depois do prazo desconta 2,0 pontos da nota da etapa. A Etapa 1 tem a sua própria regra de atraso (veja o passo 15). Há ainda a aba “Cópia para imprimir”.</p>
+      </Passo>
+
+      <Passo n="F" titulo="Cronograma">
+        <p>Em Planejamento, o item <b>Cronograma</b> mostra as 6 etapas em barras ao longo das semanas, com a linha de “hoje”, o prazo de cada etapa e a sua situação. As faixas hachuradas são etapas que o professor ainda não liberou. Cada etapa começa no primeiro dia útil depois do prazo da anterior. O cronograma segue os prazos que o professor definiu para a sua turma.</p>
+        <p>Use <b>Imprimir / Salvar PDF</b> (escolha “Salvar como PDF” no destino) ou <b>Salvar imagem (PNG)</b> para guardar ou compartilhar a folha.</p>
       </Passo>
 
       <Passo n={1} titulo="Entrar no sistema" imagem="manual-aluno-01-login.png">

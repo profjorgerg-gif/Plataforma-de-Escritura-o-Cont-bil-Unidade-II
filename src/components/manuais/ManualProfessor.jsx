@@ -3,7 +3,7 @@ export default function ManualProfessor() {
     <>
       <div className="screen-eyebrow">manual</div>
       <h2 className="screen-title">Manual do Professor</h2>
-      <p className="screen-sub">Como conduzir o Projeto Interdisciplinar CI–CA–AGB pela plataforma: a etapa 1 · Escrituração nas seções 1 a 7, e a organização do menu, as etapas 2 a 6, a avaliação e o roteiro de testes nas seções 8 a 14.</p>
+      <p className="screen-sub">Como conduzir o Projeto Interdisciplinar CI–CA–AGB pela plataforma: a etapa 1 · Escrituração nas seções 1 a 7, e a organização do menu, as etapas 2 a 6, a avaliação e o roteiro de testes nas seções 8 a 15.</p>
       <div className="btn-row no-print" style={{ marginBottom: 18 }}>
         <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir / Salvar como PDF</button>
       </div>
@@ -120,13 +120,22 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>13. Roteiro de testes</h3></div>
         <div className="panel-body">
-          <p>O item <b>🧪 Roteiro de testes</b> traz 50 passos em 12 blocos, cada um com o que fazer e o resultado esperado. O botão do passo abre a tela certa e troca sozinho para professor ou aluno de teste. Durante o passo, uma faixa amarela oferece <b>✓ Concluído · voltar ao roteiro</b> e <b>Voltar sem concluir</b>.</p>
+          <p>O item <b>🧪 Roteiro de testes</b> traz 55 passos em 13 blocos, cada um com o que fazer e o resultado esperado. O botão do passo abre a tela certa e troca sozinho para professor ou aluno de teste. Durante o passo, uma faixa amarela oferece <b>✓ Concluído · voltar ao roteiro</b> e <b>Voltar sem concluir</b>.</p>
           <p>Faça os testes numa turma com “TESTE” no nome (com três alunos fictícios e a conta de teste) para não misturar com a turma real. O progresso do roteiro fica só no navegador, por professor e turma; ele não grava nada no Firestore. O roteiro e o modo de teste são exclusivos do professor: os alunos não veem nenhum dos dois.</p>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-head"><h3>14. Cuidado com os dados dos alunos</h3></div>
+        <div className="panel-head"><h3>14. Cronograma, PDF e imagem</h3></div>
+        <div className="panel-body">
+          <p>O item <b>Cronograma</b> (grupo Planejamento, logo abaixo de “Etapas e prazos”) desenha as 6 etapas em barras, ao longo das semanas, com a linha de “hoje”, e traz uma tabela com período, prazo, aulas e o que entregar. É sempre o cronograma da <b>turma selecionada</b>: os prazos são os de “Etapas e prazos”, e mudou o prazo, o desenho muda junto.</p>
+          <p>Cada etapa começa no primeiro dia útil depois do prazo da anterior (a etapa 1 começa em 28/09). O botão <b>Mostrar andamento da turma</b> lê, uma vez, a situação de cada aluno e mostra, por etapa, a quantos alunos ela está liberada, quantos estão aprovados e quantos aguardam a sua análise; etapas não liberadas a ninguém ficam hachuradas. O botão <b>↻ Atualizar andamento</b> lê de novo.</p>
+          <p><b>Imprimir / Salvar PDF</b> abre a impressão do navegador com a folha em A4 paisagem (escolha “Salvar como PDF” no destino). <b>Salvar imagem (PNG)</b> baixa a mesma folha como imagem, para colar em Word, Classroom ou WhatsApp. Os alunos têm o mesmo item, com a situação de cada etapa deles.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head"><h3>15. Cuidado com os dados dos alunos</h3></div>
         <div className="panel-body">
           <p>Reorganizar menus, prazos e liberações nunca apaga o que os alunos digitaram. A única ação que apaga dados é <b>Refazer nota do aluno</b>, que fica marcada com o aviso “mexe nos dados” e guarda uma cópia na lixeira. Faça o <b>Baixar backup</b> antes de qualquer mudança grande.</p>
         </div>

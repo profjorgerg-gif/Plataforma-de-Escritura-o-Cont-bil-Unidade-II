@@ -43,6 +43,7 @@ export default function InicioProfessor({ turma, contadores, onIr }) {
           <button className="btn" onClick={() => onIr("fila")}>Fila de correção</button>
           <button className="btn secondary" onClick={() => onIr("suporte")}>Suporte</button>
           <button className="btn secondary" onClick={() => onIr("roteiro-lib")}>Liberar etapas</button>
+          <button className="btn secondary" onClick={() => onIr("cronograma")}>Cronograma</button>
         </div>
       </div>
 

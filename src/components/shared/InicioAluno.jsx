@@ -43,7 +43,8 @@ export default function InicioAluno({ etapas, mostrarPi, onIr, nome }) {
         <b>Você está aqui:</b> etapa {atual.n} de {etapas.length} · {atual.titulo} · prazo {fmtPrazo(atual.prazo)} · {atual.rotulo}.
         <div style={{ marginTop: 6 }}>{proximo}</div>
         <div style={{ marginTop: 8 }}>
-          <button className="btn" onClick={() => onIr(primeiraTela(atual))}>Ir para a etapa {atual.n}</button>
+          <button className="btn" onClick={() => onIr(primeiraTela(atual))}>Ir para a etapa {atual.n}</button>{" "}
+          {mostrarPi && <button className="btn secondary" onClick={() => onIr("cronograma")}>Ver cronograma</button>}
         </div>
       </div>
 

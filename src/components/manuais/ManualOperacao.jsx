@@ -71,7 +71,7 @@ export default function ManualOperacao() {
         <div className="panel-head"><h3>7. Menus e telas iniciais (Planejamento, Organização, Direção e Controle)</h3></div>
         <div className="panel-body">
           <p>Os menus do aluno e do professor são definidos em um único arquivo, <code className="mono">src/lib/menuPodc.js</code>, que apenas descreve o menu: não lê nem grava no Firestore. As chaves das telas (<code className="mono">key</code>) não mudam, e por isso nada do que os alunos já digitaram é afetado por mudanças de menu.</p>
-          <p>As telas “Comece aqui” (<code className="mono">InicioAluno.jsx</code> e <code className="mono">InicioProfessor.jsx</code>), a faixa “Etapa X de 6” e a tela de etapa bloqueada são só de leitura. O botão “← Voltar” usa uma pilha de telas guardada só na memória do navegador (últimas 30 telas).</p>
+          <p>O cronograma (<code className="mono">shared/Cronograma.jsx</code> e <code className="mono">lib/cronograma.js</code>) também só lê: usa os prazos de “Etapas e prazos” e desenha um SVG único, que serve para a tela, para o PDF (impressão em A4 paisagem) e para o PNG (canvas do navegador, sem biblioteca). O andamento da turma só é lido (uma leitura por aluno) quando o professor clica no botão. As telas “Comece aqui” (<code className="mono">InicioAluno.jsx</code> e <code className="mono">InicioProfessor.jsx</code>), a faixa “Etapa X de 6” e a tela de etapa bloqueada são só de leitura. O botão “← Voltar” usa uma pilha de telas guardada só na memória do navegador (últimas 30 telas).</p>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ export default function ManualOperacao() {
         <div className="panel-head"><h3>8. Etapas e liberação</h3></div>
         <div className="panel-body">
           <p>As 6 etapas têm identificadores fixos: <code className="mono">f1</code> (Escrituração), <code className="mono">fp</code> (Folha de pagamento), <code className="mono">ca</code>, <code className="mono">resc</code>, <code className="mono">agb</code> e <code className="mono">comp</code>. A etapa fica disponível ao aluno conforme a liberação da turma: <code className="mono">f1</code> sempre; <code className="mono">fp</code> com o CA liberado e a atividade da folha liberada; <code className="mono">ca</code> com o CA liberado; <code className="mono">resc</code> com a rescisão liberada; <code className="mono">agb</code> com o AGB liberado; <code className="mono">comp</code> com o AGB e os exercícios comparativos liberados.</p>
-          <p>A situação (Entregue, Ajustar, Aprovada etc.) vem do roteiro do aluno, e a nota de 0 a 10 de cada etapa fica na coleção de avaliações. A etapa bloqueada aparece no menu, mas a tela real não abre. Só o texto “Fase” deixou de existir: os identificadores internos continuam os mesmos.</p>
+          <p>A situação (Entregue, Ajustar, Aprovada etc.) vem do roteiro do aluno, e a nota de 0 a 10 de cada etapa fica na coleção de avaliações. A etapa bloqueada aparece no menu, mas a tela real não abre. Os identificadores internos não mudaram com a padronização dos nomes das etapas.</p>
         </div>
       </div>
 

@@ -435,6 +435,48 @@ export const BLOCOS_TESTE = [
         "tela": "turmas"
       }
     ]
+  },
+  {
+    "n": "13",
+    "titulo": "Cronograma, PDF e imagem",
+    "sub": "Pode ser feito a qualquer momento, depois do bloco 4. Cerca de 5 minutos.",
+    "passos": [
+      {
+        "id": "13.1",
+        "fazer": "Planejamento → \"Cronograma\".",
+        "esperado": "Folha com o título \"Cronograma das 6 etapas\", a linha vermelha \"HOJE\", as barras das 6 etapas nas cores de CI, CA e AGB e a tabela com período, prazo, aulas e o que entregar. Na conta de teste todas as etapas aparecem abertas, sem hachura.",
+        "quem": "aluno",
+        "tela": "cronograma"
+      },
+      {
+        "id": "13.2",
+        "fazer": "Clique em \"Imprimir / Salvar PDF\". No destino, escolha \"Salvar como PDF\" e abra o arquivo.",
+        "esperado": "A folha sai em uma única página A4 paisagem, só com o cronograma (sem menu nem botões).",
+        "quem": "aluno",
+        "tela": "cronograma"
+      },
+      {
+        "id": "13.3",
+        "fazer": "Clique em \"Salvar imagem (PNG)\" e abra o arquivo baixado.",
+        "esperado": "Baixa um arquivo cronograma-...png com o mesmo desenho da tela, com fundo branco e texto legível.",
+        "quem": "aluno",
+        "tela": "cronograma"
+      },
+      {
+        "id": "13.4",
+        "fazer": "Como professor: Planejamento → \"Cronograma\" (turma TESTE). Clique em \"Mostrar andamento da turma\".",
+        "esperado": "Os prazos são os da turma TESTE. Depois de carregar, a tabela mostra \"Liberada a 3 de 3\" na etapa 1 e \"Não liberada\" nas demais, que ficam hachuradas.",
+        "quem": "prof",
+        "tela": "cronograma"
+      },
+      {
+        "id": "13.5",
+        "fazer": "Como professor: em \"Etapas e prazos\" mude o prazo da etapa 2 e salve. Volte ao \"Cronograma\" (botão Voltar).",
+        "esperado": "A barra da etapa 2 termina na data nova e a barra da etapa 3 passa a começar no primeiro dia útil depois dela.",
+        "quem": "prof",
+        "tela": "roteiro-prazos"
+      }
+    ]
   }
 ];
 

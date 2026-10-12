@@ -6,7 +6,7 @@ export const DESCONTO_ATRASO = 2; // pontos descontados da nota da etapa quando 
 export const ETAPAS = [
   { id: "f1", titulo: "Escrituração", aulas: 8, prazoPadrao: "2026-10-16", descricao: "Concluir as atividades da escrituração, do Diário ao Balanço (iniciada na semana de 28/09; termina em 16/10).", entrega: "Lançamentos aprovados e parecer", semAtraso: true,
     criterios: [{ key: "nota", nome: "Nota da etapa 1 (a mesma da tela Notas: completude, qualidade técnica e autonomia, já com o desconto por atraso daquela tela)", peso: 100, tipo: "manual" }] },
-  { id: "fp", titulo: "Atividade · Elaborar a folha de pagamento", aulas: 8, prazoPadrao: "2026-10-23", descricao: "Calcular contracheques: proventos, descontos e salário líquido.", entrega: "Contracheques conferidos",
+  { id: "fp", titulo: "Folha de pagamento", aulas: 8, prazoPadrao: "2026-10-23", descricao: "Calcular contracheques: proventos, descontos e salário líquido.", entrega: "Contracheques conferidos",
     criterios: [
       { key: "calculos", nome: "Cálculos conferidos", peso: 60, tipo: "auto" },
       { key: "quantidade", nome: "Quantidade de contracheques", peso: 20, tipo: "auto" },
