@@ -62,6 +62,9 @@ import FolhaAtividade from "../aluno/FolhaAtividade.jsx";
 import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
+import RoteiroTestes, { FaixaTeste } from "../professor/RoteiroTestes.jsx";
+import { useProgressoTestes } from "../../hooks/useProgressoTestes.js";
+import { passoDoTeste } from "../../lib/roteiroTestes.js";
 import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, montarEtapasAluno, etapaDaTela, ABA_DO_ROTEIRO } from "../../lib/menuPodc.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
@@ -663,7 +666,21 @@ export default function Shell({ usuario, perfil, onSair }) {
       return novo;
     });
   }
-  const [screen, setScreen] = useState("inicio");
+  const [screen, setScreenRaw] = useState("inicio");
+  // Botão "Voltar": guarda as últimas telas visitadas (só no navegador, em memória; não grava nada).
+  // Toda navegação passa por setScreen(), então qualquer botão ou item de menu entra na pilha.
+  const [pilhaTelas, setPilhaTelas] = useState([]);
+  function setScreen(nova) {
+    if (nova === screen) return;
+    setPilhaTelas((p) => [...p, screen].slice(-30));
+    setScreenRaw(nova);
+  }
+  function voltarUmaTela() {
+    const anterior = pilhaTelas[pilhaTelas.length - 1];
+    if (!anterior) { setScreenRaw("inicio"); return; }
+    setPilhaTelas(pilhaTelas.slice(0, -1));
+    setScreenRaw(anterior);
+  }
   const [menuAberto, setMenuAberto] = useState(false);
 
   // Classificação → Livro diário: ao clicar em "usar no lançamento" na tela
@@ -681,11 +698,13 @@ export default function Shell({ usuario, perfil, onSair }) {
 
   function sairDoModoTeste() {
     setTesteAtivo(null);
-    setScreen("inicio");
+    setPilhaTelas([]);
+    setScreenRaw("inicio");
   }
   function entrarNoModoTeste(alvo) {
     setTesteAtivo(alvo);
-    setScreen("inicio");
+    setPilhaTelas([]);
+    setScreenRaw("inicio");
   }
 
   // papelEfetivo/turmaId/matricula: o que as telas de aluno realmente usam,
@@ -732,6 +751,35 @@ export default function Shell({ usuario, perfil, onSair }) {
   const suporteNaoLidoProfessor = (chamadosDaTurma || []).filter((c) => c.naoLidoProfessor).length;
   const correcoesPendentesProfessor = lancamentosParaFila.filter(({ lancamento }) => lancamento.status === "enviado").length;
 
+  // --- Roteiro de testes (modo de teste): progresso só no navegador; nada vai para o Firestore ---
+  const [passoAtivoId, setPassoAtivoId] = useState(null);
+  const turmaDoTeste = turmaSelecionada ? turmaSelecionada.id : (testeAtivo ? testeAtivo.turmaId : null);
+  const progTestes = useProgressoTestes(usuario.uid, turmaDoTeste);
+  const passoAtivo = passoAtivoId ? passoDoTeste(passoAtivoId) : null;
+  const contaDeTeste = (alunosParaFila || []).find((a) => a.contaTeste) || null;
+  function irParaPasso(p) {
+    setPassoAtivoId(p.id);
+    if (!p.tela) return;
+    let trocouModo = false;
+    if (p.quem === "aluno") {
+      if (!emTeste) {
+        if (!contaDeTeste || !turmaSelecionada) { setScreen("modoteste"); return; }
+        setTesteAtivo({ turmaId: turmaSelecionada.id, matricula: contaDeTeste.matricula, nome: contaDeTeste.nome });
+        trocouModo = true;
+      }
+    } else if (emTeste) {
+      setTesteAtivo(null);
+      trocouModo = true;
+    }
+    if (trocouModo) { setPilhaTelas([]); setScreenRaw(p.tela); } else setScreen(p.tela);
+    setMenuAberto(false);
+  }
+  function voltarAoRoteiroDeTestes(concluir) {
+    if (concluir && passoAtivoId) progTestes.marcar(passoAtivoId, true);
+    setPassoAtivoId(null);
+    setScreen("roteiro-testes");
+  }
+
   function selecionarAlunoEVerHistorico(aluno) {
     setAlunoSelecionado(aluno);
     setScreen("historico");
@@ -770,6 +818,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     menuGrupos = gruposMenuAlunoPodc({
       etapas: etapasAluno,
       incluirManuais: !emTeste,
+      incluirRoteiroTestes: emTeste,
       mostrarPi,
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
@@ -781,6 +830,11 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeSuporte: suporteNaoLidoProfessor,
     });
   }
+  // nome de cada tela, tirado do próprio menu, para o botão "Voltar" dizer para onde vai
+  const nomeDaTela = {};
+  menuGrupos.forEach((g) => { (g.itens || []).forEach((it) => { nomeDaTela[it.key] = it.label; }); (g.etapas || []).forEach((e) => e.itens.forEach((it) => { nomeDaTela[it.key] = it.label; })); });
+  const telaAnterior = pilhaTelas[pilhaTelas.length - 1] || null;
+  const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : "Comece aqui";
   const etapaDaTelaAtual = papelEfetivo === "aluno" ? etapaDaTela(screen) : null;
   const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
 
@@ -800,7 +854,20 @@ export default function Shell({ usuario, perfil, onSair }) {
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
   let tela;
-  if (screen === "inicio" && papelEfetivo === "aluno") {
+  if (ehProfessorOuAdmin && screen === "roteiro-testes") {
+    tela = (
+      <RoteiroTestes
+        turma={turmaSelecionada}
+        feitos={progTestes.feitos}
+        passoAtivo={passoAtivo}
+        emTeste={emTeste}
+        temContaTeste={!!contaDeTeste}
+        onIr={irParaPasso}
+        onMarcar={progTestes.marcar}
+        onLimpar={progTestes.limpar}
+      />
+    );
+  } else if (screen === "inicio" && papelEfetivo === "aluno") {
     tela = <InicioAluno etapas={etapasAluno} mostrarPi={mostrarPi} onIr={setScreen} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
   } else if (screen === "inicio" && ehProfessorOuAdmin) {
     tela = <InicioProfessor turma={turmaSelecionada} onIr={setScreen} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
@@ -1049,6 +1116,19 @@ export default function Shell({ usuario, perfil, onSair }) {
           </div>
         </div>
         <div className="content">
+          {(screen !== "inicio" || (ehProfessorOuAdmin && passoAtivo)) && (
+            <div className="nav-topo no-print">
+              {screen !== "inicio" && (
+                <div className="voltar-bar">
+                  <button className="btn secondary" onClick={voltarUmaTela}>← Voltar</button>
+                  <span className="voltar-para">para {rotuloAnterior}</span>
+                </div>
+              )}
+              {ehProfessorOuAdmin && passoAtivo && screen !== "roteiro-testes" && (
+                <FaixaTeste passo={passoAtivo} emTeste={emTeste} onConcluir={() => voltarAoRoteiroDeTestes(true)} onVoltar={() => voltarAoRoteiroDeTestes(false)} />
+              )}
+            </div>
+          )}
           {emTeste && (
             <div className="balance-check bad no-print" style={{ marginBottom: 18 }}>
               🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.

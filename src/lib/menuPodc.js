@@ -93,14 +93,14 @@ export function montarEtapasAluno({ roteiroCfg, rot, disp }) {
 }
 
 // ---------- ALUNO ----------
-export function gruposMenuAlunoPodc({ etapas, incluirManuais, mostrarPi, badgeDiario, badgeSuporte }) {
+export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTestes, mostrarPi, badgeDiario, badgeSuporte }) {
   const comBadge = (it) => (it.key === "diario" && badgeDiario > 0 ? { ...it, badge: badgeDiario } : it);
   const etapasMenu = etapas.map((e) => ({
     id: e.id, n: e.n, label: e.titulo, disc: e.disc, numerado: !!e.numerado, curto: e.curto, rotulo: e.rotulo, classe: e.classe, atual: e.atual, disponivel: e.disponivel,
     itens: e.itens.map(comBadge),
   }));
   return [
-    { itens: [{ key: "inicio", label: "🧭 Comece aqui" }] },
+    { itens: [{ key: "inicio", label: "🧭 Comece aqui" }, ...(incluirRoteiroTestes ? [{ key: "roteiro-testes", label: "🧪 Roteiro de testes" }] : [])] },
     { podc: P, itens: [
       ...(mostrarPi ? [{ key: "etapas", label: "Meu roteiro por etapas" }] : []),
       { key: "roteiro", label: "Roteiro do Aluno" },
@@ -130,7 +130,7 @@ export function manuaisProfessor(papel) {
 export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
   const b = (key, label, n, extra) => ({ key, label, ...(n > 0 ? { badge: n } : {}), ...(extra || {}) });
   return [
-    { itens: [{ key: "inicio", label: "🧭 Comece aqui" }] },
+    { itens: [{ key: "inicio", label: "🧭 Comece aqui" }, { key: "roteiro-testes", label: "🧪 Roteiro de testes" }] },
     { podc: PP, itens: [
       { key: "guia", label: "Guia do professor" },
       { key: "roteiro-prazos", label: "Etapas e prazos" },

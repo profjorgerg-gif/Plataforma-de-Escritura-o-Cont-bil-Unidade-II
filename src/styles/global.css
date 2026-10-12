@@ -136,6 +136,11 @@
   .role-btn.active{background:var(--green); border-color:var(--green); color:#fff;}
 
   .content{padding:30px 36px 60px 36px; max-width:1080px;}
+  /* Botão "Voltar" (2026-10-12): fixo no topo do conteúdo para não precisar subir a tela nem usar o menu */
+  .nav-topo{position:sticky; top:0; z-index:6; background:var(--paper); padding:8px 0 2px 0; margin:-8px 0 8px 0;}
+  .voltar-bar{display:flex; align-items:center; gap:10px; margin-bottom:10px; min-width:0;}
+  .voltar-bar .btn{padding:5px 14px; font-weight:600; flex-shrink:0;}
+  .voltar-para{font-size:13px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
   .screen-eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-faint); margin-bottom:6px;}
   h2.screen-title{font-size:24px; margin:0 0 4px 0; font-weight:600;}
   .screen-sub{color:var(--ink-soft); font-size:14px; margin:0 0 26px 0; max-width:640px;}
