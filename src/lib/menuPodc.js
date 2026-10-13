@@ -118,53 +118,75 @@ export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTest
 }
 
 // ---------- PROFESSOR ----------
-// roteiro-prazos e roteiro-lib abrem a MESMA tela de roteiro (RoteiroProfessor), só em abas diferentes.
-export const ABA_DO_ROTEIRO = { "roteiro-prof": "sit", "roteiro-lib": "sit", "roteiro-prazos": "cfg", "roteiro-folha": "folha" };
+// Menu reorganizado por TAREFA (2026-10-13): todo dia, planejar, etapas, alunos e notas, materiais, ajuda, manutenção.
+// Nenhuma tela foi retirada: as que eram parecidas viraram abas de um mesmo item. As chaves antigas continuam valendo
+// (botões do Guia, do Hoje e do Roteiro de testes) e abrem a aba certa dentro do item novo.
+// chave antiga → [item novo, aba]
+export const ABRIR_EM = {
+  "roteiro-prazos": ["planejar", "prazos"],
+  "roteiro-lib": ["planejar", "liberar"],
+  "roteiro-prof": ["planejar", "liberar"],
+  cronograma: ["planejar", "cronograma"],
+  painel: ["etapa1", "painel"],
+  documentos: ["etapa1", "docs"],
+  historico: ["alunos", "historico"],
+  registro: ["alunos", "registro"],
+  relatorio: ["alunos", "orientacao"],
+  notas: ["notas-aval", "etapa1"],
+  "aval-prof": ["notas-aval", "etapas"],
+  "dashboard-ciclo": ["notas-aval", "dashboard"],
+  plano: ["consultas", "plano"],
+  consulta: ["consultas", "cfop"],
+  guia: ["ajuda", "guia"],
+  "manual-professor": ["ajuda", "manprof"],
+  "manual-aluno": ["ajuda", "manaluno"],
+  "manual-operacao": ["ajuda", "manop"],
+};
+export const TELAS_COM_ABAS = ["planejar", "etapa1", "alunos", "notas-aval", "consultas", "ajuda"];
+// chaves antigas que pertencem a cada item novo (para o item ficar marcado e o botão Voltar dar o nome certo)
+const apelidos = (k) => Object.keys(ABRIR_EM).filter((x) => ABRIR_EM[x][0] === k);
 
-export function manuaisProfessor(papel) {
-  if (papel === "professor") return [{ key: "manual-professor", label: "Manual do Professor" }, { key: "manual-aluno", label: "Manual do Aluno" }];
-  if (papel === "admin") return [{ key: "manual-aluno", label: "Manual do Aluno" }, { key: "manual-professor", label: "Manual do Professor" }, { key: "manual-operacao", label: "Manual de Operacionalização" }];
-  return [];
-}
+// Mantido por compatibilidade: a aba da tela de roteiro por chave antiga (a tela agora só mostra a folha isolada).
+export const ABA_DO_ROTEIRO = { "roteiro-folha": "folha" };
 
 export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
   const b = (key, label, n, extra) => ({ key, label, ...(n > 0 ? { badge: n } : {}), ...(extra || {}) });
+  const ab = (key, label) => ({ key, label, apelidos: apelidos(key) });
   return [
-    { itens: [{ key: "inicio", label: "🧭 Comece aqui" }, { key: "roteiro-testes", label: "🧪 Roteiro de testes" }] },
-    { podc: PP, itens: [
-      { key: "guia", label: "Guia do professor" },
-      { key: "roteiro-prazos", label: "Etapas e prazos" },
-      { key: "cronograma", label: "Cronograma" },
-      { key: "diretriz", label: "Diretriz da semana (quadro)" },
-      { key: "caderno", label: "Caderno do Aluno (imprimir)" },
-      { key: "roteiro-folha", label: "Atividade da folha" },
-      { key: "roteiro", label: "Roteiro do Aluno" },
-    ] },
-    { podc: PO, itens: [
-      { key: "turmas", label: "Turmas" },
-      { key: "documentos", label: "Documentos fiscais" },
-      { key: "ca-prof", label: "Etapa 3 · CA (turma)" },
-      { key: "resc-prof", label: "Etapa 4 · Rescisão (turma)" },
-      { key: "agb-prof", label: "Etapas 5–6 · AGB (turma)" },
-      { key: "plano", label: "Plano de contas" },
-      { key: "consulta", label: "Consulta CFOP/NCM" },
-    ] },
-    { podc: PD, itens: [
-      { key: "painel", label: "Painel do professor" },
-      { key: "roteiro-lib", label: "Liberar etapas" },
+    { label: "todo dia", itens: [
+      { key: "inicio", label: "🧭 Hoje" },
       b("fila", "Fila de correção", badgeFila),
       b("suporte", "Suporte", badgeSuporte),
-      { key: "relatorio", label: "Relatório de orientação" },
+      { key: "diretriz", label: "Diretriz da semana (quadro)" },
+    ] },
+    { label: "planejar o ciclo", itens: [
+      ab("planejar", "Etapas, prazos e liberação"),
+      { key: "turmas", label: "Turmas" },
+    ] },
+    { label: "etapas do projeto", itens: [
+      ab("etapa1", "Etapa 1 · Escrituração"),
+      { key: "ca-prof", label: "Etapas 2–3 · CA" },
+      { key: "resc-prof", label: "Etapa 4 · Rescisão" },
+      { key: "agb-prof", label: "Etapas 5–6 · AGB" },
+      { key: "roteiro-folha", label: "Atividade da folha" },
+    ] },
+    { label: "alunos e notas", itens: [
+      ab("alunos", "Alunos"),
+      ab("notas-aval", "Notas e avaliação"),
+    ] },
+    { label: "materiais", itens: [
+      { key: "caderno", label: "Caderno do Aluno (imprimir)" },
+      { key: "roteiro", label: "Roteiro do Aluno" },
+      ab("consultas", "Consultas"),
       { key: "modelos", label: "Modelos de mensagens" },
     ] },
-    { podc: PC, itens: [
-      { key: "dashboard-ciclo", label: "Dashboard do ciclo" },
-      { key: "aval-prof", label: "Avaliação das etapas (0 a 10)" },
-      { key: "notas", label: "Notas" },
-      { key: "historico", label: "Histórico do aluno" },
-      { key: "registro", label: "Registro do processo" },
+    { id: "ajuda", label: "ajuda", recolhivel: true, itens: [
+      ab("ajuda", "Guias e manuais"),
+      { key: "roteiro-testes", label: "🧪 Roteiro de testes" },
+    ] },
+    { id: "manutencao", label: "manutenção (com cuidado)", recolhivel: true, itens: [
+      { key: "modoteste", label: "Modo de teste" },
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ] },
-    { id: "ferramentas", label: "ferramentas e manuais", recolhivel: true, itens: [{ key: "modoteste", label: "Modo de teste" }, ...manuaisProfessor(papel)] },
   ];
 }

@@ -55,7 +55,7 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>6. Avaliação da etapa 1</h3></div>
         <div className="panel-body">
-          <p>A nota da etapa 1 é composta por uma rubrica de três partes, calculada no Painel do Professor → Avaliação. Cada componente aparece como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5) — não em porcentagem nem solto de 0 a 10 — para que o peso e o resultado apareçam juntos, e os três valores somados batam visivelmente com a nota final:</p>
+          <p>A nota da etapa 1 é composta por uma rubrica de três partes, calculada em Alunos e notas → Notas e avaliação (aba Notas · Etapa 1). Cada componente aparece como "pontos ganhos de pontos possíveis" (ex.: 3,6 de 4,5) — não em porcentagem nem solto de 0 a 10 — para que o peso e o resultado apareçam juntos, e os três valores somados batam visivelmente com a nota final:</p>
           <ul style={{ margin: "0 0 12px", paddingLeft: 20, lineHeight: 1.9 }}>
             <li><b>Completude do ciclo (até 4,5 pontos, automático)</b> — proporcional ao % de documentos liberados em que o aluno concluiu as 4 etapas (Digitação → Análise fiscal → Classificação → Lançamento aprovado).</li>
             <li><b>Qualidade técnica (até 3,5 pontos, manual)</b> — o único campo que você preenche, de 0 a 10: seu julgamento sobre a coerência do raciocínio contábil, olhando classificações e justificativas.</li>
@@ -69,21 +69,21 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>7. Testar como aluno</h3></div>
         <div className="panel-body">
-          <p>Em <b>Modo de teste</b> (menu “ferramentas e manuais”), crie uma conta de teste e clique em "Entrar no modo de teste" para navegar pelas telas do aluno com seu próprio login — sem precisar de uma segunda conta Google. Um aviso fica visível o tempo todo enquanto você está nesse modo, e um botão leva de volta ao Painel a qualquer momento. Essa conta nunca se mistura com dados de alunos reais.</p>
+          <p>Em <b>Modo de teste</b> (menu “manutenção (com cuidado)”, no fim do menu), crie uma conta de teste e clique em "Entrar no modo de teste" para navegar pelas telas do aluno com seu próprio login — sem precisar de uma segunda conta Google. Um aviso fica visível o tempo todo enquanto você está nesse modo, e um botão leva de volta ao Painel a qualquer momento. Essa conta nunca se mistura com dados de alunos reais.</p>
         </div>
       </div>
       <div className="panel">
-        <div className="panel-head"><h3>8. O menu em Planejamento, Organização, Direção e Controle</h3></div>
+        <div className="panel-head"><h3>8. O menu do professor</h3></div>
         <div className="panel-body">
-          <p>O seu menu segue a ordem em que você trabalha em cada etapa. <b>P · Planejamento</b>: Guia do professor, Etapas e prazos, Atividade da folha e Roteiro do Aluno. <b>O · Organização</b>: Turmas, Documentos fiscais, as telas da turma para as etapas 3, 4 e 5–6, Plano de contas e Consulta CFOP/NCM. <b>D · Direção</b>: Painel do professor, Liberar etapas, Fila de correção, Suporte, Relatório de orientação e Modelos de mensagens. <b>C · Controle</b>: Dashboard do ciclo, Avaliação das etapas (0 a 10), Notas, Histórico do aluno, Registro do processo e Refazer nota do aluno (com o aviso de que mexe nos dados). No fim ficam “🧪 Roteiro de testes” (no topo) e “ferramentas e manuais” (recolhível).</p>
-          <p>A primeira tela é o <b>🧭 Comece aqui</b>: mostra o que exige ação hoje (fila de correção e perguntas novas no suporte), explica os quatro grupos com botões “Abrir”, traz a rotina sugerida em cada etapa e a tabela de etapas e prazos da turma selecionada. Ela só consulta; não grava nada.</p>
+          <p>O menu está organizado pelo que você faz, e não por tipo de gestão. <b>Todo dia</b>: Hoje, Fila de correção, Suporte e Diretriz da semana (quadro). <b>Planejar o ciclo</b>: Etapas, prazos e liberação (abas Etapas e prazos, Cronograma e Liberar etapas e situação dos alunos) e Turmas. <b>Etapas do projeto</b>: Etapa 1 · Escrituração (abas Painel do professor e Documentos fiscais), Etapas 2–3 · CA, Etapa 4 · Rescisão, Etapas 5–6 · AGB e Atividade da folha. <b>Alunos e notas</b>: Alunos (abas Histórico do aluno, Registro do processo e Relatório de orientação) e Notas e avaliação (abas Notas · Etapa 1, Avaliação das etapas e Dashboard do ciclo). <b>Materiais</b>: Caderno do Aluno (imprimir), Roteiro do Aluno, Consultas (abas Plano de contas e Consulta CFOP/NCM) e Modelos de mensagens. No fim ficam dois grupos fechados por padrão: <b>Ajuda</b> (Guias e manuais, com o Guia do professor e os manuais em abas, e o 🧪 Roteiro de testes) e <b>Manutenção (com cuidado)</b> (Modo de teste e Refazer nota do aluno, com o aviso de que mexe nos dados).</p>
+          <p>A primeira tela é o <b>🧭 Hoje</b>: mostra o que exige ação hoje (fila de correção e perguntas novas no suporte), diz onde fica cada coisa no menu, com botões “Abrir”, e traz a rotina sugerida em cada etapa. Os prazos das etapas não aparecem mais ali: ficam em “Etapas, prazos e liberação”. Ela só consulta; não grava nada.</p>
         </div>
       </div>
 
       <div className="panel">
         <div className="panel-head"><h3>9. Botão “← Voltar”</h3></div>
         <div className="panel-body">
-          <p>Em todas as telas, exceto no Comece aqui, aparece no topo o botão <b>← Voltar</b>, com o nome da tela de destino. Ele leva à tela de onde você veio (guarda as últimas 30), para você não precisar clicar no menu de novo. A lista é reiniciada ao entrar ou sair do modo de teste.</p>
+          <p>Em todas as telas, exceto no Hoje, aparece no topo o botão <b>← Voltar</b>, com o nome da tela de destino. Ele leva à tela de onde você veio (guarda as últimas 30), para você não precisar clicar no menu de novo. A lista é reiniciada ao entrar ou sair do modo de teste.</p>
         </div>
       </div>
 
@@ -91,8 +91,8 @@ export default function ManualProfessor() {
         <div className="panel-head"><h3>10. Etapas, prazos e liberação</h3></div>
         <div className="panel-body">
           <p>As 6 etapas são: <b>1 Escrituração</b> (CI), <b>2 Folha de pagamento</b> (CA), <b>3 Folha, provisões e contabilização</b> (CA), <b>4 Rescisão trabalhista</b> (CA), <b>5 Análise gerencial de balanços</b> (AGB) e <b>6 Análise comparativa</b> (AGB).</p>
-          <p>Os itens “Etapas e prazos”, “Liberar etapas” e “Atividade da folha” abrem a mesma tela do roteiro, cada um já na aba certa: <b>Etapas e prazos</b> (datas e aulas de cada etapa), <b>Situação dos alunos</b> (liberar, pedir ajuste, aprovar) e <b>Atividade da folha</b> (lista de empregados, mínimo de contracheques e a sugestão ao aluno).</p>
-          <p>Fluxo de cada etapa: o aluno entrega; você abre a etapa dele em “Liberar etapas” e escolhe <b>Pedir ajuste</b> (com um retorno escrito) ou <b>Aprovar e liberar a próxima</b>. Também há <b>Liberar para todos</b>, para abrir uma etapa para a turma inteira.</p>
+          <p>O item “Etapas, prazos e liberação” tem três abas: <b>Etapas e prazos</b> (datas e aulas de cada etapa), <b>Cronograma</b> (o desenho das 6 etapas) e <b>Liberar etapas e situação dos alunos</b> (liberar, pedir ajuste, aprovar). A <b>Atividade da folha</b> é um item à parte, em “Etapas do projeto” (lista de empregados, mínimo de contracheques e a sugestão ao aluno).</p>
+          <p>Fluxo de cada etapa: o aluno entrega; você abre a etapa dele em “Etapas, prazos e liberação”, aba “Liberar etapas e situação dos alunos”, e escolhe <b>Pedir ajuste</b> (com um retorno escrito) ou <b>Aprovar e liberar a próxima</b>. Também há <b>Liberar para todos</b>, para abrir uma etapa para a turma inteira.</p>
           <p>As etapas ainda não liberadas aparecem no menu do aluno com a etiqueta “Bloqueada”, e não ficam escondidas. A conta de teste vê todas as etapas abertas.</p>
         </div>
       </div>
@@ -102,9 +102,9 @@ export default function ManualProfessor() {
         <div className="panel-body">
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9 }}>
             <li><b>Etapa 2 (folha):</b> em “Atividade da folha”, clique em <b>Publicar lista a partir dos alunos da turma</b> para definir os empregados (a conta de teste não entra), defina o mínimo de contracheques e, se quiser, uma sugestão. A <b>trava</b> (“Ligar a trava”) bloqueia as demais telas da folha, da etapa 3, até você aprovar a atividade da folha; deixe desligada se não quiser essa exigência.</li>
-            <li><b>Etapas 2 e 3 (CA):</b> em “Etapa 3 · CA (turma)”, use <b>Liberar aos alunos</b>, confira as contas e defina a folha do mês. Você acompanha os trabalhos dos alunos na mesma tela.</li>
-            <li><b>Etapa 4 (Rescisão):</b> em “Etapa 4 · Rescisão (turma)”, confira as 3 contas novas em “Liberação e contas” antes de clicar em <b>Liberar aos alunos</b>.</li>
-            <li><b>Etapas 5 e 6 (AGB):</b> em “Etapas 5–6 · AGB (turma)”, use <b>Gerar período anterior</b> para cada aluno, libere as etapas e libere os <b>exercícios comparativos</b> aos poucos (um por vez).</li>
+            <li><b>Etapas 2 e 3 (CA):</b> em “Etapas 2–3 · CA”, use <b>Liberar aos alunos</b>, confira as contas e defina a folha do mês. Você acompanha os trabalhos dos alunos na mesma tela.</li>
+            <li><b>Etapa 4 (Rescisão):</b> em “Etapa 4 · Rescisão”, confira as 3 contas novas em “Liberação e contas” antes de clicar em <b>Liberar aos alunos</b>.</li>
+            <li><b>Etapas 5 e 6 (AGB):</b> em “Etapas 5–6 · AGB”, use <b>Gerar período anterior</b> para cada aluno, libere as etapas e libere os <b>exercícios comparativos</b> aos poucos (um por vez).</li>
           </ul>
         </div>
       </div>
@@ -112,8 +112,8 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>12. Avaliação das etapas (0 a 10) e notas</h3></div>
         <div className="panel-body">
-          <p>Em <b>Avaliação das etapas</b>, escolha a etapa e o aluno. Os critérios aparecem com uma sugestão automática de nota (por exemplo, cálculos conferidos e quantidade de contracheques na folha). Você ajusta a nota de 0 a 10, marca o desconto de <b>2,0 pontos por atraso</b> quando for o caso, escreve o comentário e marca <b>Mostrar esta nota e o retorno ao aluno</b>. Enquanto não marcar, o aluno não vê nada.</p>
-          <p>A tela <b>Notas</b> traz o quadro pronto para você digitar as notas no sistema da escola ao fim de cada etapa. A etapa 1 mantém a sua rubrica própria (seção 6).</p>
+          <p>Em <b>Notas e avaliação</b>, aba <b>Avaliação das etapas</b>, escolha a etapa e o aluno. Os critérios aparecem com uma sugestão automática de nota (por exemplo, cálculos conferidos e quantidade de contracheques na folha). Você ajusta a nota de 0 a 10, marca o desconto de <b>2,0 pontos por atraso</b> quando for o caso, escreve o comentário e marca <b>Mostrar esta nota e o retorno ao aluno</b>. Enquanto não marcar, o aluno não vê nada.</p>
+          <p>A aba <b>Notas · Etapa 1</b> traz o quadro pronto para você digitar as notas no sistema da escola ao fim de cada etapa. A etapa 1 mantém a sua rubrica própria (seção 6).</p>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export default function ManualProfessor() {
       <div className="panel">
         <div className="panel-head"><h3>14. Cronograma, PDF e imagem</h3></div>
         <div className="panel-body">
-          <p>O item <b>Cronograma</b> (grupo Planejamento, logo abaixo de “Etapas e prazos”) desenha as 6 etapas em barras, ao longo das semanas, com a linha de “hoje”, e traz uma tabela com período, prazo, aulas e o que entregar. É sempre o cronograma da <b>turma selecionada</b>: os prazos são os de “Etapas e prazos”, e mudou o prazo, o desenho muda junto.</p>
+          <p>A aba <b>Cronograma</b> (dentro de “Etapas, prazos e liberação”) desenha as 6 etapas em barras, ao longo das semanas, com a linha de “hoje”, e traz uma tabela com período, prazo, aulas e o que entregar. É sempre o cronograma da <b>turma selecionada</b>: os prazos são os da aba “Etapas e prazos”, e mudou o prazo, o desenho muda junto.</p>
           <p>Cada etapa começa no primeiro dia útil depois do prazo da anterior (a etapa 1 começa em 28/09). O botão <b>Mostrar andamento da turma</b> lê, uma vez, a situação de cada aluno e mostra, por etapa, a quantos alunos ela está liberada, quantos estão aprovados e quantos aguardam a sua análise; etapas não liberadas a ninguém ficam hachuradas. O botão <b>↻ Atualizar andamento</b> lê de novo.</p>
           <p><b>Imprimir / Salvar PDF</b> abre a impressão do navegador com a folha em A4 paisagem (escolha “Salvar como PDF” no destino). <b>Salvar imagem (PNG)</b> baixa a mesma folha como imagem, para colar em Word, Classroom ou WhatsApp. Os alunos têm o mesmo item, com a situação de cada etapa deles.</p>
         </div>

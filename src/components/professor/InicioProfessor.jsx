@@ -1,40 +1,34 @@
-import { PODC_PROF } from "../../lib/menuPodc.js";
-import { etapasEfetivas } from "../../lib/roteiro.js";
-import { useRoteiroTurma } from "../../hooks/useRoteiro.js";
-
-// "Comece aqui" do professor (2026-10-12). Só LEITURA e navegação: não grava nada.
-// Mostra o que exige ação hoje, o ciclo de trabalho em cada etapa (Planejamento, Organização, Direção e Controle)
-// e os prazos das 6 etapas da turma selecionada.
-
-const fmtPrazo = (iso) => (iso ? iso.split("-").reverse().join("/") : "—");
+// "Hoje" do professor (2026-10-13; antes "Comece aqui"). Só LEITURA e navegação: não grava nada.
+// Mostra o que exige ação hoje, onde fica cada coisa no menu e a rotina sugerida em cada etapa.
+// A tabela de prazos saiu daqui: os prazos ficam em "Etapas, prazos e liberação" (uma só fonte).
 
 const ROTINA = [
-  ["Antes da etapa", "Conferir prazos e, na etapa 2, publicar os empregados da folha", "Planejamento", "roteiro-prazos"],
-  ["Antes da etapa", "Configurar as etapas da turma (CA, Rescisão ou AGB)", "Organização", "turmas"],
-  ["Durante", "Corrigir a fila e responder o suporte", "Direção", "fila"],
-  ["No prazo", "Avaliar de 0 a 10 e mostrar a nota ao aluno", "Controle", "aval-prof"],
-  ["Depois da análise", "Aprovar e liberar a próxima etapa", "Direção", "roteiro-lib"],
-  ["Fim de cada etapa", "Digitar as notas no sistema da escola", "Controle", "notas"],
+  ["Antes da etapa", "Conferir prazos e, na etapa 2, publicar os empregados da folha", "Etapas, prazos e liberação · Atividade da folha", "roteiro-prazos"],
+  ["Antes da etapa", "Configurar a etapa da turma (CA, Rescisão ou AGB)", "Etapas do projeto", "turmas"],
+  ["Durante", "Corrigir a fila e responder o suporte", "Todo dia", "fila"],
+  ["No prazo", "Avaliar de 0 a 10 e mostrar a nota ao aluno", "Alunos e notas", "aval-prof"],
+  ["Depois da análise", "Aprovar e liberar a próxima etapa", "Etapas, prazos e liberação", "roteiro-lib"],
+  ["Fim de cada etapa", "Digitar as notas no sistema da escola", "Alunos e notas", "notas"],
+];
+
+const GRUPOS = [
+  { t: "Todo dia", d: "Fila de correção, Suporte e a Diretriz da semana para o quadro.", ir: "fila" },
+  { t: "Planejar o ciclo", d: "Etapas, prazos, cronograma, liberação das etapas e as turmas.", ir: "roteiro-prazos" },
+  { t: "Etapas do projeto", d: "Uma tela para cada etapa: preparar a turma e corrigir os trabalhos.", ir: "painel" },
+  { t: "Alunos e notas", d: "Histórico, registro e orientação por aluno; notas e avaliação de 0 a 10.", ir: "aval-prof" },
+  { t: "Materiais", d: "Caderno e Roteiro do Aluno, consultas e modelos de mensagens.", ir: "caderno" },
+  { t: "Ajuda e manutenção", d: "Guias e manuais, roteiro de testes, modo de teste e refazer nota (fechados por padrão).", ir: "guia" },
 ];
 
 export default function InicioProfessor({ turma, contadores, onIr }) {
-  const config = useRoteiroTurma(turma ? turma.id : null);
-  const lista = etapasEfetivas(config || null);
-  const explicacao = {
-    P: "Defina etapas, prazos, empregados da folha e critérios.",
-    O: "Organize turmas, etapas da turma e material de apoio.",
-    D: "Libere etapas, responda dúvidas e oriente quem precisa.",
-    C: "Acompanhe entregas, avalie de 0 a 10 e registre as notas.",
-  };
-  const destinos = { P: "roteiro-prazos", O: "turmas", D: "painel", C: "dashboard-ciclo" };
   const fila = (contadores && contadores.fila) || 0;
   const suporte = (contadores && contadores.suporte) || 0;
 
   return (
     <>
       <div className="screen-eyebrow">projeto interdisciplinar CI–CA–AGB</div>
-      <h2 className="screen-title">Comece aqui</h2>
-      <p className="screen-sub">O menu segue a ordem em que você trabalha em cada etapa: planeja e configura, libera e orienta, depois acompanha e avalia.</p>
+      <h2 className="screen-title">Hoje</h2>
+      <p className="screen-sub">O menu está organizado pelo que você faz: o que é de todo dia fica em cima; o que se usa uma vez por etapa vem depois; ajuda e manutenção ficam fechadas no fim.</p>
 
       <div className="balance-check ok" style={{ marginBottom: 18 }}>
         <b>Hoje{turma ? " · " + turma.nome : ""}:</b>{" "}
@@ -43,19 +37,20 @@ export default function InicioProfessor({ turma, contadores, onIr }) {
           <button className="btn" onClick={() => onIr("fila")}>Fila de correção</button>
           <button className="btn secondary" onClick={() => onIr("suporte")}>Suporte</button>
           <button className="btn secondary" onClick={() => onIr("roteiro-lib")}>Liberar etapas</button>
-          <button className="btn secondary" onClick={() => onIr("cronograma")}>Cronograma</button>
+          <button className="btn secondary" onClick={() => onIr("diretriz")}>Diretriz da semana</button>
+          <button className="btn secondary" onClick={() => onIr("roteiro-prazos")}>Etapas e prazos</button>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-head"><h3>Como o menu está organizado</h3></div>
+        <div className="panel-head"><h3>Onde fica cada coisa</h3></div>
         <div className="panel-body">
           <div className="kpi-row">
-            {PODC_PROF.map((g) => (
-              <div className="kpi" key={g.letra}>
-                <div className="kpi-label mono">{g.letra} · {g.titulo}</div>
-                <div style={{ fontSize: 13.5, margin: "4px 0 8px" }}>{explicacao[g.letra]}</div>
-                <button className="btn secondary" style={{ padding: "2px 10px", fontSize: 12 }} onClick={() => onIr(destinos[g.letra])}>Abrir</button>
+            {GRUPOS.map((g) => (
+              <div className="kpi" key={g.t}>
+                <div className="kpi-label mono">{g.t}</div>
+                <div style={{ fontSize: 13.5, margin: "4px 0 8px" }}>{g.d}</div>
+                <button className="btn secondary" style={{ padding: "2px 10px", fontSize: 12 }} onClick={() => onIr(g.ir)}>Abrir</button>
               </div>
             ))}
           </div>
@@ -77,24 +72,8 @@ export default function InicioProfessor({ turma, contadores, onIr }) {
             </tbody>
           </table>
         </div>
+        <div className="helper-note" style={{ margin: "0 16px 16px" }}>Os prazos de cada etapa ficam em “Etapas, prazos e liberação” (aba Etapas e prazos). Os alunos veem o que está lá.</div>
       </div>
-
-      {turma && (
-        <div className="panel">
-          <div className="panel-head"><h3>Etapas e prazos da turma</h3></div>
-          <div className="panel-body" style={{ padding: 0 }}>
-            <table>
-              <thead><tr><th>#</th><th>Etapa</th><th>Prazo</th><th className="num">Aulas</th></tr></thead>
-              <tbody>
-                {lista.map((e, i) => (
-                  <tr key={e.id}><td className="mono">{i + 1}</td><td>{e.titulo}</td><td className="mono">{fmtPrazo(e.prazo)}</td><td className="num">{e.aulas != null ? e.aulas : "—"}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="helper-note" style={{ margin: "0 16px 16px" }}>Os prazos podem ser ajustados em “Etapas e prazos”. Os alunos veem o que está aqui.</div>
-        </div>
-      )}
     </>
   );
 }

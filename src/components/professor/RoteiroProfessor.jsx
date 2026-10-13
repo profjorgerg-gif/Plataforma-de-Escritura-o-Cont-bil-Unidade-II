@@ -199,10 +199,18 @@ function AtividadeFolha({ turma }) {
   );
 }
 
-export default function RoteiroProfessor({ turma, abaInicial }) {
-  const [aba, setAba] = useState(abaInicial || "sit");
+// somente: "sit" | "cfg" | "folha" mostra só aquele conteúdo, sem o cabeçalho e sem a barra de abas
+// (usado quando a tela fica dentro de um item do menu que já tem as suas próprias abas).
+export default function RoteiroProfessor({ turma, abaInicial, somente }) {
+  const [aba, setAba] = useState(somente || abaInicial || "sit");
   const config = useRoteiroTurma(turma ? turma.id : null);
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
+  if (somente) {
+    return config === undefined ? <div className="empty-state">Carregando…</div>
+      : somente === "sit" ? <Situacao key={JSON.stringify(config)} turma={turma} config={config} />
+      : somente === "cfg" ? <EtapasEPrazos key={JSON.stringify(config)} turma={turma} config={config} />
+      : <AtividadeFolha turma={turma} />;
+  }
   return (
     <>
       <div className="screen-eyebrow">projeto interdisciplinar</div>

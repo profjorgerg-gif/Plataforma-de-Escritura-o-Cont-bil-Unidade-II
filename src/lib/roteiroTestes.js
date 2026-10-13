@@ -16,7 +16,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "1.2",
-        "fazer": "Menu Organização → Turmas → \"Nova turma\". Crie a turma \"TESTE\" e selecione-a.",
+        "fazer": "Menu \"Planejar o ciclo\" → Turmas → \"Nova turma\". Crie a turma \"TESTE\" e selecione-a.",
         "esperado": "No topo aparece \"Turma: TESTE\".",
         "quem": "prof",
         "tela": "turmas"
@@ -30,7 +30,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "1.4",
-        "fazer": "Menu \"Ferramentas e manuais\" (fim do menu) → Modo de teste → \"+ Criar conta de teste\".",
+        "fazer": "Menu \"Manutenção (com cuidado)\" (fim do menu, fechado por padrão) → Modo de teste → \"+ Criar conta de teste\".",
         "esperado": "Aparece uma conta de teste (matrícula TESTE-…). O botão de entrar nela fica nessa mesma tela.",
         "quem": "prof",
         "tela": "modoteste"
@@ -52,27 +52,27 @@ export const BLOCOS_TESTE = [
       {
         "id": "2.2",
         "fazer": "Entre como professor.",
-        "esperado": "Abre em \"Comece aqui\", com \"Hoje\" (fila e suporte), os 4 grupos e a rotina sugerida.",
+        "esperado": "Abre em \"Hoje\", com a fila e o suporte, \"Onde fica cada coisa\" e a rotina sugerida.",
         "quem": "prof",
         "tela": "inicio"
       },
       {
         "id": "2.3",
         "fazer": "Confira o menu lateral.",
-        "esperado": "Grupos P Planejamento, O Organização, D Direção e C Controle. \"Ferramentas e manuais\" no fim, recolhível.",
+        "esperado": "Grupos: todo dia, planejar o ciclo, etapas do projeto, alunos e notas, materiais. \"Ajuda\" e \"Manutenção (com cuidado)\" no fim, recolhíveis.",
         "quem": "prof",
         "tela": "inicio"
       },
       {
         "id": "2.4",
-        "fazer": "Abra \"Etapas e prazos\", \"Liberar etapas\" e \"Atividade da folha\".",
-        "esperado": "Os três abrem a mesma tela do roteiro, cada um já na aba certa (Etapas e prazos, Situação dos alunos, Atividade da folha).",
+        "fazer": "Abra \"Etapas, prazos e liberação\" e \"Atividade da folha\".",
+        "esperado": "O primeiro tem três abas (Etapas e prazos, Cronograma, Liberar etapas e situação dos alunos); \"Atividade da folha\" abre sozinha.",
         "quem": "prof",
         "tela": "roteiro-prazos"
       },
       {
         "id": "2.5",
-        "fazer": "Em \"Comece aqui\", clique nos botões \"Abrir\" dos quatro grupos e da rotina.",
+        "fazer": "Em \"Hoje\", clique nos botões \"Abrir\" de \"Onde fica cada coisa\" e da rotina.",
         "esperado": "Cada botão leva à tela indicada, sem erro.",
         "quem": "prof",
         "tela": "inicio"
@@ -86,14 +86,14 @@ export const BLOCOS_TESTE = [
     "passos": [
       {
         "id": "3.1",
-        "fazer": "Selecione a turma real (Organização → Turmas). Abra \"Painel do professor\" e \"Dashboard do ciclo\".",
+        "fazer": "Selecione a turma real (Planejar o ciclo → Turmas). Abra \"Etapa 1 · Escrituração\" (aba Painel do professor) e \"Notas e avaliação\" (aba Dashboard do ciclo).",
         "esperado": "Os alunos e o andamento aparecem como antes.",
         "quem": "prof",
         "tela": "turmas"
       },
       {
         "id": "3.2",
-        "fazer": "Abra \"Histórico do aluno\" de um aluno real que já tenha lançamentos.",
+        "fazer": "Abra \"Alunos\" (aba Histórico do aluno) de um aluno real que já tenha lançamentos.",
         "esperado": "Os lançamentos, as digitações e as classificações dele aparecem.",
         "quem": "prof",
         "tela": "historico"
@@ -114,7 +114,7 @@ export const BLOCOS_TESTE = [
     "passos": [
       {
         "id": "4.1",
-        "fazer": "Planejamento → \"Etapas e prazos\".",
+        "fazer": "Planejar o ciclo → \"Etapas, prazos e liberação\" (aba Etapas e prazos).",
         "esperado": "As 6 etapas com os prazos 16/10, 23/10, 05/11, 11/11, 19/11 e 25/11.",
         "quem": "prof",
         "tela": "roteiro-prazos"
@@ -122,13 +122,13 @@ export const BLOCOS_TESTE = [
       {
         "id": "4.2",
         "fazer": "Mude o prazo da etapa 2 para outra data e salve.",
-        "esperado": "Aparece a confirmação de salvo. Em \"Comece aqui\", o prazo novo aparece na tabela da turma.",
+        "esperado": "Aparece a confirmação de salvo. Em \"Etapas, prazos e liberação\" (aba Cronograma), o prazo novo aparece no desenho.",
         "quem": "prof",
         "tela": "roteiro-prazos"
       },
       {
         "id": "4.3",
-        "fazer": "Planejamento → \"Atividade da folha\". Clique em \"Publicar lista a partir dos alunos da turma\".",
+        "fazer": "Etapas do projeto → \"Atividade da folha\". Clique em \"Publicar lista a partir dos alunos da turma\".",
         "esperado": "Mensagem \"lista publicada com 3 empregados\". A conta de teste não entra na lista.",
         "quem": "prof",
         "tela": "roteiro-folha"
@@ -254,7 +254,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "7.2",
-        "fazer": "Como professor: em \"Liberar etapas\" (aba Situação dos alunos), escolha a conta de teste, abra a etapa 1 e clique em \"Pedir ajuste\", com um retorno escrito.",
+        "fazer": "Como professor: em \"Etapas, prazos e liberação\" (aba Liberar etapas e situação dos alunos), escolha a conta de teste, abra a etapa 1 e clique em \"Pedir ajuste\", com um retorno escrito.",
         "esperado": "A conta de teste aparece com a etapa 1 entregue. Depois de pedir o ajuste, salvo.",
         "quem": "prof",
         "tela": "roteiro-lib"
@@ -268,7 +268,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "7.4",
-        "fazer": "Como professor: em \"Liberar etapas\", abra a etapa 1 da conta de teste e clique em \"Aprovar e liberar a próxima\".",
+        "fazer": "Como professor: em \"Etapas, prazos e liberação\" (aba Liberar etapas e situação dos alunos), abra a etapa 1 da conta de teste e clique em \"Aprovar e liberar a próxima\".",
         "esperado": "A etapa 1 fica \"Aprovada\" e a etapa 2 passa a \"Liberada\".",
         "quem": "prof",
         "tela": "roteiro-lib"
@@ -285,7 +285,7 @@ export const BLOCOS_TESTE = [
   {
     "n": "8",
     "titulo": "Avaliação de 0 a 10 e retorno ao aluno",
-    "sub": "Controle → \"Avaliação das etapas (0 a 10)\".",
+    "sub": "Alunos e notas → \"Notas e avaliação\" (aba Avaliação das etapas, 0 a 10).",
     "passos": [
       {
         "id": "8.1",
@@ -310,7 +310,7 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "8.4",
-        "fazer": "Como professor: Controle → \"Notas\".",
+        "fazer": "Como professor: Alunos e notas → \"Notas e avaliação\" (aba Notas · Etapa 1).",
         "esperado": "O quadro de notas abre, pronto para você digitar no sistema da escola.",
         "quem": "prof",
         "tela": "notas"
@@ -320,7 +320,7 @@ export const BLOCOS_TESTE = [
   {
     "n": "9",
     "titulo": "Contabilidade Avançada (etapa 3)",
-    "sub": "Organização → \"Etapa 3 · CA (turma)\".",
+    "sub": "Etapas do projeto → \"Etapas 2–3 · CA\".",
     "passos": [
       {
         "id": "9.1",
@@ -348,7 +348,7 @@ export const BLOCOS_TESTE = [
   {
     "n": "10",
     "titulo": "Rescisão trabalhista (etapa 4)",
-    "sub": "Organização → \"Etapa 4 · Rescisão (turma)\".",
+    "sub": "Etapas do projeto → \"Etapa 4 · Rescisão\".",
     "passos": [
       {
         "id": "10.1",
@@ -376,7 +376,7 @@ export const BLOCOS_TESTE = [
   {
     "n": "11",
     "titulo": "Análise gerencial e comparativo (etapas 5 e 6)",
-    "sub": "Organização → \"Etapas 5–6 · AGB (turma)\".",
+    "sub": "Etapas do projeto → \"Etapas 5–6 · AGB\".",
     "passos": [
       {
         "id": "11.1",
@@ -416,7 +416,7 @@ export const BLOCOS_TESTE = [
       {
         "id": "12.1",
         "fazer": "Clique em \"Sair do modo de teste\".",
-        "esperado": "Volta ao \"Comece aqui\" do professor.",
+        "esperado": "Volta ao \"Hoje\" do professor.",
         "quem": "prof",
         "tela": "inicio"
       },
@@ -443,7 +443,7 @@ export const BLOCOS_TESTE = [
     "passos": [
       {
         "id": "13.1",
-        "fazer": "Planejamento → \"Cronograma\".",
+        "fazer": "Planejar o ciclo → \"Etapas, prazos e liberação\" (aba Cronograma).",
         "esperado": "Folha com o título \"Cronograma das 6 etapas\", a linha vermelha \"HOJE\", as barras das 6 etapas nas cores de CI, CA e AGB e a tabela com período, prazo, aulas e o que entregar. Na conta de teste todas as etapas aparecem abertas, sem hachura.",
         "quem": "aluno",
         "tela": "cronograma"
@@ -464,28 +464,28 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "13.4",
-        "fazer": "Como professor: Planejamento → \"Cronograma\" (turma TESTE). Clique em \"Mostrar andamento da turma\".",
+        "fazer": "Como professor: Planejar o ciclo → \"Etapas, prazos e liberação\" (aba Cronograma, turma TESTE). Clique em \"Mostrar andamento da turma\".",
         "esperado": "Os prazos são os da turma TESTE. Depois de carregar, a tabela mostra \"Liberada a 3 de 3\" na etapa 1 e \"Não liberada\" nas demais, que ficam hachuradas.",
         "quem": "prof",
         "tela": "cronograma"
       },
       {
         "id": "13.5",
-        "fazer": "Como professor: em \"Etapas e prazos\" mude o prazo da etapa 2 e salve. Volte ao \"Cronograma\" (botão Voltar).",
+        "fazer": "Como professor: em \"Etapas, prazos e liberação\" (aba Etapas e prazos) mude o prazo da etapa 2 e salve. Volte à aba \"Cronograma\" (na mesma tela).",
         "esperado": "A barra da etapa 2 termina na data nova e a barra da etapa 3 passa a começar no primeiro dia útil depois dela.",
         "quem": "prof",
         "tela": "roteiro-prazos"
       },
       {
         "id": "13.6",
-        "fazer": "Como professor (turma TESTE): Planejamento → \"Caderno do Aluno (imprimir)\". Em \"Capa preenchida para\" escolha \"Um aluno da turma\" e um aluno. Marque \"Cabeçalho da escola na capa\", escreva duas linhas e clique em \"Imprimir / Salvar PDF\" (A4, margens Nenhuma, Salvar como PDF).",
+        "fazer": "Como professor (turma TESTE): Materiais → \"Caderno do Aluno (imprimir)\". Em \"Capa preenchida para\" escolha \"Um aluno da turma\" e um aluno. Marque \"Cabeçalho da escola na capa\", escreva duas linhas e clique em \"Imprimir / Salvar PDF\" (A4, margens Nenhuma, Salvar como PDF).",
         "esperado": "A capa mostra o cabeçalho que você escreveu, o nome, a turma e a matrícula do aluno e o seu nome como professor. O PDF tem 39 páginas A4, sem menu nem botões, e o cabeçalho só aparece na capa. Na conta de teste (modo aluno) o item não existe no menu.",
         "quem": "prof",
         "tela": "caderno"
       },
       {
         "id": "13.7",
-        "fazer": "Como professor: Planejamento → \"Diretriz da semana (quadro)\". Veja se abre na semana de hoje, toque em outra semana, use A+ e A− e o botão \"Copiar texto\". Se puder, abra também no celular.",
+        "fazer": "Como professor: Todo dia → \"Diretriz da semana (quadro)\". Veja se abre na semana de hoje, toque em outra semana, use A+ e A− e o botão \"Copiar texto\". Se puder, abra também no celular.",
         "esperado": "A tela mostra o quadro da semana escolhida (etapa, prazo, meta, caminho, erros comuns, antes de entregar e regras), o texto aumenta e diminui, e \"Copiar texto\" avisa que copiou. Na conta de teste (modo aluno) o item não existe no menu.",
         "quem": "prof",
         "tela": "diretriz"

@@ -63,12 +63,13 @@ import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
 import CadernoAluno from "../professor/CadernoAluno.jsx";
 import DiretrizSemana from "../professor/DiretrizSemana.jsx";
+import TelaComAbas from "../professor/TelaComAbas.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
 import RoteiroTestes, { FaixaTeste } from "../professor/RoteiroTestes.jsx";
 import { useProgressoTestes } from "../../hooks/useProgressoTestes.js";
 import { passoDoTeste } from "../../lib/roteiroTestes.js";
-import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, montarEtapasAluno, etapaDaTela, ABA_DO_ROTEIRO } from "../../lib/menuPodc.js";
+import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, montarEtapasAluno, etapaDaTela, ABRIR_EM, TELAS_COM_ABAS } from "../../lib/menuPodc.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
@@ -835,9 +836,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   }
   // nome de cada tela, tirado do próprio menu, para o botão "Voltar" dizer para onde vai
   const nomeDaTela = {};
-  menuGrupos.forEach((g) => { (g.itens || []).forEach((it) => { nomeDaTela[it.key] = it.label; }); (g.etapas || []).forEach((e) => e.itens.forEach((it) => { nomeDaTela[it.key] = it.label; })); });
+  menuGrupos.forEach((g) => { (g.itens || []).forEach((it) => { nomeDaTela[it.key] = it.label; (it.apelidos || []).forEach((k) => { nomeDaTela[k] = it.label; }); }); (g.etapas || []).forEach((e) => e.itens.forEach((it) => { nomeDaTela[it.key] = it.label; })); });
   const telaAnterior = pilhaTelas[pilhaTelas.length - 1] || null;
-  const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : "Comece aqui";
+  const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : (ehProfessorOuAdmin && !emTeste ? "Hoje" : "Comece aqui");
   const etapaDaTelaAtual = papelEfetivo === "aluno" ? etapaDaTela(screen) : null;
   const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
 
@@ -856,8 +857,68 @@ export default function Shell({ usuario, perfil, onSair }) {
   const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "agb-comp", "ca-cont", "ca-efeitos"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
 
+  // Itens do menu do professor que reúnem telas em abas (2026-10-13). Chave antiga → item novo + aba certa.
+  const alvoAbas = ehProfessorOuAdmin && !emTeste ? (ABRIR_EM[screen] || (TELAS_COM_ABAS.includes(screen) ? [screen, null] : null)) : null;
+  function telaComAbas(item, aba) {
+    const cab = (eyebrow, titulo) => (<><div className="screen-eyebrow">{eyebrow}</div><h2 className="screen-title">{titulo}</h2></>);
+    if (item === "planejar") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "prazos"} abas={[
+          { key: "prazos", label: "Etapas e prazos", render: () => <>{cab("planejamento", "Etapas e prazos")}<RoteiroProfessor turma={turmaSelecionada} somente="cfg" /></> },
+          { key: "cronograma", label: "Cronograma", render: () => <CronogramaProfessor turma={turmaSelecionada} /> },
+          { key: "liberar", label: "Liberar etapas e situação dos alunos", render: () => <>{cab("liberação", "Liberar etapas e situação dos alunos")}<RoteiroProfessor turma={turmaSelecionada} somente="sit" /></> },
+        ]} />
+      );
+    }
+    if (item === "etapa1") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "painel"} abas={[
+          { key: "painel", label: "Painel do professor", render: () => <Painel turma={turmaSelecionada} onAbrirHistorico={selecionarAlunoEVerHistorico} /> },
+          { key: "docs", label: "Documentos fiscais", render: () => <DocumentosFiscaisProfessor turma={turmaSelecionada} /> },
+        ]} />
+      );
+    }
+    if (item === "alunos") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "historico"} abas={[
+          { key: "historico", label: "Histórico do aluno", render: () => <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} /> },
+          { key: "registro", label: "Registro do processo", render: () => <RegistroProcesso turma={turmaSelecionada} /> },
+          { key: "orientacao", label: "Relatório de orientação", render: () => <RelatorioOrientacao turma={turmaSelecionada} /> },
+        ]} />
+      );
+    }
+    if (item === "notas-aval") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "etapa1"} abas={[
+          { key: "etapa1", label: "Notas · Etapa 1", render: () => <Notas turma={turmaSelecionada} /> },
+          { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
+          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
+        ]} />
+      );
+    }
+    if (item === "consultas") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "plano"} abas={[
+          { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={perfil.papel} /> },
+          { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
+        ]} />
+      );
+    }
+    // ajuda
+    return (
+      <TelaComAbas key={screen} inicial={aba || "guia"} abas={[
+        { key: "guia", label: "Guia do professor", render: () => <GuiaProfessor turma={turmaSelecionada} onIr={(k) => setScreen(k)} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} /> },
+        { key: "manprof", label: "Manual do Professor", render: () => <ManualProfessor /> },
+        { key: "manaluno", label: "Manual do Aluno", render: () => <ManualAluno /> },
+        ...(perfil.papel === "admin" ? [{ key: "manop", label: "Manual de Operacionalização", render: () => <ManualOperacao /> }] : []),
+      ]} />
+    );
+  }
+
   let tela;
-  if (ehProfessorOuAdmin && screen === "roteiro-testes") {
+  if (alvoAbas) {
+    tela = telaComAbas(alvoAbas[0], alvoAbas[1]);
+  } else if (ehProfessorOuAdmin && screen === "roteiro-testes") {
     tela = (
       <RoteiroTestes
         turma={turmaSelecionada}
@@ -980,8 +1041,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <AgbComparativo esc={esc} trab={trabAgb} agb={agbAluno} emTeste={emTeste} />;
   } else if (papelEfetivo === "aluno" && screen === "agb-parecer") {
     tela = <ParecerFinal esc={esc} trab={trabAgb} agb={agbAluno} />;
-  } else if (ehProfessorOuAdmin && ABA_DO_ROTEIRO[screen]) {
-    tela = <RoteiroProfessor key={screen} turma={turmaSelecionada} abaInicial={ABA_DO_ROTEIRO[screen]} />;
+  } else if (ehProfessorOuAdmin && screen === "roteiro-folha") {
+    tela = (<><div className="screen-eyebrow">etapa 2</div><h2 className="screen-title">Atividade da folha</h2><RoteiroProfessor key={screen} turma={turmaSelecionada} somente="folha" /></>);
   } else if (ehProfessorOuAdmin && screen === "cronograma") {
     tela = <CronogramaProfessor turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "diretriz") {
@@ -1044,7 +1105,8 @@ export default function Shell({ usuario, perfil, onSair }) {
         </div>
         {menuGrupos.map((grupo, gi) => {
           const itensDaEtapa = (grupo.etapas || []).flatMap((e) => e.itens);
-          const temAtivo = grupo.itens.some((it) => it.key === screen) || itensDaEtapa.some((it) => it.key === screen);
+          const itemAtivo = (it) => it.key === screen || (it.apelidos || []).includes(screen);
+          const temAtivo = grupo.itens.some(itemAtivo) || itensDaEtapa.some((it) => it.key === screen);
           const aberto = !grupo.recolhivel || !!gruposAbertos[grupo.id] || temAtivo;
           const pendencias = grupo.itens.reduce((t, it) => t + (it.badge || 0), 0);
           function irPara(key) { setScreen(key); setMenuAberto(false); }
@@ -1052,7 +1114,7 @@ export default function Shell({ usuario, perfil, onSair }) {
             return (
               <div
                 key={item.key}
-                className={"nav-item" + (screen === item.key ? " active" : "") + (item.bloqueado ? " bloq" : "")}
+                className={"nav-item" + (itemAtivo(item) ? " active" : "") + (item.bloqueado ? " bloq" : "")}
                 onClick={() => irPara(item.key)}
               >
                 {num != null && <span className="num">{num}</span>}
