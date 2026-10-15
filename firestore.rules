@@ -291,6 +291,33 @@ service cloud.firestore {
       }
     }
 
+    // ---------- matrículas (índice leve p/ login, 2026-10-02) ----------
+    // Problema real encontrado em produção: o primeiro login do aluno
+    // precisa ACHAR seu próprio registro em turmas/*/alunos/{matricula} sem
+    // saber de antemão a turma — isso exige um collectionGroup query. Mas o
+    // Firestore recusa (permission-denied) um collectionGroup cuja regra
+    // depende de outro documento (get() dentro de souProfessorDaTurma) sem
+    // conseguir provar estaticamente que TODO resultado possível passaria —
+    // mesmo com where("uid","==",null) casando a condição, na prática a
+    // combinação com os outros termos do OR (que usam get()) faz o
+    // Firestore negar a consulta inteira. Depurado ao vivo em 2026-10-02
+    // depois de alunos reais ficarem travados no primeiro acesso.
+    //
+    // Solução: um índice plano e de baixa sensibilidade — SÓ matrícula,
+    // turmaId e uid, sem nome nem nota — que não precisa de get() nenhum
+    // para leitura, então um simples get(doc) (não um collectionGroup) ou
+    // mesmo uma regra "signedIn()" pura nunca esbarra nessa limitação.
+    // Mantido em sincronia com turmas/{turmaId}/alunos/{matricula} em todo
+    // lugar que cria ou vincula um aluno (Turmas.jsx, App.jsx).
+    match /matriculas/{matricula} {
+      allow read: if signedIn();
+      allow create: if souAdmin() || souProfessorDaTurma(request.resource.data.turmaId);
+      allow update: if souAdmin() || souProfessorDaTurma(resource.data.turmaId)
+        || (signedIn() && resource.data.uid == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid']));
+      allow delete: if souAdmin() || souProfessorDaTurma(resource.data.turmaId);
+    }
+
     // ---------- professores autorizados (não usada por enquanto) ----------
     match /professoresAutorizados/{email} {
       allow read, write: if souAdmin();
