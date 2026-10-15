@@ -48,7 +48,19 @@ function valorDaConta(l, contas) {
 }
 
 // Confere UM lançamento. `doc` = nota do catálogo. `duplicadoDe` = true se outro igual já "vale".
-export function conferirUm(l, doc, duplicado) {
+const CAM_EDIT = " Caminho: Etapa 1 · Escrituração → Livro diário → ✏️ Editar.";
+const CAM_EXC = " Caminho: Etapa 1 · Escrituração → Livro diário → 🗑️ Excluir este lançamento.";
+function comCaminho(r) {
+  if (r.estado !== "no" || !r.acao) return r;
+  let a = r.acao;
+  const ed = /orrija|refaça/.test(a), ex = /xclua|xclusão/.test(a);
+  if (ed && ex) a += " Caminho: Etapa 1 · Escrituração → Livro diário → ✏️ Editar ou 🗑️ Excluir este lançamento.";
+  else if (ed) a += CAM_EDIT; else if (ex) a += CAM_EXC;
+  return { ...r, acao: a };
+}
+
+export function conferirUm(l, doc, duplicado) { return comCaminho(conferirUm0(l, doc, duplicado)); }
+function conferirUm0(l, doc, duplicado) {
   if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
   let tipos = tiposDoLancamento(l);
   if (tipos.length === 0) return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
