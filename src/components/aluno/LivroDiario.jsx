@@ -416,6 +416,13 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
                         </div>
                       </td>
                     </tr>
+                    {l.status === "correcao" && l.obsCorrecao && (
+                      <tr>
+                        <td colSpan={7} style={{ background: "var(--red-pale, #fbe6e4)", borderLeft: "4px solid var(--red)", fontSize: 13 }}>
+                          <b style={{ color: "var(--red)" }}>Devolvido pelo professor:</b> {l.obsCorrecao}
+                        </td>
+                      </tr>
+                    )}
                     {temHistorico && historicoAberto[l.id] && (
                       <tr>
                         <td colSpan={7} style={{ background: "var(--paper-deep)" }}>
