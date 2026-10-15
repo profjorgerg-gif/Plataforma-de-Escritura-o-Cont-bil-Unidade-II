@@ -57,7 +57,9 @@ function blankAnalise() {
   return { cfopCorreto: "", cfopSugerido: "", ncmCorreto: "", cstCorreto: "", justificativa: "", status: "rascunho" };
 }
 
-export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos }) {
+// parte: "dig" mostra só a Digitação, "ana" só a Análise fiscal (fluxo por etapas, 2027.1); sem parte = as duas, como sempre.
+// travado: bloqueia os campos enquanto o lote está aguardando o professor ou já foi aprovado.
+export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos, parte, travado }) {
   const [docSel, setDocSel] = useState(documentos[0]?.id || "");
   const docFiscal = documentos.find((d) => d.id === docSel);
   const mapaCfop = useLookupCfop();
@@ -236,8 +238,8 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
 
   return (
     <>
-      <div className="screen-eyebrow">04 · digitação e análise fiscal</div>
-      <h2 className="screen-title">Digitar e analisar a nota fiscal</h2>
+      <div className="screen-eyebrow">{parte === "dig" ? "passo 1 · digitação da NF-e" : parte === "ana" ? "passo 2 · análise fiscal" : "04 · digitação e análise fiscal"}</div>
+      <h2 className="screen-title">{parte === "dig" ? "Digitar a nota fiscal" : parte === "ana" ? "Analisar a nota fiscal" : "Digitar e analisar a nota fiscal"}</h2>
       <p className="screen-sub">Abra o PDF disponibilizado pelo professor. Primeiro digite os dados da nota exatamente como emitidos; depois julgue se CFOP, NCM e CST estão corretos para essa operação. O sistema não indica a resposta certa em nenhuma das duas etapas.</p>
 
       <div className="panel">
@@ -249,6 +251,8 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
         </div>
       </div>
 
+      <fieldset disabled={!!travado} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      {parte !== "ana" && (
       <div className="panel">
         <div className="panel-head"><h3>1. Digitação da NF-e
           {dirtyDig
@@ -381,7 +385,9 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           )}
         </div>
       </div>
+      )}
 
+      {parte !== "dig" && (
       <div className="panel">
         <div className="panel-head"><h3>2. Análise fiscal
           {dirtyAn && <span style={{ marginLeft: 10, fontSize: 12, fontWeight: "normal", background: "#FBF1DC", border: "1px solid #9C6B1F", color: "#9C6B1F", borderRadius: 14, padding: "2px 10px" }}>● alterações não salvas</span>}
@@ -434,12 +440,14 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           </div>
           <div className="field"><label>Justificativa / fonte utilizada na pesquisa</label><textarea value={analise.justificativa} onChange={(e) => setAnaliseField("justificativa", e.target.value)} /></div>
           <div className="btn-row">
-            <button className="btn" disabled={salvandoAnalise} onClick={() => salvarAnalise("enviado")}>Enviar análise</button>
+            <button className="btn" disabled={salvandoAnalise} onClick={() => salvarAnalise("enviado")}>{parte ? "Concluir análise desta nota" : "Enviar análise"}</button>
             <button className="btn secondary" disabled={salvandoAnalise} onClick={() => salvarAnalise("rascunho")}>Salvar rascunho</button>
           </div>
           {salvoAnalise && <div className="balance-check ok" style={{ marginTop: 10 }}>✓ {salvoAnalise}</div>}
         </div>
       </div>
+      )}
+      </fieldset>
     </>
   );
 }

@@ -64,6 +64,10 @@ import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
 import CadernoAluno from "../professor/CadernoAluno.jsx";
 import DiretrizSemana from "../professor/DiretrizSemana.jsx";
 import LotesFluxo from "../professor/LotesFluxo.jsx";
+import FluxoTelas from "../aluno/FluxoTelas.jsx";
+import EnviosPorLote from "../professor/EnviosPorLote.jsx";
+import { useFluxoAluno } from "../../hooks/useFluxoAluno.js";
+import { estadoFluxo } from "../../lib/fluxoLotes.js";
 import TelaComAbas from "../professor/TelaComAbas.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
@@ -721,6 +725,10 @@ export default function Shell({ usuario, perfil, onSair }) {
   const esc = useEscrituracao(turmaId, matricula);
   const documentos = useDocumentosDaTurma(turmaId);
   const progresso = useProgressoAluno(turmaId, matricula);
+  // Fluxo por etapas (2027.1): só vale quando o professor liga na turma. Desligado (padrão) = null e nada muda.
+  const fluxo = useFluxoAluno(papelEfetivo === "aluno" ? turmaId : null, matricula);
+  const estFluxo = papelEfetivo === "aluno" ? estadoFluxo(fluxo.cfg, fluxo.docs) : null;
+  const docsLote = estFluxo && estFluxo.lote && documentos ? documentos.filter((d) => estFluxo.lote.documentos.includes(d.id)) : [];
   const meuRegistro = useMeuRegistroDeAluno(turmaId, matricula);
   const minhaTurma = useTurma(turmaId);
   // Fase 3 (AGB): liberação/período anterior da turma e o trabalho do aluno (um listener só para as 4 telas)
@@ -835,6 +843,21 @@ export default function Shell({ usuario, perfil, onSair }) {
       badgeSuporte: suporteNaoLidoProfessor,
     });
   }
+  // Fluxo ligado: Etapa 1 mostra os 3 passos em ordem, com cadeado no que ainda não abriu.
+  if (papelEfetivo === "aluno" && estFluxo) {
+    const trava = (p) => !estFluxo.lote || estFluxo.passos[p].status === "bloqueada";
+    menuGrupos = menuGrupos.map((g) => (!g.etapas ? g : {
+      ...g,
+      etapas: g.etapas.map((e) => (e.id !== "f1" ? e : {
+        ...e,
+        itens: e.itens.flatMap((it) => {
+          if (it.key === "digitacao") return [{ ...it, label: (trava("digitacao") ? "🔒 " : "") + "1 · Digitação da NF-e" }, { key: "analise-fiscal", label: (trava("analise") ? "🔒 " : "") + "2 · Análise fiscal" }];
+          if (it.key === "classificacao") return [{ ...it, label: (trava("classificacao") ? "🔒 " : "") + "3 · Classificação contábil" }];
+          return [it];
+        }),
+      })),
+    }));
+  }
   // nome de cada tela, tirado do próprio menu, para o botão "Voltar" dizer para onde vai
   const nomeDaTela = {};
   menuGrupos.forEach((g) => { (g.itens || []).forEach((it) => { nomeDaTela[it.key] = it.label; (it.apelidos || []).forEach((k) => { nomeDaTela[k] = it.label; }); }); (g.etapas || []).forEach((e) => e.itens.forEach((it) => { nomeDaTela[it.key] = it.label; })); });
@@ -856,7 +879,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   }
 
   const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "agb-comp", "ca-cont", "ca-efeitos"];
-  const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "classificacao"];
+  const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "analise-fiscal", "classificacao"];
 
   // Itens do menu do professor que reúnem telas em abas (2026-10-13). Chave antiga → item novo + aba certa.
   const alvoAbas = ehProfessorOuAdmin && !emTeste ? (ABRIR_EM[screen] || (TELAS_COM_ABAS.includes(screen) ? [screen, null] : null)) : null;
@@ -947,6 +970,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <ManualProfessor />;
   } else if (screen === "manual-operacao") {
     tela = <ManualOperacao />;
+  } else if (ehProfessorOuAdmin && !emTeste && screen === "envios") {
+    tela = <EnviosPorLote turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && !emTeste && screen === "modoteste") {
     tela = <ModoTeste turma={turmaSelecionada} onEntrar={entrarNoModoTeste} />;
   } else if (papelEfetivo === "aluno" && TELAS_COM_ESCRITURACAO.includes(screen) && esc.carregando) {
@@ -961,7 +986,9 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <EmpresaDidatica usuario={usuario} perfil={emTeste ? { turmaId, matricula } : perfil} />;
   } else if (papelEfetivo === "aluno" && screen === "documentos") {
     tela = <DocumentosFiscais documentos={documentos} />;
-  } else if (papelEfetivo === "aluno" && screen === "digitacao") {
+  } else if (papelEfetivo === "aluno" && estFluxo && (screen === "digitacao" || screen === "analise-fiscal" || screen === "classificacao")) {
+    tela = <FluxoTelas screen={screen} est={estFluxo} erro={fluxo.erro} docsLote={docsLote} progresso={progresso} turmaId={turmaId} matricula={matricula} contas={esc.contas} onUsarNoLancamento={usarClassificacaoNoLancamento} />;
+  } else if (papelEfetivo === "aluno" && (screen === "digitacao" || screen === "analise-fiscal")) {
     tela = <DigitacaoAnaliseFiscal turmaId={turmaId} matricula={matricula} documentos={documentos} />;
   } else if (papelEfetivo === "aluno" && screen === "consulta") {
     tela = <ConsultaFiscal />;

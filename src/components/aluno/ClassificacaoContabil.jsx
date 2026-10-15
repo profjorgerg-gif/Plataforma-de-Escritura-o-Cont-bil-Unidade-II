@@ -28,7 +28,8 @@ function documentoProntoParaClassificar(docId, progresso) {
   return digitado && analisado;
 }
 
-export default function ClassificacaoContabil({ turmaId, matricula, documentos, progresso, contas, onUsarNoLancamento }) {
+// travado: fluxo por etapas (2027.1) — bloqueia o formulário enquanto o lote aguarda o professor ou já foi aprovado.
+export default function ClassificacaoContabil({ turmaId, matricula, documentos, progresso, contas, onUsarNoLancamento, travado }) {
   const [documento, setDocumento] = useState("");
   const [fato, setFato] = useState("");
   const [contaDebito, setContaDebito] = useState("");
@@ -117,6 +118,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
       {!carregandoProgresso && documentosProntos.length === 0 && (
         <div className="helper-note">Nenhum documento disponível ainda para classificar. Complete a Digitação e a Análise fiscal (envie a análise, não só salve o rascunho) de pelo menos um documento em "Digitação e análise fiscal" antes de classificar.</div>
       )}
+      <fieldset disabled={!!travado} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div className="panel">
         <div className="panel-head"><h3>Nova classificação</h3></div>
         <div className="panel-body">
@@ -153,6 +155,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
           <div className="btn-row"><button className="btn" onClick={salvar}>Salvar classificação</button></div>
         </div>
       </div>
+      </fieldset>
       <div className="panel">
         <div className="panel-head"><h3>Classificações registradas</h3></div>
         <div className="panel-body" style={{ padding: 0 }}>

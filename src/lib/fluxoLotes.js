@@ -36,3 +36,34 @@ export function documentosSemLote(documentos, lotes) {
   const usados = new Set(lotes.flatMap((l) => l.documentos));
   return (documentos || []).filter((d) => !usados.has(d.id));
 }
+
+// ---------- Fase 2: situação do aluno no fluxo ----------
+export const idFluxo = (loteId, passo) => loteId + "_" + passo;
+
+// cfg = documento roteiro/lotes normalizado; docs = { [idFluxo]: {status, orientacao, ...} } do aluno.
+// Retorna null quando o fluxo não está ligado (tudo funciona como sempre).
+export function estadoFluxo(cfg, docs) {
+  if (!cfg || !cfg.fluxoAtivo) return null;
+  const st = (loteId, passo) => (docs && docs[idFluxo(loteId, passo)]) || null;
+  const aprovado = (loteId, passo) => st(loteId, passo)?.status === "aprovado";
+  // lote atual = o primeiro lote liberado cuja classificação ainda não foi aprovada
+  const liberados = cfg.lotes.filter((l) => l.liberado && l.documentos.length > 0);
+  const lote = liberados.find((l) => !aprovado(l.id, "classificacao")) || null;
+  const concluidos = liberados.filter((l) => aprovado(l.id, "classificacao")).length;
+  if (!lote) return { ativo: true, lote: null, concluidos, totalLiberados: liberados.length, passos: {} };
+  const situacao = (passo, liberado) => {
+    const d = st(lote.id, passo);
+    return { liberado, status: !liberado ? "bloqueada" : (d?.status || "andamento"), orientacao: d?.orientacao || "", registro: d };
+  };
+  const dOk = aprovado(lote.id, "digitacao");
+  const aOk = aprovado(lote.id, "analise");
+  return {
+    ativo: true, lote, concluidos, totalLiberados: liberados.length,
+    passos: {
+      digitacao: situacao("digitacao", true),
+      analise: situacao("analise", dOk),
+      classificacao: situacao("classificacao", dOk && aOk),
+    },
+  };
+}
+export const passoEditavel = (p) => !!p && p.liberado && (p.status === "andamento" || p.status === "devolvido");

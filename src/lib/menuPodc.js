@@ -63,6 +63,7 @@ export const ETAPAS_MENU_ALUNO = [
 // chave da tela → id da etapa (para a faixa "Você está aqui" e para a tela de etapa bloqueada)
 export const ETAPA_DA_TELA = {};
 ETAPAS_MENU_ALUNO.forEach((e) => e.itens.forEach((it) => { ETAPA_DA_TELA[it.key] = e.id; }));
+ETAPA_DA_TELA["analise-fiscal"] = "f1"; // tela do fluxo por etapas (2027.1); só aparece no menu com o fluxo ligado
 export const etapaDaTela = (key) => ETAPA_DA_TELA[key] || null;
 
 const CURTO = { aprovada: "Aprovada", ajustar: "Ajustar", entregue: "Entregue", liberada: "Liberada", bloqueada: "Bloqueada" };
@@ -157,6 +158,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "inicio", label: "🧭 Hoje" },
       b("fila", "Fila de correção", badgeFila),
       b("suporte", "Suporte", badgeSuporte),
+      { key: "envios", label: "Envios por lote (2027.1)" },
       { key: "diretriz", label: "Diretriz da semana (quadro)" },
     ] },
     { label: "planejar o ciclo", itens: [
