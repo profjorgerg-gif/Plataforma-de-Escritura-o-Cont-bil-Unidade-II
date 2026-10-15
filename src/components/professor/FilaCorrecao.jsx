@@ -7,6 +7,7 @@ import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { contaInfo, fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
+import ConferenciaAuto from "./ConferenciaAuto.jsx";
 
 // ANÁLISE POR IA — sem Cloud Function, sem custo, sem chave secreta.
 // Em vez do sistema chamar uma API de IA (o que exigiria guardar uma chave
@@ -69,6 +70,7 @@ export default function FilaCorrecao({ turmaId }) {
   const fila = todos
     .filter(({ lancamento }) => lancamento.status === "enviado")
     .sort((a, b) => millisDoEnvio(a.lancamento) - millisDoEnvio(b.lancamento));
+  const [mostrarAuto, setMostrarAuto] = useState(false);
   const [obs, setObs] = useState({});
   const [copiado, setCopiado] = useState({}); // chave -> true por alguns segundos, feedback visual
   const [extras, setExtras] = useState({}); // chave -> { aberto, carregando, analise, classificacoes }
@@ -136,6 +138,12 @@ export default function FilaCorrecao({ turmaId }) {
       <div className="helper-note" style={{ borderLeftColor: "var(--green)", background: "var(--green-pale)", color: "var(--green-dark)" }}>
         <b>O que aparece aqui:</b> só os lançamentos já prontos no Livro Diário — a última etapa do fluxo do aluno. Digitação e análise fiscal em andamento (antes de virar lançamento) não entram nesta fila; para acompanhar essas etapas, use <b>Histórico do aluno</b>.
       </div>
+      {fila.length > 0 && (
+        <div style={{ margin: "10px 0" }}>
+          <button className="btn secondary" onClick={() => setMostrarAuto((v) => !v)}>{mostrarAuto ? "▲ Fechar" : "⚡ Abrir"} conferência automática por aluno</button>
+        </div>
+      )}
+      {mostrarAuto && <ConferenciaAuto turmaId={turmaId} fila={fila} todos={todos} catalogo={catalogo} contas={contas} />}
       {fila.length === 0 && <div className="panel"><div className="empty-state">Nenhum lançamento pendente no momento.</div></div>}
       {fila.map(({ aluno, lancamento: l }) => {
         const k = chave(aluno.matricula, l.id);
