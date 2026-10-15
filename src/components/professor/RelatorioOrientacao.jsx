@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { serverTimestamp } from "firebase/firestore";
+import { criarChamadoNumerado } from "../../lib/chamados.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
 import { prazoEfetivo } from "../../lib/contabil.js";
-import { gerarRelatorioOrientacao, relatorioEmTexto } from "../../lib/relatorioOrientacao.js";
+import { gerarRelatorioOrientacao, relatorioEmTexto, relatorioParaAluno, relatorioParaProfessor, contarPendenciasProfessor } from "../../lib/relatorioOrientacao.js";
 
 // Relatório de orientação por aluno (pedido do professor, 2026-10-08).
 // Regras fixas calculadas no navegador (src/lib/relatorioOrientacao.js) — sem
@@ -162,6 +164,12 @@ export default function RelatorioOrientacao({ turma }) {
   const [escolha, setEscolha] = useState("");     // "" | "__turma__" | matrícula
   const [gerado, setGerado] = useState(null);     // { modo: "aluno"|"turma", ... }
   const [copiado, setCopiado] = useState(false);
+  const [envAberto, setEnvAberto] = useState(false);   // painel "Enviar ao aluno"
+  const [envTexto, setEnvTexto] = useState("");
+  const [envOcupado, setEnvOcupado] = useState(false);
+  const [envMsg, setEnvMsg] = useState("");
+  const [proAberto, setProAberto] = useState(false);   // painel "Enviar ao professor"
+  const [proTexto, setProTexto] = useState("");
 
   if (!turma) {
     return (
@@ -198,7 +206,44 @@ export default function RelatorioOrientacao({ turma }) {
       if (a) setGerado({ modo: "aluno", rel: relatorioDe(a) });
     }
   }
-  function abrirAluno(rel) { setGerado({ modo: "aluno", rel, veioDaTurma: gerado }); setCopiado(false); }
+  function abrirEnvio(rel) { setEnvTexto(relatorioParaAluno(rel)); setEnvMsg(""); setEnvAberto(true); }
+  async function enviarAoAluno(rel) {
+    if (!envTexto.trim()) return;
+    setEnvOcupado(true); setEnvMsg("");
+    try {
+      const r = await criarChamadoNumerado(turmaId, {
+        matricula: rel.aluno.matricula, alunoNome: rel.aluno.nome || "", assunto: "Orientação do professor",
+        documentoId: null, documentoNumero: null, status: "respondido", iniciadoPor: "professor",
+        mensagens: [{ autor: "professor", texto: envTexto.trim(), em: new Date().toISOString() }],
+        naoLidoProfessor: false, naoLidoAluno: true,
+        criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
+      });
+      setEnvAberto(false);
+      setEnvMsg("Orientação enviada pelo Suporte" + (r?.numero ? " (chamado Nº " + String(r.numero).padStart(4, "0") + ")" : "") + ". O aluno vê no menu Suporte.");
+    } catch (e) { setEnvMsg("Não foi possível enviar: " + (e?.message || e)); }
+    setEnvOcupado(false);
+  }
+  function abrirPro(rel) { setProTexto(relatorioParaProfessor(rel)); setEnvMsg(""); setEnvAberto(false); setProAberto(true); }
+  // Pendência do professor: chamado SEM o campo "matricula" (o aluno nunca o vê);
+  // o aluno fica em "alunoMatricula". Aparece em "Aguardando você" no Suporte do professor.
+  async function enviarAoProfessor(rel) {
+    if (!proTexto.trim()) return;
+    setEnvOcupado(true); setEnvMsg("");
+    try {
+      const r = await criarChamadoNumerado(turmaId, {
+        tipo: "pendenciaProfessor", alunoMatricula: rel.aluno.matricula, alunoNome: rel.aluno.nome || "",
+        assunto: "Pendência do professor", documentoId: null, documentoNumero: null,
+        status: "aberto", iniciadoPor: "professor",
+        mensagens: [{ autor: "professor", texto: proTexto.trim(), em: new Date().toISOString() }],
+        naoLidoProfessor: true, naoLidoAluno: false,
+        criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
+      });
+      setProAberto(false);
+      setEnvMsg("Pendência guardada em “Aguardando você”, no Suporte" + (r?.numero ? " (Nº " + String(r.numero).padStart(4, "0") + ")" : "") + ". O aluno não recebe.");
+    } catch (e) { setEnvMsg("Não foi possível guardar: " + (e?.message || e)); }
+    setEnvOcupado(false);
+  }
+  function abrirAluno(rel) { setGerado({ modo: "aluno", rel, veioDaTurma: gerado }); setCopiado(false); setEnvAberto(false); setProAberto(false); setEnvMsg(""); }
 
   // O nome do arquivo ao "Salvar como PDF" vem do título da página: troca o
   // título só durante a impressão, para o PDF sair com o nome do aluno.
@@ -301,9 +346,36 @@ export default function RelatorioOrientacao({ turma }) {
               {gerado.veioDaTurma && <button className="btn secondary" onClick={() => setGerado(gerado.veioDaTurma)}>← Voltar ao resumo</button>}
               <button className="btn secondary" onClick={() => copiar(relatorioEmTexto(gerado.rel))}>{copiado ? "Copiado ✓" : "Copiar texto"}</button>
               <button className="btn secondary" onClick={() => imprimir("Relatório de orientação - " + gerado.rel.aluno.nome)}>Imprimir</button>
+              <button className="btn" disabled={!relatorioParaAluno(gerado.rel)} title={relatorioParaAluno(gerado.rel) ? "" : "Nada a enviar: não há pendência do aluno"} onClick={() => abrirEnvio(gerado.rel)}>✉ Enviar ao aluno</button>
+              <button className="btn" disabled={contarPendenciasProfessor(gerado.rel) === 0} title={contarPendenciasProfessor(gerado.rel) ? "Guarda na sua lista do Suporte; o aluno não recebe" : "Nada a enviar: não há pendência do professor"} onClick={() => abrirPro(gerado.rel)}>📋 Enviar ao professor ({contarPendenciasProfessor(gerado.rel)})</button>
             </div>
           </div>
           <div className="panel-body">
+            {envAberto && (
+              <div className="no-print panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 12 }}>
+                <div className="panel-body">
+                  <b>Enviar esta orientação a {gerado.rel.aluno.nome}?</b> Vai para o Suporte dele como mensagem. Você pode editar o texto antes.
+                  <textarea style={{ width: "100%", minHeight: 180, marginTop: 8 }} value={envTexto} onChange={(e) => setEnvTexto(e.target.value)} />
+                  <div className="btn-row" style={{ marginTop: 8 }}>
+                    <button className="btn" disabled={envOcupado || !envTexto.trim()} onClick={() => enviarAoAluno(gerado.rel)}>{envOcupado ? "Enviando…" : "Sim, enviar"}</button>
+                    <button className="btn secondary" onClick={() => setEnvAberto(false)}>Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {proAberto && (
+              <div className="no-print panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 12 }}>
+                <div className="panel-body">
+                  <b>Guardar estas pendências na sua lista de Suporte?</b> Só você vê; o aluno não recebe. Você pode editar o texto.
+                  <textarea style={{ width: "100%", minHeight: 130, marginTop: 8 }} value={proTexto} onChange={(e) => setProTexto(e.target.value)} />
+                  <div className="btn-row" style={{ marginTop: 8 }}>
+                    <button className="btn" disabled={envOcupado || !proTexto.trim()} onClick={() => enviarAoProfessor(gerado.rel)}>{envOcupado ? "Enviando…" : "Sim, enviar"}</button>
+                    <button className="btn secondary" onClick={() => setProAberto(false)}>Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {envMsg && <div className="no-print balance-check ok" style={{ marginBottom: 12 }}>{envMsg}</div>}
             <p className="so-impressao" style={{ margin: "0 0 6px", fontSize: 11, color: "#666" }}>{turma.nome || ""} · emitido em {new Date().toLocaleString("pt-BR")}</p>
             <p style={{ marginTop: 0 }}>Em dia: <b>{gerado.rel.nOk}</b> de <b>{gerado.rel.total}</b> · com o <b>aluno</b>: <b>{gerado.rel.comAluno}</b> · com o <b>professor</b>: <b>{gerado.rel.comProfessor}</b>. Gerado agora, com os dados atuais do aluno.</p>
             <SituacaoPorDocumento linhas={gerado.rel.linhas} />

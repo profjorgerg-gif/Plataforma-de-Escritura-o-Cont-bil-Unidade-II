@@ -6,6 +6,8 @@
 // só para colorir/filtrar a tela.
 // Entrada: dados que a tela Histórico do aluno já carrega.
 
+import { conferirUm, conferirAluno } from "./conferenciaFila.js";
+
 const HISTORICO_GENERICO = /^(lan[cç]amento|teste|ok|x+|\.+|-+|compra|venda|a\s*prazo|\s*)$/i;
 
 function nomeDoc(d) { return `Nº ${d.numero}`; }
@@ -21,9 +23,19 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
   const achados = [];
   const linhas = [];
   // "quem" = quem precisa agir: o aluno, ou o professor (ex.: o aluno não consegue excluir repetidos).
-  const QUEM_PROFESSOR = /^(Lançamento duplicado|Duas classificações)/;
+  const QUEM_PROFESSOR = /^(Lançamento duplicado|Duas classificações|Divergência no lançamento enviado)/;
   const add = (gravidade, documento, titulo, orientacao, onde = "", etapa = "geral") =>
-    achados.push({ gravidade, documento, titulo, orientacao, onde, etapa, quem: QUEM_PROFESSOR.test(titulo) ? "professor" : "aluno" });
+    achados.some((x) => x.documento === documento && x.titulo === titulo) ? null : achados.push({ gravidade, documento, titulo, orientacao, onde, etapa, quem: QUEM_PROFESSOR.test(titulo) ? "professor" : "aluno" });
+
+  // conta de receita mais usada pelo aluno nas vendas (para apontar quem usou outra)
+  const contaReceita = {};
+  for (const c of classificacoes) {
+    const doc = documentos.find((x) => x.id === c.documento);
+    if (doc && doc.direcao !== "entrada" && String(c.contaCredito || "").startsWith("4.1.1.")) contaReceita[c.contaCredito] = (contaReceita[c.contaCredito] || 0) + 1;
+  }
+  const recOrdenada = Object.entries(contaReceita).sort((a, b) => b[1] - a[1]);
+  const recDominante = recOrdenada.length > 0 && recOrdenada[0][1] >= 2 ? recOrdenada[0][0] : null;
+  const TRIB_RECUPERAR = ["1.1.2.11", "1.1.2.12", "1.1.2.14", "1.1.2.15"];
 
   let nOk = 0;
   for (const d of documentos) {
@@ -67,7 +79,7 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
       add("atencao", nomeDoc(d), "Classificação ainda marcada como pendente", "O lançamento existe, mas a classificação não foi marcada como lançada. Clique em “marcar como lançada no Diário”.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas → botão “marcar como lançada no Diário”");
 
     if (lans.length > 1)
-      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "O aluno não consegue excluir o lançamento repetido: o professor remove o repetido. Enquanto isso, não envie o repetido.", "Menu → Livro diário (etapa 5) → tabela de lançamentos, linhas deste documento → coluna Ações → ✏️ Editar");
+      add("erro", nomeDoc(d), `Lançamento duplicado (${lans.length} lançamentos para o mesmo documento)`, "Devolva o repetido pela Fila de correção (conferência automática), marcando “Permitir que o aluno exclua”: ele mesmo exclui no Livro diário. Enquanto isso, o aluno não deve enviar outro lançamento desta nota.", "Menu → Livro diário (etapa 5) → tabela de lançamentos, linhas deste documento → coluna Ações → ✏️ Editar");
 
     if (rascunhos.length === 1 && lans.length === 1)
       add("erro", nomeDoc(d), "Lançamento parado em rascunho", "O professor não vê rascunho. Abra o lançamento e clique em Enviar.", "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar → Enviar para análise do professor");
@@ -90,6 +102,40 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
 
     if (enviados.length > 0 && rascunhos.length === 0 && devolvidos.length === 0 && aprovados.length === 0 && lans.length === 1) {
       // aguardando o professor — não é problema do aluno
+    }
+
+    // 2026-10-15 — conferência com o gabarito da nota (mesma regra da conferência automática da Fila)
+    const confEnviados = conferirAluno(enviados, lancamentos, documentos);
+    for (const l of enviados) {
+      const r = confEnviados[l.id];
+      if (r && r.estado === "no")
+        add("atencao", nomeDoc(d), "Divergência no lançamento enviado: " + r.motivo, "Confira e devolva este lançamento pela Fila de correção (conferência automática).", "Menu → Fila de correção → Abrir conferência automática por aluno", "lan");
+    }
+    for (const l of rascunhos) {
+      const r = conferirUm(l, d, false);
+      if (r.estado === "no")
+        add("erro", nomeDoc(d), "Lançamento em rascunho com divergência: " + r.motivo, r.acao || "Corrija antes de enviar.", "Menu → Livro diário (etapa 5) → linha do lançamento → ✏️ Editar", "lan");
+    }
+
+    // 2026-10-15 — contas que não combinam com o tipo da nota (compra x venda)
+    const entradaDoc = d.direcao === "entrada";
+    const pares = [
+      ...clas.map((c) => ({ deb: [c.contaDebito], cred: [c.contaCredito], de: "classificação" })),
+      ...lans.filter((l) => l.status !== "aprovado").map((l) => ({
+        deb: (l.partidas || []).filter((p) => p.tipo === "D").map((p) => p.conta),
+        cred: (l.partidas || []).filter((p) => p.tipo === "C").map((p) => p.conta), de: "lançamento" })),
+    ];
+    for (const par of pares) {
+      const cred = par.cred.map(String), deb = par.deb.map(String);
+      if (entradaDoc && (cred.some((c) => c.startsWith("4.1.1.")) || deb.includes("1.1.2.02")))
+        add("erro", nomeDoc(d), "Nota de compra com contas de venda", `Esta é uma nota de entrada (compra), mas a ${par.de} usa Clientes/Receita de Vendas. Na compra o débito é em Mercadorias para Revenda e o crédito em Fornecedores (ou na conta do pagamento).`, "Menu → Classificação contábil (etapa 4) → corrigir as contas", "cla");
+      if (entradaDoc && cred.some((c) => TRIB_RECUPERAR.includes(c)))
+        add("erro", nomeDoc(d), "Compra com crédito em tributo a recuperar", `Na ${par.de}, a contrapartida da compra está em ICMS/PIS/COFINS a Recuperar. Tributo a recuperar é débito, em partida separada. O crédito da compra é Fornecedores (ou a conta do pagamento).`, "Menu → Classificação contábil (etapa 4) → corrigir a conta de crédito", "cla");
+      if (!entradaDoc && (deb.includes("1.1.3.01") || cred.some((c) => c.startsWith("2.1.1."))))
+        add("erro", nomeDoc(d), "Nota de venda com contas de compra", `Esta é uma nota de saída (venda), mas a ${par.de} usa Mercadorias/Fornecedores. Na venda o débito é em Clientes e o crédito em Receita de Vendas.`, "Menu → Classificação contábil (etapa 4) → corrigir as contas", "cla");
+      const rec = cred.find((c) => c.startsWith("4.1.1."));
+      if (!entradaDoc && rec && recDominante && rec !== recDominante)
+        add("atencao", nomeDoc(d), `Conta de receita diferente das outras vendas (${rec})`, `Nas outras vendas foi usada a conta ${recDominante}. Confira se esta nota realmente é de ${rec}.`, "Menu → Classificação contábil (etapa 4)", "cla");
     }
 
     // Situação por etapa deste documento (✓ feito e salvo, ✗ problema, ⏳ aguardando professor, – não chegou)
@@ -150,4 +196,39 @@ export function relatorioEmTexto(rel) {
   });
   L.push("", "Qualquer dúvida, procure o professor em aula.");
   return L.join("\n");
+}
+
+
+// Texto para ENVIAR ao aluno (Suporte): só o que cabe ao aluno, em linguagem direta.
+export function relatorioParaAluno(rel) {
+  const meus = (rel.achados || []).filter((a) => a.quem !== "professor");
+  if (meus.length === 0) return "";
+  const L = [];
+  L.push(`${(rel.aluno?.nome || "").split(" ")[0] || "Olá"}, segue a sua orientação. Em dia: ${rel.nOk} de ${rel.total} notas.`, "", "O que você precisa ajustar:");
+  meus.forEach((a, i) => {
+    L.push(`${i + 1}) ${a.documento} — ${a.titulo}`);
+    L.push(`   O que fazer: ${a.orientacao}`);
+    if (a.onde) L.push(`   Onde: ${a.onde}`);
+  });
+  L.push("", "Qualquer dúvida, responda esta mensagem.", "Prof. Jorge");
+  return L.join("\n");
+}
+
+// Pendências que são do PROFESSOR neste relatório (duplicado, divergência a conferir…).
+// Texto para a lista do Suporte do professor; o aluno não recebe.
+export function relatorioParaProfessor(rel) {
+  const meus = (rel.achados || []).filter((a) => a.quem === "professor");
+  if (meus.length === 0) return "";
+  const L = [];
+  L.push(`${rel.aluno?.nome || "Aluno"}, pendências do professor:`);
+  meus.forEach((a, i) => {
+    L.push(`${i + 1}) ${a.documento} — ${a.titulo}`);
+    L.push(`   O que fazer: ${a.orientacao}`);
+    if (a.onde) L.push(`   Onde: ${a.onde}`);
+  });
+  return L.join("\n");
+}
+
+export function contarPendenciasProfessor(rel) {
+  return (rel.achados || []).filter((a) => a.quem === "professor").length;
 }

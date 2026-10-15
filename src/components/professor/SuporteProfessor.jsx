@@ -37,6 +37,7 @@ function Bolha({ m }) {
 // "Recebi seu chamado" não conta como resposta de verdade.
 function vezDe(c) {
   if (c.status === "resolvido") return "res";
+  if (c.tipo === "pendenciaProfessor") return "pro";   // pendência só do professor
   const msgs = (c.mensagens || []).filter((m) => m.autor === "aluno" || m.autor === "professor");
   const ult = msgs[msgs.length - 1];
   if (!ult || ult.autor === "aluno") return "pro";
@@ -73,11 +74,12 @@ export default function SuporteProfessor({ turma }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
 
   const sel = (chamados || []).find((c) => c.id === selId) || null;
-  const porAluno = (chamados || []).filter((c) => !filtroAluno || c.matricula === filtroAluno);
+  const porAluno = (chamados || []).filter((c) => !filtroAluno || (c.matricula || c.alunoMatricula) === filtroAluno);
   const lista = porAluno.filter((c) =>
     vezDe(c) === aba)
     .sort((a, b) => (b.numero || 0) - (a.numero || 0) || 0);
   const semNumero = (chamados || []).filter((c) => !c.numero).length;
+  const ehPend = sel?.tipo === "pendenciaProfessor";
   const nomeSel = sel ? "Chamado " + (sel.numero ? fmtNumero(sel.numero) + " - " : "") + (sel.alunoNome || sel.matricula) : "";
   const nVez = (v) => (chamados || []).filter((c) => vezDe(c) === v).length;
 
@@ -142,7 +144,7 @@ export default function SuporteProfessor({ turma }) {
     if (!sel) return;
     try {
       const msgSistema = { autor: "sistema", tipo: "sistema", texto: status === "resolvido" ? "Chamado marcado como resolvido pelo professor" : "Chamado reaberto pelo professor", em: new Date().toISOString() };
-      await updateDoc(doc(db, "turmas", turmaId, "chamados", sel.id), { status, atualizadoEm: serverTimestamp(), mensagens: arrayUnion(msgSistema), naoLidoAluno: true });
+      await updateDoc(doc(db, "turmas", turmaId, "chamados", sel.id), { status, atualizadoEm: serverTimestamp(), mensagens: arrayUnion(msgSistema), ...(ehPend ? {} : { naoLidoAluno: true }) });
       if (status === "resolvido") {
         setAviso("Chamado " + (sel.numero ? "Nº " + fmtNumero(sel.numero) + " " : "") + "marcado como resolvido.");
         setSelId(null);
@@ -265,7 +267,7 @@ export default function SuporteProfessor({ turma }) {
                   <tr key={c.id} style={{ cursor: "pointer", background: c.id === selId ? "#efe9d8" : undefined }} onClick={() => abrirChamado(c)}>
                     <td className="mono">{fmtNumero(c.numero)}</td>
                     <td>{c.naoLidoProfessor ? <b>{c.alunoNome || c.matricula}</b> : (c.alunoNome || c.matricula)}</td>
-                    <td>{c.assunto}</td>
+                    <td>{c.tipo === "pendenciaProfessor" && <span style={{ border: "1px solid #1F5C4A", color: "#1F5C4A", fontSize: 11, fontWeight: 700, padding: "1px 6px", marginRight: 6, whiteSpace: "nowrap" }}>PENDÊNCIA DO PROFESSOR</span>}{c.assunto}</td>
                     <td className="mono">{c.documentoNumero || "—"}</td>
                     <td>{formatarDataHora(c.atualizadoEm)}</td>
                     <td><span className={"status " + s.cls}>{vezDe(c) === "pro" ? "sua vez" : vezDe(c) === "alu" ? "vez do aluno" : s.txt}</span></td>
@@ -280,13 +282,14 @@ export default function SuporteProfessor({ turma }) {
       {sel && (<div id="chamado-aberto" />)}
       {sel && (
         <div className="panel">
-          <div className="panel-head"><h3>{sel.numero ? "Nº " + fmtNumero(sel.numero) + " · " : ""}{sel.alunoNome || sel.matricula} — {sel.assunto}{sel.documentoNumero ? " · NF " + sel.documentoNumero : ""}</h3></div>
+          <div className="panel-head"><h3>{sel.numero ? "Nº " + fmtNumero(sel.numero) + " · " : ""}{sel.alunoNome || sel.matricula || sel.alunoMatricula} — {sel.assunto}{sel.documentoNumero ? " · NF " + sel.documentoNumero : ""}</h3></div>
           <div className="panel-body">
             {(sel.mensagens || []).map((m, i) => <Bolha key={i} m={m} />)}
-            <div className="field"><textarea rows={2} style={{ width: "100%" }} placeholder="Responder ao aluno…" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            {!ehPend && <div className="field"><textarea rows={2} style={{ width: "100%" }} placeholder="Responder ao aluno…" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>}
+            {ehPend && <div className="helper-note">Pendência só sua: o aluno não vê este chamado. Quando resolver, marque como resolvido.</div>}
+            {!ehPend && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
               {RESPOSTAS_RAPIDAS.map((r, i) => <button key={i} className="btn secondary" style={{ fontSize: 12 }} onClick={() => setTexto(r)}>{r.length > 38 ? r.slice(0, 38) + "…" : r}</button>)}
-            </div>
+            </div>}
             {erro && <div className="balance-check bad">{erro}</div>}
             {devOk && <div className="balance-check ok">{devOk}</div>}
             {devAberto && (
@@ -308,8 +311,8 @@ export default function SuporteProfessor({ turma }) {
               </div>
             )}
             <div className="btn-row">
-              <button className="btn" disabled={enviando || !texto.trim()} onClick={responder}>{enviando ? "Enviando…" : "Responder"}</button>
-              <button className="btn secondary" onClick={() => { setDevAberto(!devAberto); setDevOk(""); }}>↩ Devolver nota ao aluno</button>
+              {!ehPend && <button className="btn" disabled={enviando || !texto.trim()} onClick={responder}>{enviando ? "Enviando…" : "Responder"}</button>}
+              {!ehPend && <button className="btn secondary" onClick={() => { setDevAberto(!devAberto); setDevOk(""); }}>↩ Devolver nota ao aluno</button>}
               <button className="btn secondary" onClick={imprimirSel}>🖨 Imprimir / salvar PDF</button>
               <button className="btn secondary" onClick={baixarSel}>⬇ Baixar texto (.txt)</button>
               <button className="btn secondary" onClick={copiarSel}>📋 Copiar</button>

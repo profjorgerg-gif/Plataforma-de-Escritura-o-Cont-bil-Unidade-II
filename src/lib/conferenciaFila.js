@@ -89,7 +89,8 @@ function conferirUm0(l, doc, duplicado) {
       else { ruins.push(nome + " diferente: a nota traz " + brl(esperado)); acoes.push("Corrija o valor do " + nome + " para " + brl(esperado) + " e reenvie."); }
     } else if (t === "pisCofins") {
       const v = valorDaConta(l, PISCOFINS_VENDA);
-      if (iguais(v, g.pis + g.cofins) || iguais(v, g.pis) || iguais(v, g.cofins)) bons.push("PIS/COFINS");
+      if (!g.pis && !g.cofins) duvidas.push("PIS/COFINS: a nota não traz esses impostos no gabarito");
+      else if (iguais(v, g.pis + g.cofins) || iguais(v, g.pis) || iguais(v, g.cofins)) bons.push("PIS/COFINS");
       else { ruins.push("PIS/COFINS diferente: a nota traz PIS " + brl(g.pis) + " e COFINS " + brl(g.cofins)); acoes.push("Corrija o valor conforme a nota e reenvie."); }
     } else if (t === "desconto") {
       const entrada = g.direcao === "entrada";
