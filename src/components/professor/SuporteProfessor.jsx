@@ -33,12 +33,22 @@ function Bolha({ m }) {
   );
 }
 
+// De quem é a vez: "pro" (professor), "alu" (aluno) ou "res" (resolvido). A resposta automática
+// "Recebi seu chamado" não conta como resposta de verdade.
+function vezDe(c) {
+  if (c.status === "resolvido") return "res";
+  const msgs = (c.mensagens || []).filter((m) => m.autor === "aluno" || m.autor === "professor");
+  const ult = msgs[msgs.length - 1];
+  if (!ult || ult.autor === "aluno") return "pro";
+  return String(ult.texto || "").trim() === RESPOSTAS_RAPIDAS[0] ? "pro" : "alu";
+}
+
 export default function SuporteProfessor({ turma }) {
   const turmaId = turma?.id;
   const { chamados, erro: erroLeitura } = useChamados(turmaId, null);
   const alunos = useAlunosDaTurma(turmaId);
   const documentos = useDocumentosDaTurma(turmaId);
-  const [aba, setAba] = useState("abertos");
+  const [aba, setAba] = useState("pro");
   const [selId, setSelId] = useState(null);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -65,11 +75,11 @@ export default function SuporteProfessor({ turma }) {
   const sel = (chamados || []).find((c) => c.id === selId) || null;
   const porAluno = (chamados || []).filter((c) => !filtroAluno || c.matricula === filtroAluno);
   const lista = porAluno.filter((c) =>
-    aba === "abertos" ? c.status === "aberto" : aba === "respondidos" ? c.status === "respondido" : c.status === "resolvido")
+    vezDe(c) === aba)
     .sort((a, b) => (b.numero || 0) - (a.numero || 0) || 0);
   const semNumero = (chamados || []).filter((c) => !c.numero).length;
   const nomeSel = sel ? "Chamado " + (sel.numero ? fmtNumero(sel.numero) + " - " : "") + (sel.alunoNome || sel.matricula) : "";
-  const nAbertos = (chamados || []).filter((c) => c.status === "aberto").length;
+  const nVez = (v) => (chamados || []).filter((c) => vezDe(c) === v).length;
 
   async function numerarAntigos() {
     if (!window.confirm("Numerar " + semNumero + " chamado(s) antigo(s), na ordem em que foram abertos? Só acrescenta o número; mensagens, status e notas não mudam.")) return;
@@ -99,7 +109,7 @@ export default function SuporteProfessor({ turma }) {
     try {
       const feitos = await devolverNota({ turmaId, matricula: aluno.matricula, alunoNome: aluno.nome, docId: nota.id, docNumero: nota.numero, etapas: dirEtapas, orientacao: dirTexto.trim(), chamado: null });
       setDevOk("Nota devolvida a " + (aluno.nome || aluno.matricula) + ". " + (feitos.length ? feitos.join("; ") + "." : "O aluno foi avisado pelo Suporte."));
-      setDirAberto(false); setDirAluno(""); setDirDoc(""); setDirEtapas([]); setDirTexto(MODELO_ORIENTACAO); setAba("respondidos");
+      setDirAberto(false); setDirAluno(""); setDirDoc(""); setDirEtapas([]); setDirTexto(MODELO_ORIENTACAO); setAba("alu");
     } catch (e) { setErro("Não foi possível devolver: " + e.message + ". Confira se as regras novas do Firestore foram publicadas."); }
     setEnviando(false);
   }
@@ -157,7 +167,7 @@ export default function SuporteProfessor({ turma }) {
         naoLidoProfessor: false, naoLidoAluno: true,
         criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
       });
-      setNovo(false); setNMat(""); setNAssunto(""); setNTexto(""); setAba("respondidos");
+      setNovo(false); setNMat(""); setNAssunto(""); setNTexto(""); setAba("alu");
     } catch (e) { setErro("Não foi possível enviar: " + e.message); }
     setEnviando(false);
   }
@@ -170,9 +180,9 @@ export default function SuporteProfessor({ turma }) {
       {erroLeitura && <div className="balance-check bad">O Suporte ainda não funciona: cole as regras novas do Firestore no Console (veja as instruções da atualização).</div>}
 
       <div className="btn-row" style={{ marginBottom: 8, flexWrap: "wrap" }}>
-        <button className={"btn" + (aba === "abertos" ? "" : " secondary")} onClick={() => setAba("abertos")}>Abertos ({nAbertos})</button>
-        <button className={"btn" + (aba === "respondidos" ? "" : " secondary")} onClick={() => setAba("respondidos")}>Respondidos</button>
-        <button className={"btn" + (aba === "resolvidos" ? "" : " secondary")} onClick={() => setAba("resolvidos")}>Resolvidos</button>
+        <button className={"btn" + (aba === "pro" ? "" : " secondary")} onClick={() => setAba("pro")}>Aguardando você ({nVez("pro")})</button>
+        <button className={"btn" + (aba === "alu" ? "" : " secondary")} onClick={() => setAba("alu")}>Aguardando o aluno ({nVez("alu")})</button>
+        <button className={"btn" + (aba === "res" ? "" : " secondary")} onClick={() => setAba("res")}>Resolvidos ({nVez("res")})</button>
         <button className="btn secondary" onClick={() => { setNovo(!novo); setErro(""); }}>+ Mensagem ao aluno</button>
         <button className="btn secondary" onClick={() => { setDirAberto(!dirAberto); setErro(""); setDevOk(""); }}>↩ Devolver nota a um aluno</button>
       </div>
@@ -240,7 +250,7 @@ export default function SuporteProfessor({ turma }) {
                     <td>{c.assunto}</td>
                     <td className="mono">{c.documentoNumero || "—"}</td>
                     <td>{formatarDataHora(c.atualizadoEm)}</td>
-                    <td><span className={"status " + s.cls}>{s.txt}</span></td>
+                    <td><span className={"status " + s.cls}>{vezDe(c) === "pro" ? "sua vez" : vezDe(c) === "alu" ? "vez do aluno" : s.txt}</span></td>
                   </tr>
                 );
               })}
