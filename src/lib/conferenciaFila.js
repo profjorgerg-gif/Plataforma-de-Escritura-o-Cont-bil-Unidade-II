@@ -44,7 +44,12 @@ function pontoVenda(l, g) {
 }
 
 function valorDaConta(l, contas) {
-  return (l.partidas || []).filter((p) => contas.includes(String(p.conta))).reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  // um lançamento tem débito e crédito do mesmo valor (ex.: D ICMS sobre Vendas / C ICMS a recolher):
+  // conta-se UM lado só (o maior), senão o valor sai dobrado.
+  const ps = (l.partidas || []).filter((p) => contas.includes(String(p.conta)));
+  const d = ps.filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  const c = ps.filter((p) => p.tipo === "C").reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  return Math.max(d, c);
 }
 
 // Confere UM lançamento. `doc` = nota do catálogo. `duplicadoDe` = true se outro igual já "vale".
