@@ -6,6 +6,7 @@ import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { formatarDataHora, rotuloSituacao } from "../aluno/SuporteAluno.jsx";
 import { criarChamadoNumerado, numerarChamadosAntigos, fmtNumero, textoChamado, textoVariosChamados, nomeArquivo, baixarTxt, copiarTexto, imprimirTexto } from "../../lib/chamados.js";
+import ResolverPendencias from "./ResolverPendencias.jsx";
 import { devolverNota, ETAPAS_DEVOLUCAO, MODELO_ORIENTACAO } from "../../lib/devolucao.js";
 
 // Suporte — visão do professor (2026-10-09). Caixa de entrada de chamados da
@@ -286,6 +287,7 @@ export default function SuporteProfessor({ turma }) {
           <div className="panel-body">
             {(sel.mensagens || []).map((m, i) => <Bolha key={i} m={m} />)}
             {!ehPend && <div className="field"><textarea rows={2} style={{ width: "100%" }} placeholder="Responder ao aluno…" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>}
+            {ehPend && <ResolverPendencias key={sel.id} turmaId={turmaId} chamado={sel} documentos={documentos} />}
             {ehPend && <div className="helper-note">Pendência só sua: o aluno não vê este chamado. Quando resolver, marque como resolvido.</div>}
             {!ehPend && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
               {RESPOSTAS_RAPIDAS.map((r, i) => <button key={i} className="btn secondary" style={{ fontSize: 12 }} onClick={() => setTexto(r)}>{r.length > 38 ? r.slice(0, 38) + "…" : r}</button>)}
