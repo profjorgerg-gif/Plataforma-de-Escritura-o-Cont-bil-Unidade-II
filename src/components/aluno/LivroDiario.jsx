@@ -69,7 +69,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
 
   return (
     <div className="panel">
-      <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Novo lançamento"}</h3></div>
+      <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Lançamento da classificação"}</h3></div>
       <div className="panel-body">
         {!editando && valoresIniciais && (
           <div className="helper-note" style={{ marginBottom: 14 }}>
@@ -152,7 +152,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
   );
 }
 
-export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [], rascunhoDeClassificacao, onRascunhoConsumido }) {
+export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [], rascunhoDeClassificacao, onRascunhoConsumido, onIrClassificacao }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
   const [valoresIniciais, setValoresIniciais] = useState(null); // pré-preenchimento vindo da Classificação Contábil
@@ -273,13 +273,6 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     } catch (e) { /* o rascunho já foi excluído; a classificação pode ser reaberta manualmente */ }
   }
 
-  function abrirNovo() {
-    setEditando(null);
-    setValoresIniciais(null);
-    setClassificacaoVinculada(null);
-    setMostrarForm(true);
-  }
-
   function abrirEdicao(l) {
     setEditando(l);
     setValoresIniciais(null);
@@ -330,11 +323,18 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
             </table>
           </div>
           <div className="helper-note" style={{ margin: "0 16px 16px" }}>
-            Clique em "usar no lançamento" para trazer esses dados prontos para baixo — evita digitar tudo de novo. Se preferir começar do zero mesmo assim, use "+ Novo lançamento".
+            Clique em "usar no lançamento" para trazer esses dados prontos para baixo — evita digitar tudo de novo.
           </div>
         </div>
       )}
-      {!mostrarForm && <button className="btn" style={{ marginBottom: 18 }} onClick={abrirNovo}>+ Novo lançamento</button>}
+      {!mostrarForm && classificacoesPendentes.length === 0 && (
+        <div className="helper-note" style={{ marginBottom: 18 }}>
+          Todo lançamento começa na <b>Classificação contábil</b>: lá você identifica o fato e escolhe as contas, e depois usa "usar no lançamento" para trazer tudo pronto para cá. Não há nenhuma classificação aguardando lançamento agora.
+          {onIrClassificacao && (
+            <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={onIrClassificacao}>Ir para Classificação contábil</button></div>
+          )}
+        </div>
+      )}
       {mostrarForm && (
         <NovoLancamentoForm
           onSalvar={salvar}

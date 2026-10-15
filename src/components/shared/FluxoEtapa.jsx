@@ -61,7 +61,7 @@ const FLUXOS = {
   diario: {
     titulo: "5 · Livro diário",
     passos: [
-      ["al", "1. Novo lançamento", "ou venha da Classificação"],
+      ["al", "1. Usar no lançamento", "traz os dados prontos da Classificação"],
       ["al", "2. Preencha", "data, documento, histórico e partidas (D e C)"],
       ["sy", "Débito = Crédito?", "o sistema confere na hora"],
       ["at", "Não", "não dá para enviar. Corrija ou salve como rascunho"],

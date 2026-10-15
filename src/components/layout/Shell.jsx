@@ -979,6 +979,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         documentos={documentos}
         rascunhoDeClassificacao={rascunhoDeClassificacao}
         onRascunhoConsumido={() => setRascunhoDeClassificacao(null)}
+        onIrClassificacao={() => setScreen("classificacao")}
       />
     );
   } else if (papelEfetivo === "aluno" && screen === "razao") {
