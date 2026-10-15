@@ -188,8 +188,11 @@ service cloud.firestore {
             // professor só muda status, observação de correção e o histórico
             // de correções (registro acumulado de todas as devoluções)
             || (souProfessorDaTurma(turmaId)
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes']));
-          allow delete: if podeAgirComoEsteAluno(turmaId, matricula) && resource.data.status == 'rascunho';
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes', 'podeExcluir']));
+          allow delete: if podeAgirComoEsteAluno(turmaId, matricula)
+            && (resource.data.status == 'rascunho'
+                // 2026-10-15 — lançamento devolvido que o professor marcou como excluível
+                || (resource.data.status == 'correcao' && resource.data.get('podeExcluir', false) == true));
           // 2026-10-09 — "Refazer nota do aluno": o professor da turma pode apagar
           // (e restaurar) lançamentos de uma nota para o aluno refazer.
           allow create, delete: if souProfessorDaTurma(turmaId);
@@ -277,6 +280,8 @@ service cloud.firestore {
         // Cópia de tudo que o professor apaga; só o professor da turma lê/escreve.
         match /lixeira/{id} {
           allow read, create, delete: if souAdmin() || souProfessorDaTurma(turmaId);
+          // 2026-10-15 — o aluno só GRAVA a cópia do lançamento devolvido que vai excluir (não lê nem apaga)
+          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && request.resource.data.tipo == 'lancamento';
           allow update: if false;
         }
 
