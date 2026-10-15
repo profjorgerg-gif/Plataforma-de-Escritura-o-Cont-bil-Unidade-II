@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { collection, addDoc, doc, updateDoc, deleteDoc, getDocs, onSnapshot, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase.js";
+import { db, auth } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 
@@ -273,6 +273,35 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     } catch (e) { /* o rascunho já foi excluído; a classificação pode ser reaberta manualmente */ }
   }
 
+  // Excluir lançamento DEVOLVIDO — só quando o professor marcou "podeExcluir".
+  // Guarda cópia na lixeira (o professor restaura em Refazer nota); se a cópia falhar, nada é apagado.
+  async function excluirDevolvido(l) {
+    if (l.status !== "correcao" || l.podeExcluir !== true) return;
+    if (!window.confirm("Excluir este lançamento? Ele vai para a lixeira e o professor poderá restaurar.")) return;
+    const { id: _id, ...dadosL } = l;
+    try {
+      await addDoc(collection(db, "turmas", turmaId, "alunos", matricula, "lixeira"), {
+        tipo: "lancamento", colecao: "lancamentos", origemId: l.id, documento: l.documento || null,
+        documentoNumero: null, dados: dadosL, excluidoEm: serverTimestamp(), excluidoPor: auth.currentUser?.email || "",
+      });
+      await deleteDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", l.id));
+    } catch (e) {
+      window.alert("Não foi possível excluir: " + (e?.message || e));
+      return;
+    }
+    try {
+      const sobrou = lancamentos.some((x) => x.id !== l.id && x.documento === l.documento);
+      if (l.documento && !sobrou) {
+        const snap = await getDocs(collection(db, "turmas", turmaId, "alunos", matricula, "classificacoes"));
+        await Promise.all(
+          snap.docs
+            .filter((d) => d.data().documento === l.documento && d.data().status === "lançada")
+            .map((d) => updateDoc(d.ref, { status: "pendente" }))
+        );
+      }
+    } catch (e) { /* o lançamento já foi excluído */ }
+  }
+
   function abrirEdicao(l) {
     setEditando(l);
     setValoresIniciais(null);
@@ -372,6 +401,11 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
                           {l.status === "rascunho" && (
                             <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12, color: "var(--red)" }} onClick={() => excluirRascunho(l)}>
                               🗑️ Excluir rascunho
+                            </button>
+                          )}
+                          {l.status === "correcao" && l.podeExcluir === true && (
+                            <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12, color: "var(--red)" }} onClick={() => excluirDevolvido(l)}>
+                              🗑️ Excluir este lançamento
                             </button>
                           )}
                           {temHistorico && (

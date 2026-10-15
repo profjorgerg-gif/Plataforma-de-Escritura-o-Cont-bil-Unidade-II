@@ -49,18 +49,18 @@ function valorDaConta(l, contas) {
 
 // Confere UM lançamento. `doc` = nota do catálogo. `duplicadoDe` = true se outro igual já "vale".
 export function conferirUm(l, doc, duplicado) {
-  if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota" };
+  if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
   let tipos = tiposDoLancamento(l);
   if (tipos.length === 0) return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
   // desconto creditado em receita aumenta a receita em vez de reduzir o valor a receber
   const descNaReceita = (l.partidas || []).some((p) => p.tipo === "D" && String(p.conta) === DESC_SAIDA) &&
     (l.partidas || []).some((p) => p.tipo === "C" && String(p.conta).startsWith("4.1.1."));
-  if (descNaReceita) return { estado: "no", motivo: "desconto creditado em Receita de Vendas: deveria reduzir Clientes (valor a receber)" };
+  if (descNaReceita) return { estado: "no", motivo: "desconto creditado em Receita de Vendas: deveria reduzir Clientes (valor a receber)", acao: "Corrija a conta de crédito: troque Receita de Vendas por Clientes. Se o desconto já está na nota, não precisa de lançamento à parte: exclua este lançamento pelo botão no Livro Diário.", podeExcluir: true };
   if (tipos.includes("desconto")) tipos = tipos.filter((t) => t !== "venda");
-  if (!l.documento) return { estado: "no", motivo: "sem nota de origem: o valor não corresponde a nenhuma nota" };
+  if (!l.documento) return { estado: "no", motivo: "sem nota de origem: o valor não corresponde a nenhuma nota", acao: "Confira a nota a que este valor pertence e refaça o lançamento vinculando a nota certa. Se foi lançado por engano, exclua este lançamento pelo botão no Livro Diário.", podeExcluir: true };
   if (!doc) return { estado: "sem", motivo: "nota sem gabarito: confira manualmente" };
   const g = gab(doc);
-  const ruins = [], bons = [], duvidas = [];
+  const ruins = [], bons = [], duvidas = [], acoes = []; let podeExc = false;
   tipos.forEach((t) => {
     if (t === "icms" || t === "pis" || t === "cofins") {
       const contas = t === "icms" ? ICMS : t === "pis" ? PIS : COFINS;
@@ -69,27 +69,27 @@ export function conferirUm(l, doc, duplicado) {
       const nome = t === "icms" ? "ICMS" : t.toUpperCase();
       if (!esperado) duvidas.push(nome + ": a nota não traz esse imposto no gabarito");
       else if (iguais(v, esperado)) bons.push(nome);
-      else ruins.push(nome + " diferente: a nota traz " + brl(esperado));
+      else { ruins.push(nome + " diferente: a nota traz " + brl(esperado)); acoes.push("Corrija o valor do " + nome + " para " + brl(esperado) + " e reenvie."); }
     } else if (t === "pisCofins") {
       const v = valorDaConta(l, PISCOFINS_VENDA);
       if (iguais(v, g.pis + g.cofins) || iguais(v, g.pis) || iguais(v, g.cofins)) bons.push("PIS/COFINS");
-      else ruins.push("PIS/COFINS diferente: a nota traz PIS " + brl(g.pis) + " e COFINS " + brl(g.cofins));
+      else { ruins.push("PIS/COFINS diferente: a nota traz PIS " + brl(g.pis) + " e COFINS " + brl(g.cofins)); acoes.push("Corrija o valor conforme a nota e reenvie."); }
     } else if (t === "desconto") {
       const entrada = g.direcao === "entrada";
       const certa = entrada ? DESC_ENTRADA : DESC_SAIDA;
       const temErrada = (l.partidas || []).some((p) => String(p.conta) === (entrada ? DESC_SAIDA : DESC_ENTRADA));
       const v = valorDaConta(l, [DESC_SAIDA, DESC_ENTRADA]);
-      if (temErrada) ruins.push("desconto na conta errada: " + (entrada ? "nota de entrada usa descontos obtidos" : "nota de saída usa descontos incondicionais"));
-      else if (!g.desconto) ruins.push("a nota não tem desconto");
+      if (temErrada) { ruins.push("desconto na conta errada: " + (entrada ? "nota de entrada usa descontos obtidos" : "nota de saída usa descontos incondicionais")); acoes.push("Troque para a conta de desconto correta e reenvie."); }
+      else if (!g.desconto) { ruins.push("a nota não tem desconto"); acoes.push("Esta nota não tem desconto: exclua este lançamento pelo botão no Livro Diário."); podeExc = true; }
       else if (iguais(v, g.desconto)) bons.push("desconto");
-      else ruins.push("desconto diferente: a nota traz " + brl(g.desconto));
+      else { ruins.push("desconto diferente: a nota traz " + brl(g.desconto)); acoes.push("Corrija o valor do desconto para " + brl(g.desconto) + " e reenvie."); }
     } else if (t === "venda") {
       const v = valorDaConta(l, (l.partidas || []).filter((p) => String(p.conta).startsWith("4.1.1.")).map((p) => String(p.conta)));
       if (iguais(v, g.total) || iguais(v, g.produtos) || iguais(v, g.itens)) bons.push("venda");
       else duvidas.push("valor da venda difere do total da nota (" + brl(g.total) + "): confira");
     }
   });
-  if (ruins.length) return { estado: "no", motivo: ruins.join("; ") };
+  if (ruins.length) return { estado: "no", motivo: ruins.join("; "), acao: acoes.join(" "), podeExcluir: podeExc };
   if (duvidas.length) return { estado: "sem", motivo: duvidas.join("; ") };
   return { estado: "ok", motivo: "confere com a nota (" + bons.join(", ") + ")" };
 }

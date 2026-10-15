@@ -9,6 +9,7 @@ import { conferirAluno } from "../../lib/conferenciaFila.js";
 export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas }) {
   const [matricula, setMatricula] = useState("");
   const [troca, setTroca] = useState({}); // id -> "ok" | "no" (decisão do professor)
+  const [exc, setExc] = useState({}); // id -> true/false (professor muda o "pode excluir")
   const [orient, setOrient] = useState("");
   const [confirmar, setConfirmar] = useState(null); // "ap" | "de"
   const [msg, setMsg] = useState("");
@@ -34,14 +35,16 @@ export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas
   const aprovar = (atual?.itens || []).filter((l) => estadoDe(l) === "ok");
   const devolver = (atual?.itens || []).filter((l) => estadoDe(l) === "no");
 
-  function escolher(m) { setMatricula(m); setTroca({}); setConfirmar(null); setMsg(""); setOrient(""); }
+  const podeExcDe = (l) => (l.id in exc ? exc[l.id] : !!(auto[l.id] && auto[l.id].podeExcluir));
+  function escolher(m) { setMatricula(m); setTroca({}); setExc({}); setConfirmar(null); setMsg(""); setOrient(""); }
   function alternar(l) {
     const e = estadoDe(l);
     setTroca((t) => ({ ...t, [l.id]: e === "ok" ? "no" : "ok" })); setConfirmar(null); setMsg("");
   }
   const orientacaoDe = (l) => {
-    const motivo = (auto[l.id] && troca[l.id] !== "no" && auto[l.id].estado === "no") ? auto[l.id].motivo : "";
-    return [motivo && "Motivo: " + motivo + ".", orient].filter(Boolean).join(" ") || "Revisar lançamento.";
+    const a = auto[l.id];
+    const sug = a && troca[l.id] !== "no" && a.estado === "no";
+    return [sug && "Motivo: " + a.motivo + ".", sug && a.acao && "O que fazer: " + a.acao, orient].filter(Boolean).join(" ") || "Revisar lançamento.";
   };
 
   async function executar(qual) {
@@ -54,7 +57,7 @@ export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas
         for (const l of devolver) {
           const o = orientacaoDe(l);
           const historico = [...(l.historicoCorrecoes || []), { obs: o, em: new Date().toISOString() }];
-          await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", l.id), { status: "correcao", obsCorrecao: o, historicoCorrecoes: historico });
+          await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", l.id), { status: "correcao", obsCorrecao: o, historicoCorrecoes: historico, ...(podeExcDe(l) ? { podeExcluir: true } : {}) });
         }
         setMsg(devolver.length + " lançamento(s) devolvido(s).");
       }
@@ -97,6 +100,12 @@ export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas
                         <span style={{ fontSize: 12, color: cor[e] }}>
                           {troca[l.id] ? "Decisão sua · sistema sugeriu: " : ""}{r.motivo}
                         </span>
+                        {e === "no" && r.acao && !troca[l.id] && (
+                          <><br /><span style={{ fontSize: 12 }}><b>O que fazer:</b> {r.acao}</span></>
+                        )}
+                        {e === "no" && (
+                          <><br /><label style={{ fontSize: 12 }}><input type="checkbox" checked={podeExcDe(l)} onChange={(ev) => setExc((x) => ({ ...x, [l.id]: ev.target.checked }))} /> Permitir que o aluno exclua este lançamento</label></>
+                        )}
                       </td>
                       <td className="num mono">{fmt(valor)}</td>
                       <td><button className="btn secondary" onClick={() => alternar(l)}>{e === "ok" ? "devolver" : "aprovar"}</button></td>
