@@ -63,6 +63,7 @@ import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
 import CadernoAluno from "../professor/CadernoAluno.jsx";
 import DiretrizSemana from "../professor/DiretrizSemana.jsx";
+import LotesFluxo from "../professor/LotesFluxo.jsx";
 import TelaComAbas from "../professor/TelaComAbas.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
@@ -866,6 +867,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         <TelaComAbas key={screen} inicial={aba || "prazos"} abas={[
           { key: "prazos", label: "Etapas e prazos", render: () => <>{cab("planejamento", "Etapas e prazos")}<RoteiroProfessor turma={turmaSelecionada} somente="cfg" /></> },
           { key: "cronograma", label: "Cronograma", render: () => <CronogramaProfessor turma={turmaSelecionada} /> },
+          { key: "lotes", label: "Lotes (2027.1)", render: () => <LotesFluxo turma={turmaSelecionada} /> },
           { key: "liberar", label: "Liberar etapas e situação dos alunos", render: () => <>{cab("liberação", "Liberar etapas e situação dos alunos")}<RoteiroProfessor turma={turmaSelecionada} somente="sit" /></> },
         ]} />
       );
