@@ -1240,7 +1240,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           {papelEfetivo === "aluno" && infoEtapaTela && infoEtapaTela.disponivel && (
             <FaixaEtapa info={infoEtapaTela} total={etapasAluno.length} mostrarLink={mostrarPi} onRoteiro={() => setScreen("etapas")} />
           )}
-          {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} />}
+          {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} onSuporte={() => setScreen("suporte")} />}
           {tela}
         </div>
       </div>

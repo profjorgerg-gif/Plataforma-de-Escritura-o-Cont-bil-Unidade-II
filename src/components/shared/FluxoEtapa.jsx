@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FX1_CSS, FX1_VARS, FX1_SVG } from "./fluxogramaEtapa1.js";
 
 // Painel "Como funciona esta etapa" (2026-10-09, pedido do professor).
 // Fluxograma só informativo, no topo de cada tela do aluno. Não lê nem grava
@@ -120,7 +121,35 @@ function marcarVisto(etapa) {
   try { localStorage.setItem("fluxoEtapa_" + etapa, "1"); } catch (e) { /* sem armazenamento: tudo bem */ }
 }
 
-export default function FluxoEtapa({ etapa }) {
+// Trilha dos 10 passos do menu (2026-10-15): mostra onde o aluno está. Só leitura.
+const TRILHA = [
+  ["empresa", "Empresa didática"], ["documentos", "Documentos fiscais"], ["digitacao", "Digitação e análise fiscal"],
+  ["classificacao", "Classificação contábil"], ["diario", "Livro diário"], ["razao", "Livro razão"],
+  ["balancete", "Balancete"], ["are", "ARE"], ["dre", "DRE"], ["bp", "Balanço patrimonial"],
+];
+function Trilha({ etapa }) {
+  const atual = TRILHA.findIndex((t) => t[0] === etapa);
+  if (atual < 0) return null;
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#6b665a", marginBottom: 4 }}>Você está aqui</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {TRILHA.map(([k, nome], i) => (
+          <span key={k} title={nome} style={{
+            display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 64, padding: "4px 6px", textAlign: "center",
+            border: "1px solid " + (i === atual ? "#1F5C4A" : "#d9d2c0"), fontWeight: 700, fontSize: 13,
+            background: i === atual ? "#1F5C4A" : i < atual ? "#E5EFEA" : "#fff", color: i === atual ? "#fff" : i < atual ? "#1F5C4A" : "#6b665a",
+          }}>
+            {i + 1}<small style={{ fontWeight: 400, fontSize: 10, lineHeight: 1.15 }}>{nome}</small>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function FluxoEtapa({ etapa, onSuporte }) {
+  const [verFluxo, setVerFluxo] = useState(false);
   const fluxo = FLUXOS[etapa];
   const [aberto, setAberto] = useState(() => {
     const primeira = !jaViu(etapa);
@@ -136,6 +165,11 @@ export default function FluxoEtapa({ etapa }) {
       </div>
       {aberto && (
         <div className="panel-body">
+          <Trilha etapa={etapa} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", margin: "10px 0", fontSize: 12.5 }}>
+            {onSuporte && <button type="button" className="btn" onClick={onSuporte}>❓ Dúvida? Abrir o Suporte</button>}
+            <span style={{ border: "1px dashed #8a8678", padding: "6px 10px" }}>Prazo da Fase 1: veja em Etapas e prazos. Depois da data vale a regra de atraso.</span>
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, marginBottom: 4 }}>
             {[["al", "você faz"], ["sy", "o sistema faz"], ["pr", "o professor faz"], ["at", "atenção"]].map(([t, r]) => (
               <span key={t}><i style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: COR[t][0], border: "1px solid " + COR[t][1], marginRight: 5 }} />{r}</span>
@@ -147,6 +181,15 @@ export default function FluxoEtapa({ etapa }) {
               ))
             : <Linha passos={fluxo.passos} />}
           {fluxo.aviso && <Caixa2 a={fluxo.aviso} />}
+          <div style={{ borderTop: "1px solid #d9d2c0", marginTop: 10, paddingTop: 8 }}>
+            <button type="button" className="btn secondary" onClick={() => setVerFluxo(!verFluxo)}>{verFluxo ? "▾ Esconder o fluxograma completo" : "▸ Ver o fluxograma completo da Etapa 1"}</button>
+            {verFluxo && (
+              <div className="fx1" style={{ ...FX1_VARS, marginTop: 8, overflowX: "auto", background: "#fff", border: "1px solid #d9d2c0", padding: 8 }}>
+                <style>{FX1_CSS}</style>
+                <div dangerouslySetInnerHTML={{ __html: FX1_SVG }} />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
