@@ -49,6 +49,7 @@ import ModoTeste from "../professor/ModoTeste.jsx";
 import ManualAluno from "../manuais/ManualAluno.jsx";
 import ManualProfessor from "../manuais/ManualProfessor.jsx";
 import ManualOperacao from "../manuais/ManualOperacao.jsx";
+import FluxogramaProcesso from "../manuais/FluxogramaProcesso.jsx";
 import RoteiroAluno from "../manuais/RoteiroAluno.jsx";
 import ConsultaFiscal from "../shared/ConsultaFiscal.jsx";
 import AnaliseVH from "../aluno/AnaliseVH.jsx";
@@ -935,6 +936,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         { key: "guia", label: "Guia do professor", render: () => <GuiaProfessor turma={turmaSelecionada} onIr={(k) => setScreen(k)} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} /> },
         { key: "manprof", label: "Manual do Professor", render: () => <ManualProfessor /> },
         { key: "manaluno", label: "Manual do Aluno", render: () => <ManualAluno /> },
+        { key: "fluxoproc", label: "Fluxograma do processo", render: () => <FluxogramaProcesso /> },
         ...(perfil.papel === "admin" ? [{ key: "manop", label: "Manual de Operacionalização", render: () => <ManualOperacao /> }] : []),
       ]} />
     );
