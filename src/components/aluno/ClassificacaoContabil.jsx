@@ -39,6 +39,41 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
   const [classificacoes, setClassificacoes] = useState([]);
   const [analiseDoDocumento, setAnaliseDoDocumento] = useState(null);
 
+  // Rascunho automático e invisível (só neste computador): se o aluno sair da
+  // tela com o formulário preenchido e não salvar, ao voltar o texto continua
+  // lá. Não grava nada no Firestore e some assim que a classificação é salva.
+  const chaveRasc = "rascunhoLocal_classif_" + turmaId + "_" + matricula;
+  const [rascPronto, setRascPronto] = useState(false);
+  const preenchido = !!(fato.trim() || valor || contaDebito || contaCredito || historico.trim() || tratamento.trim() || documento);
+  useEffect(() => {
+    if (!turmaId || !matricula) return;
+    try {
+      const r = JSON.parse(localStorage.getItem(chaveRasc) || "null");
+      if (r && r.dados) {
+        const d = r.dados;
+        setDocumento(d.documento || ""); setFato(d.fato || ""); setContaDebito(d.contaDebito || "");
+        setContaCredito(d.contaCredito || ""); setValor(d.valor || ""); setHistorico(d.historico || ""); setTratamento(d.tratamento || "");
+      }
+    } catch (e) { /* sem armazenamento: tudo bem */ }
+    setRascPronto(true);
+  }, [chaveRasc]);
+  useEffect(() => {
+    if (!rascPronto) return;
+    const t = setTimeout(() => {
+      try {
+        if (preenchido) localStorage.setItem(chaveRasc, JSON.stringify({ dados: { documento, fato, contaDebito, contaCredito, valor, historico, tratamento }, em: new Date().toISOString() }));
+        else localStorage.removeItem(chaveRasc);
+      } catch (e) { /* idem */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [rascPronto, preenchido, documento, fato, contaDebito, contaCredito, valor, historico, tratamento, chaveRasc]);
+  useEffect(() => {
+    if (!preenchido) return;
+    const aviso = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", aviso);
+    return () => window.removeEventListener("beforeunload", aviso);
+  }, [preenchido]);
+
   useEffect(() => {
     if (!turmaId || !matricula) return;
     const ref = collection(db, "turmas", turmaId, "alunos", matricula, "classificacoes");
@@ -67,6 +102,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
       status: "pendente", criadoEm: serverTimestamp(),
     });
     setDocumento(""); setFato(""); setContaDebito(""); setContaCredito(""); setValor(""); setHistorico(""); setTratamento("");
+    try { localStorage.removeItem(chaveRasc); } catch (e) { /* idem */ }
   }
 
   async function marcarLancada(id) {
