@@ -178,6 +178,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
     ] },
     { label: "materiais", itens: [
       { key: "caderno", label: "Caderno do Aluno (imprimir)" },
+      { key: "planos", label: "Planos semestrais (imprimir)" },
       { key: "roteiro", label: "Roteiro do Aluno" },
       ab("consultas", "Consultas"),
       { key: "modelos", label: "Modelos de mensagens" },

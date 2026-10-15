@@ -65,6 +65,7 @@ import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
 import CadernoAluno from "../professor/CadernoAluno.jsx";
 import DiretrizSemana from "../professor/DiretrizSemana.jsx";
+import PlanosSemestrais from "../professor/PlanosSemestrais.jsx";
 import LotesFluxo from "../professor/LotesFluxo.jsx";
 import FluxoTelas from "../aluno/FluxoTelas.jsx";
 import EnviosPorLote from "../professor/EnviosPorLote.jsx";
@@ -1078,6 +1079,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = (<><div className="screen-eyebrow">etapa 2</div><h2 className="screen-title">Atividade da folha</h2><RoteiroProfessor key={screen} turma={turmaSelecionada} somente="folha" /></>);
   } else if (ehProfessorOuAdmin && screen === "cronograma") {
     tela = <CronogramaProfessor turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "planos") {
+    tela = <PlanosSemestrais turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "diretriz") {
     tela = <DiretrizSemana />;
   } else if (ehProfessorOuAdmin && screen === "caderno") {
