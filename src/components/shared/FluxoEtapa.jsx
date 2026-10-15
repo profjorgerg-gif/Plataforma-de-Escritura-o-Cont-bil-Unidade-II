@@ -73,6 +73,51 @@ const FLUXOS = {
     aviso: ["at", "⚠ Rascunho o professor não vê: só vale depois de \"Enviar\". Lançamento repetido em rascunho: use \"Excluir rascunho\"."],
   },
 };
+
+// Etapas 2 e 3 (CA) — "Como proceder nesta tela" (2026-10-15). Mesmo painel da etapa 1, sem a trilha e sem o fluxograma da etapa 1.
+const CA_AVISO_PRAZO = "Quando o prazo da etapa vence, a tela fecha para consulta: só avance depois de concluir.";
+FLUXOS["ca-ativ"] = { ca: true, titulo: "Etapa 2 · Elaborar a folha de pagamento", passos: [
+  ["al", "1. Escolha o empregado", "botões no topo; ✓ quando o contracheque está conferido"],
+  ["al", "2. Receba o caso", "botão “Receber meu caso” traz os dados do empregado (ou use os seus)"],
+  ["al", "3. Calcule", "proventos, INSS, IRRF, vale-transporte e líquido, na ordem da tabela"],
+  ["sy", "Sistema confere", "compara com o seu cálculo (R$ 0,02 só de arredondamento)"],
+  ["al", "4. Repita", "confira pelo menos o mínimo de contracheques"],
+  ["al", "5. Resumo", "escreva o que mais pesou nos descontos"],
+  ["al", "6. Marque como entregue", "em “Meu roteiro por etapas”"],
+  ["pr", "Professor", "analisa e libera a etapa 3"],
+], aviso: ["at", "⚠ " + CA_AVISO_PRAZO] };
+FLUXOS["ca-folha"] = { ca: true, titulo: "Etapa 3 · Folha do mês", passos: [
+  ["pr", "O professor define", "mês, empregados e parâmetros"],
+  ["al", "1. Leia a folha", "remuneração total do mês, por empregado"],
+  ["al", "2. Confira o total", "ele é a base das provisões e dos lançamentos"],
+  ["sy", "Sistema", "mostra o total e leva você às Provisões"],
+], aviso: ["at", "⚠ Se algum número parecer estranho, abra um chamado no Suporte antes de seguir."] };
+FLUXOS["ca-prov"] = { ca: true, titulo: "Etapa 3 · Provisões e encargos", passos: [
+  ["al", "1. Calcule as provisões", "férias + 1/3 e 13º (1/12 da remuneração)"],
+  ["al", "2. Calcule os encargos", "INSS, FGTS, RAT e terceiros, cada um sobre a sua base"],
+  ["sy", "Sistema confere", "valor por valor, sem mostrar a resposta"],
+  ["al", "3. Anote os valores", "eles serão usados na Contabilização"],
+], aviso: ["at", "⚠ Arredonde cada parcela em centavos antes de somar."] };
+FLUXOS["ca-cont"] = { ca: true, titulo: "Etapa 3 · Contabilização", passos: [
+  ["al", "1. Leia o enunciado", "cada um dos 6 lançamentos traz data, fato e base"],
+  ["al", "2. Monte o lançamento", "escolha as contas, o lado (D/C) e o valor"],
+  ["sy", "Sistema confere", "contas e valores, com dicas do que está errado"],
+  ["al", "3. Leve ao Livro diário", "só depois de ✓ confere; uma vez por lançamento"],
+  ["pr", "Professor", "aprova como os demais lançamentos"],
+], aviso: ["at", "⚠ Não leve o mesmo lançamento duas vezes: isso cria lançamento repetido."] };
+FLUXOS["ca-efeitos"] = { ca: true, titulo: "Etapa 3 · Efeitos nas demonstrações", passos: [
+  ["al", "1. Observe", "como a folha e as provisões afetam a DRE e o balanço"],
+  ["al", "2. Responda", "as perguntas com suas palavras"],
+  ["sy", "Sistema", "registra o preenchimento"],
+  ["pr", "Professor", "lê as suas respostas"],
+] };
+FLUXOS["ca-parecer"] = { ca: true, titulo: "Etapa 3 · Parecer técnico", passos: [
+  ["al", "1. Escreva", "parecer de 10 a 15 linhas (envio a partir de 5)"],
+  ["al", "2. Use os números", "da folha, das provisões e dos encargos"],
+  ["al", "3. Revise e envie", "depois do prazo não dá mais para enviar"],
+  ["pr", "Professor", "lê e dá a nota do critério"],
+], aviso: ["at", "⚠ " + CA_AVISO_PRAZO] };
+
 const AUTOMATICA = {
   titulo: "6 a 10 · Resultado automático",
   passos: [
@@ -160,15 +205,15 @@ export default function FluxoEtapa({ etapa, onSuporte }) {
   return (
     <div className="panel no-print" style={{ marginBottom: 14 }}>
       <div className="panel-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>🧭 Como funciona esta etapa — {fluxo.titulo}</h3>
+        <h3 style={{ margin: 0 }}>🧭 {fluxo.ca ? "Como proceder nesta tela" : "Como funciona esta etapa"} — {fluxo.titulo}</h3>
         <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setAberto(!aberto)}>{aberto ? "fechar" : "abrir"}</button>
       </div>
       {aberto && (
         <div className="panel-body">
-          <Trilha etapa={etapa} />
+          {!fluxo.ca && <Trilha etapa={etapa} />}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", margin: "10px 0", fontSize: 12.5 }}>
             {onSuporte && <button type="button" className="btn" onClick={onSuporte}>❓ Dúvida? Abrir o Suporte</button>}
-            <span style={{ border: "1px dashed #8a8678", padding: "6px 10px" }}>Prazo da Fase 1: veja em Etapas e prazos. Depois da data vale a regra de atraso.</span>
+            <span style={{ border: "1px dashed #8a8678", padding: "6px 10px" }}>{fluxo.ca ? "Prazo: veja em Meu roteiro por etapas. Depois da data a etapa fecha para consulta." : "Prazo da Fase 1: veja em Etapas e prazos. Depois da data vale a regra de atraso."}</span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, marginBottom: 4 }}>
             {[["al", "você faz"], ["sy", "o sistema faz"], ["pr", "o professor faz"], ["at", "atenção"]].map(([t, r]) => (
@@ -181,7 +226,7 @@ export default function FluxoEtapa({ etapa, onSuporte }) {
               ))
             : <Linha passos={fluxo.passos} />}
           {fluxo.aviso && <Caixa2 a={fluxo.aviso} />}
-          <div style={{ borderTop: "1px solid #d9d2c0", marginTop: 10, paddingTop: 8 }}>
+          {!fluxo.ca && <div style={{ borderTop: "1px solid #d9d2c0", marginTop: 10, paddingTop: 8 }}>
             <button type="button" className="btn secondary" onClick={() => setVerFluxo(!verFluxo)}>{verFluxo ? "▾ Esconder o fluxograma completo" : "▸ Ver o fluxograma completo da Etapa 1"}</button>
             {verFluxo && (
               <div className="fx1" style={{ ...FX1_VARS, marginTop: 8, overflowX: "auto", background: "#fff", border: "1px solid #d9d2c0", padding: 8 }}>
@@ -189,7 +234,7 @@ export default function FluxoEtapa({ etapa, onSuporte }) {
                 <div dangerouslySetInnerHTML={{ __html: FX1_SVG }} />
               </div>
             )}
-          </div>
+          </div>}
         </div>
       )}
     </div>

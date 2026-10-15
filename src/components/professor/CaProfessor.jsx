@@ -9,6 +9,7 @@ import { useCaTurma, salvarConfigCa, salvarFolhaCa, useTrabalhosCaDaTurma } from
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { Abas } from "../shared/AgbUI.jsx";
+import EnunciadosCa from "./EnunciadosCa.jsx";
 
 function Liberacao({ turma, ca }) {
   const { contas, deFallback } = usePlanoContas();
@@ -220,8 +221,8 @@ export default function CaProfessor({ turma }) {
       <div className="screen-eyebrow">etapas 2 e 3 · contabilidade avançada</div>
       <h2 className="screen-title">Etapas 2 e 3 — CA (professor)</h2>
       <p className="screen-sub">Libere as etapas 2 e 3, confira as contas, defina a folha do mês e acompanhe os trabalhos dos alunos.</p>
-      <Abas abas={[{ key: "lib", label: "Liberação e contas" }, { key: "folha", label: "Folha e percentuais" }, { key: "trab", label: "Trabalhos dos alunos" }]} ativa={aba} onChange={setAba} />
-      {aba === "lib" ? <Liberacao turma={turma} ca={ca} /> : aba === "folha" ? <EditorFolha turma={turma} ca={ca} /> : <Trabalhos turma={turma} />}
+      <Abas abas={[{ key: "lib", label: "Liberação e contas" }, { key: "folha", label: "Folha e percentuais" }, { key: "enun", label: "Enunciados" }, { key: "trab", label: "Trabalhos dos alunos" }]} ativa={aba} onChange={setAba} />
+      {aba === "lib" ? <Liberacao turma={turma} ca={ca} /> : aba === "folha" ? <EditorFolha turma={turma} ca={ca} /> : aba === "enun" ? <EnunciadosCa turma={turma} ca={ca} /> : <Trabalhos turma={turma} />}
     </>
   );
 }

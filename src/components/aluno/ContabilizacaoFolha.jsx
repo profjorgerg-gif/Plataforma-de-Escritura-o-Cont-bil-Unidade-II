@@ -3,6 +3,7 @@ import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, conferirLancamento, ultimoDiaDoMes, nomeDoMes, CONTAS_FOLHA } from "../../lib/folha.js";
 import { lerNumero } from "../../lib/agb.js";
 import { EstadoGravacao, Carregando, useCampos } from "../shared/AgbUI.jsx";
+import { enunciadosLancamentos } from "../../lib/enunciadosCA.js";
 
 const ROTULO_STATUS = { rascunho: "rascunho no Livro diário", enviado: "enviado ao professor", correcao: "devolvido para correção", aprovado: "aprovado ✓" };
 
@@ -10,6 +11,8 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
   const campos = useCampos(trab, false);
   const f = useMemo(() => folhaEmUso(ca.folha), [ca.folha]);
   const esperados = useMemo(() => lancamentosDaFolha(f.provisoes), [f]);
+  const enunciados = useMemo(() => enunciadosLancamentos(ca.folha, ca.config && ca.config.enunciadoObs), [ca.folha, ca.config]);
+  const mostraEnunciado = !(ca.config && ca.config.enunciadoAtivo === false);
   if (ca.folha === undefined || trab.carregando || !esc.contas) return <Carregando />;
 
   const contas = [...esc.contas].sort((a, b) => String(a.codigo).localeCompare(String(b.codigo), "pt-BR", { numeric: true }));
@@ -49,6 +52,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
               <h3>{bi + 1}. {l.titulo}</h3>
               <span className={"tag-pill " + (r.ok ? "ok" : r.vazio ? "warn" : "bad")}>{r.ok ? "✓ confere" : r.vazio ? "em branco" : "✗ confira"}</span>
             </div>
+            {mostraEnunciado && enunciados[l.key] && <div className="helper-note" style={{ margin: "10px 14px" }}><b>Enunciado.</b> {enunciados[l.key]}</div>}
             <div className="panel-body" style={{ padding: 0 }}>
               <table>
                 <thead><tr><th style={{ width: 70 }}>D / C</th><th>Conta</th><th className="num" style={{ width: 140 }}>Valor (R$)</th></tr></thead>

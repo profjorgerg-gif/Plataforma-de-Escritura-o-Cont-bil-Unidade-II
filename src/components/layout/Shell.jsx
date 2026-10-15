@@ -1039,7 +1039,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "notas-etapas") {
     tela = <NotasEtapas avaliacoes={avalAluno} />;
   } else if (papelEfetivo === "aluno" && screen === "ca-ativ") {
-    tela = <FolhaAtividade trab={trabCa} ca={caAluno} />;
+    tela = <FolhaAtividade trab={trabCa} ca={caAluno} matricula={matricula} />;
   } else if (papelEfetivo === "aluno" && !emTeste && ["ca-folha", "ca-prov", "ca-cont", "ca-efeitos", "ca-parecer"].includes(screen)
     && caAluno.config && caAluno.config.fpObrigatoria
     && !(rotAluno.estado && rotAluno.estado.etapas && rotAluno.estado.etapas.fp && rotAluno.estado.etapas.fp.status === "aprovada")) {

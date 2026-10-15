@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { fmt } from "../../lib/contabil.js";
 import { calcularContracheque, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
+import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
+import { folhaEmUso } from "../../lib/folha.js";
 
 const SEC = "fp";
-export default function FolhaAtividade({ trab, ca }) {
+export default function FolhaAtividade({ trab, ca, matricula }) {
   const campos = useCampos(trab, false);
   const [sel, setSel] = useState(null);
   const empregados = (ca.config && ca.config.empregados) || [];
@@ -56,6 +58,7 @@ export default function FolhaAtividade({ trab, ca }) {
         </div>
       </div></div>
 
+      {ca.config.enunciadoAtivo !== false && <EnunciadoEmpregado matricula={matricula} emp={emp} competencia={folhaEmUso(ca.folha).competencia} obs={ca.config.enunciadoObs} get={get} set={set} />}
       <div className="panel">
         <div className="panel-head"><h3>Situação de {emp.nome}</h3></div>
         <div className="panel-body">
