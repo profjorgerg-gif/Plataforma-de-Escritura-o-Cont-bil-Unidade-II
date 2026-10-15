@@ -38,4 +38,4 @@ export const diasPara = (prazo, agora = new Date()) => {
 };
 
 // Botões que gravam/alteram dados: bloqueados (na tela) em etapa fechada
-export const RE_ACAO_QUE_GRAVA = /(salvar|enviar|reenviar|excluir|apagar|remover|editar|nova |novo |adicionar|incluir|gravar|limpar|usar no lan|marcar|confirmar|criar|lançar|lancar|conferir digita|importar|carregar exemplo|restaurar|zerar|refazer)/i;
+export const RE_ACAO_QUE_GRAVA = /(salvar|enviar|reenviar|excluir|apagar|remover|editar|nova |novo |adicionar|incluir|gravar|limpar|usar no lan|usar estes|receber meu caso|marcar|confirmar|criar|lançar|lancar|conferir digita|importar|carregar exemplo|restaurar|zerar|refazer)/i;
