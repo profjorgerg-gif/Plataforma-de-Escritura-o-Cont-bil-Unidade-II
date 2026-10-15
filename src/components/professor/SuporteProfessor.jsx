@@ -115,7 +115,8 @@ export default function SuporteProfessor({ turma }) {
   }
 
   async function abrirChamado(c) {
-    setSelId(c.id); setTexto(""); setErro("");
+    setSelId(c.id); setTexto(""); setErro(""); setAviso("");
+    setTimeout(() => { const el = document.getElementById("chamado-aberto"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
     if (c.naoLidoProfessor) {
       try { await updateDoc(doc(db, "turmas", turmaId, "chamados", c.id), { naoLidoProfessor: false }); } catch (e) { /* silencioso */ }
     }
@@ -128,7 +129,12 @@ export default function SuporteProfessor({ turma }) {
         mensagens: arrayUnion({ autor: "professor", texto: texto.trim(), em: new Date().toISOString() }),
         status: "respondido", naoLidoAluno: true, atualizadoEm: serverTimestamp(),
       });
+      const ficou = texto.trim() === RESPOSTAS_RAPIDAS[0];
       setTexto("");
+      // volta para a lista e diz para onde o chamado foi
+      setSelId(null);
+      setAviso("Resposta enviada. O chamado " + (sel.numero ? "Nº " + fmtNumero(sel.numero) + " " : "") + (ficou ? "continua em “Aguardando você”, porque foi só a resposta automática." : "foi para “Aguardando o aluno”."));
+      setTimeout(() => { const el = document.getElementById("suporte-topo"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
     } catch (e) { setErro("Não foi possível enviar: " + e.message); }
     setEnviando(false);
   }
@@ -137,6 +143,11 @@ export default function SuporteProfessor({ turma }) {
     try {
       const msgSistema = { autor: "sistema", tipo: "sistema", texto: status === "resolvido" ? "Chamado marcado como resolvido pelo professor" : "Chamado reaberto pelo professor", em: new Date().toISOString() };
       await updateDoc(doc(db, "turmas", turmaId, "chamados", sel.id), { status, atualizadoEm: serverTimestamp(), mensagens: arrayUnion(msgSistema), naoLidoAluno: true });
+      if (status === "resolvido") {
+        setAviso("Chamado " + (sel.numero ? "Nº " + fmtNumero(sel.numero) + " " : "") + "marcado como resolvido.");
+        setSelId(null);
+        setTimeout(() => { const el = document.getElementById("suporte-topo"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
+      }
     }
     catch (e) { setErro("Não foi possível alterar: " + e.message); }
   }
@@ -175,7 +186,7 @@ export default function SuporteProfessor({ turma }) {
   return (
     <>
       <div className="screen-eyebrow">gestão da turma</div>
-      <h2 className="screen-title">Suporte — chamados da turma</h2>
+      <h2 className="screen-title" id="suporte-topo">Suporte — chamados da turma</h2>
       <p className="screen-sub">Turma {turma.nome}. O aluno vê a sua resposta no menu "Suporte" dele, com um número vermelho quando há resposta nova.</p>
       {erroLeitura && <div className="balance-check bad">O Suporte ainda não funciona: cole as regras novas do Firestore no Console (veja as instruções da atualização).</div>}
 
@@ -194,7 +205,14 @@ export default function SuporteProfessor({ turma }) {
         <button className="btn secondary" disabled={porAluno.length === 0} onClick={exportarTodos}>⬇ Exportar {filtroAluno ? "chamados do aluno" : "todos os chamados"} (.txt)</button>
         {semNumero > 0 && <button className="btn secondary" disabled={enviando} onClick={numerarAntigos}>Numerar chamados antigos ({semNumero})</button>}
       </div>
-      {aviso && <div className="balance-check ok">{aviso}</div>}
+      {aviso && (
+        <div className="balance-check ok">
+          {aviso}
+          {!sel && aba === "pro" && lista.length > 0 && (
+            <button className="btn" style={{ marginLeft: 12 }} onClick={() => abrirChamado(lista[0])}>Próximo chamado ›</button>
+          )}
+        </div>
+      )}
       {!sel && devOk && <div className="balance-check ok">{devOk}</div>}
       {!sel && erro && !novo && <div className="balance-check bad">{erro}</div>}
 
@@ -259,6 +277,7 @@ export default function SuporteProfessor({ turma }) {
         )}
       </div></div>
 
+      {sel && (<div id="chamado-aberto" />)}
       {sel && (
         <div className="panel">
           <div className="panel-head"><h3>{sel.numero ? "Nº " + fmtNumero(sel.numero) + " · " : ""}{sel.alunoNome || sel.matricula} — {sel.assunto}{sel.documentoNumero ? " · NF " + sel.documentoNumero : ""}</h3></div>
