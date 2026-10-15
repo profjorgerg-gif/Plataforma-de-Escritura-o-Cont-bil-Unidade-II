@@ -39,6 +39,7 @@ import RefazerNota from "../professor/RefazerNota.jsx";
 import RegistroProcesso from "../professor/RegistroProcesso.jsx";
 import GuiaProfessor from "../professor/GuiaProfessor.jsx";
 import FluxoEtapa from "../shared/FluxoEtapa.jsx";
+import FluxoEtapaPI from "../shared/FluxoEtapaPI.jsx";
 import { useChamados } from "../../hooks/useChamados.js";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
@@ -1243,6 +1244,7 @@ export default function Shell({ usuario, perfil, onSair }) {
             <FaixaEtapa info={infoEtapaTela} total={etapasAluno.length} mostrarLink={mostrarPi} onRoteiro={() => setScreen("etapas")} />
           )}
           {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} onSuporte={() => setScreen("suporte")} />}
+          {papelEfetivo === "aluno" && <FluxoEtapaPI key={"pi" + screen} tela={screen} onSuporte={() => setScreen("suporte")} />}
           {tela}
         </div>
       </div>
