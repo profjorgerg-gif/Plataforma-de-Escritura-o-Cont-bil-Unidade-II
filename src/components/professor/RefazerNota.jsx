@@ -112,6 +112,24 @@ export default function RefazerNota({ turma }) {
     setExecutando(false);
   }
 
+  // Remove só UM item (ex.: classificação repetida). Copia para a lixeira ANTES de apagar.
+  async function removerUm(it) {
+    if (!it || it.tipo !== "classificacao") return;
+    if (!window.confirm("Remover só esta classificação (" + resumo(it.tipo, it.dados) + ")? Uma cópia fica na lixeira de segurança e pode ser restaurada.")) return;
+    setExecutando(true); setErro(""); setMsg("");
+    try {
+      await addDoc(collection(db, ...base(mat), "lixeira"), {
+        tipo: it.tipo, colecao: TIPOS[it.tipo].colecao, origemId: it.id, documento: docId,
+        documentoNumero: nota?.numero || null, dados: it.dados,
+        excluidoEm: serverTimestamp(), excluidoPor: auth.currentUser?.email || "",
+      });
+      await deleteDoc(doc(db, ...base(mat), TIPOS[it.tipo].colecao, it.id));
+      setMsg("Item removido e guardado na lixeira de segurança. Os demais itens da nota não mudaram.");
+      await carregar();
+    } catch (e) { setErro("Não foi possível remover: " + e.message + ". Nada foi apagado se a cópia falhou."); await carregar(); }
+    setExecutando(false);
+  }
+
   async function restaurar(l) {
     setErro(""); setMsg("");
     try {
@@ -155,10 +173,11 @@ export default function RefazerNota({ turma }) {
           <div className="panel-body" style={{ padding: 0 }}>
             {itens.length === 0 ? <div className="empty-state">O aluno não tem nada gravado para esta nota.</div> : (
               <table>
-                <thead><tr><th>Item</th><th>Resumo</th><th>Situação</th></tr></thead>
+                <thead><tr><th>Item</th><th>Resumo</th><th>Situação</th><th></th></tr></thead>
                 <tbody>{itens.map((i) => (
                   <tr key={i.tipo + i.id}><td>{TIPOS[i.tipo].rotulo}</td><td>{resumo(i.tipo, i.dados)}</td>
-                    <td><span className={"status " + (i.dados.status === "aprovado" ? "aprovado" : "rascunho")}>{i.dados.status || "salvo"}</span></td></tr>
+                    <td><span className={"status " + (i.dados.status === "aprovado" ? "aprovado" : "rascunho")}>{i.dados.status || "salvo"}</span></td>
+                    <td>{i.tipo === "classificacao" && <button className="btn secondary" disabled={executando} onClick={() => removerUm(i)}>Remover só este item</button>}</td></tr>
                 ))}</tbody>
               </table>
             )}

@@ -70,7 +70,7 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
     }
 
     if (clas.length > 1)
-      add("atencao", nomeDoc(d), `Duas classificações para a mesma nota (${clas.length})`, "O professor confere e remove a classificação repetida.", "Menu → Classificação contábil (etapa 4) → tabela Classificações registradas", "cla");
+      add("atencao", nomeDoc(d), `Duas classificações para a mesma nota (${clas.length})`, "Confira qual das duas está certa e remova a repetida.", "Menu → Refazer nota do aluno → escolher o aluno e a NF → “Remover só este item”.", "cla");
 
     if (dig && ana?.status === "enviado" && clas.length === 0 && lans.length === 0)
       add("erro", nomeDoc(d), "Classificação contábil não feita", "Defina a conta de débito e a de crédito deste documento.", "Menu → Classificação contábil (etapa 4) → Nova classificação → Salvar classificação");
