@@ -52,6 +52,18 @@ service cloud.firestore {
     function podeAgirComoEsteAluno(turmaId, matricula) {
       return souEsteAlunoNestaTurma(turmaId, matricula) || souProfessorTestando(turmaId, matricula);
     }
+    // 2026-10-15 — Fechamento por prazo. O professor mantém turmas/{t}/roteiro/fechamento com o fim do prazo de cada
+    // etapa (campos f1, fp, ca, resc, agb, comp = timestamp). Depois do prazo o ALUNO não grava mais naquela etapa.
+    // Sem o documento (ou sem o campo da etapa) nada é bloqueado. A conta de teste (professor) nunca é bloqueada.
+    function etapaAberta(turmaId, etapa) {
+      return !exists(/databases/$(database)/documents/turmas/$(turmaId)/roteiro/fechamento)
+        || get(/databases/$(database)/documents/turmas/$(turmaId)/roteiro/fechamento).data.get(etapa, null) == null
+        || request.time <= get(/databases/$(database)/documents/turmas/$(turmaId)/roteiro/fechamento).data.get(etapa, null);
+    }
+    function alunoPodeEscrever(turmaId, matricula, etapa) {
+      return souProfessorTestando(turmaId, matricula)
+        || (souEsteAlunoNestaTurma(turmaId, matricula) && etapaAberta(turmaId, etapa));
+    }
 
     // ---------- users ----------
     // Criação: o próprio usuário cria seu documento no primeiro login (sem
@@ -178,18 +190,18 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if podeAgirComoEsteAluno(turmaId, matricula)
+          allow create: if alunoPodeEscrever(turmaId, matricula, 'f1')
             && request.resource.data.status in ['rascunho', 'enviado'];
           allow update: if
             // aluno (ou professor testando) só edita o próprio lançamento enquanto não foi aprovado
-            (podeAgirComoEsteAluno(turmaId, matricula)
+            (alunoPodeEscrever(turmaId, matricula, 'f1')
               && resource.data.status != 'aprovado'
               && request.resource.data.status in ['rascunho', 'enviado'])
             // professor só muda status, observação de correção e o histórico
             // de correções (registro acumulado de todas as devoluções)
             || (souProfessorDaTurma(turmaId)
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes', 'podeExcluir']));
-          allow delete: if podeAgirComoEsteAluno(turmaId, matricula)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes', 'podeExcluir', 'partidas', 'corrigidoPeloProfessor', 'corrigidoEm']));
+          allow delete: if alunoPodeEscrever(turmaId, matricula, 'f1')
             && (resource.data.status == 'rascunho'
                 // 2026-10-15 — lançamento devolvido que o professor marcou como excluível
                 || (resource.data.status == 'correcao' && resource.data.get('podeExcluir', false) == true));
@@ -205,9 +217,9 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+          allow create: if alunoPodeEscrever(turmaId, matricula, 'comp') && docId == 'trabalho'
             && !request.resource.data.keys().hasAny(['devolutiva', 'devolutivaEm']);
-          allow update: if (podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+          allow update: if (alunoPodeEscrever(turmaId, matricula, 'comp') && docId == 'trabalho'
               && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['devolutiva', 'devolutivaEm']))
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['devolutiva', 'devolutivaEm']));
@@ -221,9 +233,9 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+          allow create: if alunoPodeEscrever(turmaId, matricula, 'resc') && docId == 'trabalho'
             && !request.resource.data.keys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']);
-          allow update: if (podeAgirComoEsteAluno(turmaId, matricula) && docId == 'trabalho'
+          allow update: if (alunoPodeEscrever(turmaId, matricula, 'resc') && docId == 'trabalho'
               && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']))
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']));
@@ -237,7 +249,7 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create, update: if (docId == 'estado' && (souAdmin() || souProfessorDaTurma(turmaId)))
+          allow create, update: if ((docId == 'estado' || docId == 'emissoes') && (souAdmin() || souProfessorDaTurma(turmaId)))
             || (docId == 'entregas' && podeAgirComoEsteAluno(turmaId, matricula));
           allow delete: if souAdmin();
         }
@@ -281,7 +293,7 @@ service cloud.firestore {
         match /lixeira/{id} {
           allow read, create, delete: if souAdmin() || souProfessorDaTurma(turmaId);
           // 2026-10-15 — o aluno só GRAVA a cópia do lançamento devolvido que vai excluir (não lê nem apaga)
-          allow create: if podeAgirComoEsteAluno(turmaId, matricula) && request.resource.data.tipo == 'lancamento';
+          allow create: if alunoPodeEscrever(turmaId, matricula, 'f1') && request.resource.data.tipo == 'lancamento';
           allow update: if false;
         }
 
@@ -290,7 +302,7 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          allow write: if alunoPodeEscrever(turmaId, matricula, 'f1');
           // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
           allow create, delete: if souProfessorDaTurma(turmaId);
         }
@@ -300,7 +312,7 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          allow write: if alunoPodeEscrever(turmaId, matricula, 'f1');
           // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
           allow create, delete: if souProfessorDaTurma(turmaId);
         }
@@ -310,7 +322,7 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow write: if podeAgirComoEsteAluno(turmaId, matricula);
+          allow write: if alunoPodeEscrever(turmaId, matricula, 'f1');
           // 2026-10-09 — professor pode apagar/restaurar (Refazer nota do aluno)
           allow create, delete: if souProfessorDaTurma(turmaId);
           // 2026-10-09 — "Devolver nota ao aluno": professor reabre a análise (status) e registra a devolução
