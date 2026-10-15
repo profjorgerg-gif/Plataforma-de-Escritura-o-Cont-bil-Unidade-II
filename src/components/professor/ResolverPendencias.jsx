@@ -3,7 +3,8 @@ import { addDoc, arrayUnion, collection, deleteDoc, doc, getDocs, query, serverT
 import { auth, db } from "../../firebase.js";
 import { formatarDataHora } from "../aluno/SuporteAluno.jsx";
 import { conferirAluno } from "../../lib/conferenciaFila.js";
-import { TIPOS_PEND, parseItens, sugerirClassificacao, candidatosDuplicado, candidatosDivergente, orientacaoDuplicado, orientacaoDivergencia } from "../../lib/resolverPendencias.js";
+import { sugerirCorrecao } from "../../lib/conferenciaFila.js";
+import { TIPOS_PEND, parseItens, sugerirClassificacao, candidatosDuplicado, candidatosDivergente, orientacaoDuplicado, orientacaoDivergencia, escolherRepetidos, candidatosCorrecao } from "../../lib/resolverPendencias.js";
 
 // Resolução assistida das pendências do professor (2026-10-15).
 // Cada item do chamado "Pendência do professor" ganha o botão Resolver. SEMPRE abre uma janela
@@ -14,7 +15,10 @@ const moeda = (v) => { const n = Number(v); return isNaN(n) ? "—" : n.toLocale
 const totalD = (l) => (l.partidas || []).filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
 const partidasTxt = (l) => (l.partidas || []).map((p) => p.tipo + " " + p.conta + " " + moeda(p.valor)).join(" · ");
 
-export default function ResolverPendencias({ turmaId, chamado, documentos }) {
+// Dois usos: (1) no chamado do Suporte (aluno ainda pode corrigir: devolve pela Fila);
+// (2) no Fechamento da etapa (fechada=true, sem chamado): o ALUNO NÃO MEXE MAIS, então o professor remove o repetido
+// ou corrige os valores, sempre com o original guardado na lixeira de segurança.
+export default function ResolverPendencias({ turmaId, chamado, documentos, fechada = false, texto = null, matricula = null, aoResolver = null }) {
   const [aberto, setAberto] = useState(null); // item em resolução
   const [dados, setDados] = useState(null);   // {lista, sugestao...}
   const [carregando, setCarregando] = useState(false);
@@ -25,10 +29,12 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
   const [manterId, setManterId] = useState("");
   const [alvoId, setAlvoId] = useState("");
   const [orient, setOrient] = useState("");
+  const [locais, setLocais] = useState([]);
+  const [vals, setVals] = useState([]);
 
-  const itens = parseItens((chamado.mensagens || []).find((m) => m.texto)?.texto || "");
-  const mat = chamado.alunoMatricula || chamado.matricula;
-  const feitos = chamado.resolvidosAuto || [];
+  const itens = parseItens(texto != null ? texto : ((chamado && chamado.mensagens) || []).find((m) => m.texto)?.texto || "");
+  const mat = matricula || (chamado && (chamado.alunoMatricula || chamado.matricula));
+  const feitos = [...((chamado && chamado.resolvidosAuto) || []), ...locais];
   if (!itens.length || !mat) return null;
   const base = ["turmas", turmaId, "alunos", mat];
   const notaDe = (num) => (documentos || []).find((d) => String(d.numero) === String(num));
@@ -52,6 +58,18 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
         const daNota = todos.filter((l) => l.documento === nota.id);
         const res = conferirAluno(daNota.filter((l) => l.status === "enviado" || l.status === "aprovado"), todos, documentos);
         const cand = it.tipo === "lancdup" ? candidatosDuplicado(daNota.filter((l) => l.status === "enviado"), res) : candidatosDivergente(daNota.filter((l) => l.status === "enviado"), res);
+        if (fechada) {
+          if (it.tipo === "lancdup") {
+            const { manter, remover } = escolherRepetidos(daNota, res);
+            setDados({ nota, daNota, res, manter, remover }); setConf(false); setCarregando(false); return;
+          }
+          const cs = candidatosCorrecao(daNota, res);
+          const alvo = cs[0];
+          const sug = alvo ? sugerirCorrecao(alvo, nota) : { auto: false };
+          setAlvoId(alvo ? alvo.id : "");
+          setVals(alvo ? (sug.auto ? sug.partidas : alvo.partidas || []).map((p) => String(p.valor ?? "")) : []);
+          setDados({ nota, daNota, res, cs, sug }); setConf(false); setCarregando(false); return;
+        }
         const primeiro = cand[0];
         setAlvoId(primeiro ? primeiro.id : "");
         setOrient(primeiro ? (it.tipo === "lancdup" ? orientacaoDuplicado(it.num) : orientacaoDivergencia(res[primeiro.id])) : "");
@@ -62,6 +80,9 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
   }
 
   async function registrar(it, texto) {
+    setLocais((l) => [...l, it.chave]);
+    if (aoResolver) aoResolver(it, texto);
+    if (!chamado || !chamado.id) return;
     await updateDoc(doc(db, "turmas", turmaId, "chamados", chamado.id), {
       resolvidosAuto: arrayUnion(it.chave), atualizadoEm: serverTimestamp(),
       mensagens: arrayUnion({ autor: "sistema", tipo: "sistema", texto: "NF " + it.num + " — " + texto, em: new Date().toISOString() }),
@@ -99,6 +120,46 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
     } catch (e) { setErro("Não foi possível devolver: " + (e.message || e)); setGravando(false); }
   }
 
+  async function copiarParaLixeira(l, nota) {
+    const { id, ...resto } = l;
+    await addDoc(collection(db, ...base, "lixeira"), {
+      tipo: "lancamento", colecao: "lancamentos", origemId: id, documento: nota.id,
+      documentoNumero: nota.numero || null, dados: resto,
+      excluidoEm: serverTimestamp(), excluidoPor: auth.currentUser?.email || "",
+    });
+  }
+  async function removerRepetidos() {
+    setGravando(true); setErro("");
+    try {
+      for (const l of dados.remover) {
+        if (l.status === "aprovado") continue;
+        await copiarParaLixeira(l, dados.nota);
+        await deleteDoc(doc(db, ...base, "lancamentos", l.id));
+      }
+      await registrar(aberto, "lançamento duplicado resolvido pelo professor: removido(s) " + dados.remover.length + " (cópia na lixeira de segurança).");
+      setAviso("Pronto: repetido(s) removido(s), cópia na lixeira de segurança."); fechar();
+    } catch (e) { setErro("Não foi possível remover: " + (e.message || e) + ". Nada é apagado se a cópia falhou."); setGravando(false); }
+  }
+  const alvoLanc = dados && dados.daNota ? dados.daNota.find((x) => x.id === alvoId) : null;
+  const numVals = vals.map((v) => Number(String(v).replace(",", ".")));
+  const somaLado = (lado) => (alvoLanc ? (alvoLanc.partidas || []).reduce((s, p, i) => s + (p.tipo === lado ? (numVals[i] || 0) : 0), 0) : 0);
+  const fechaDC = alvoLanc && Math.abs(somaLado("D") - somaLado("C")) < 0.005 && numVals.every((n) => !isNaN(n) && n >= 0);
+  async function corrigirPeloProfessor() {
+    const l = alvoLanc; if (!l || l.status === "aprovado") return;
+    setGravando(true); setErro("");
+    try {
+      await copiarParaLixeira(l, dados.nota);
+      const partidas = (l.partidas || []).map((p, i) => ({ ...p, valor: Math.round(numVals[i] * 100) / 100 }));
+      const obs = "Corrigido pelo professor após o encerramento da etapa (valores ajustados ao gabarito da nota).";
+      await updateDoc(doc(db, ...base, "lancamentos", l.id), {
+        partidas, status: "aprovado", corrigidoPeloProfessor: true, corrigidoEm: new Date().toISOString(),
+        historicoCorrecoes: [...(l.historicoCorrecoes || []), { obs, em: new Date().toISOString(), original: (l.partidas || []).map((p) => p.tipo + " " + p.conta + " " + p.valor).join(" | ") }],
+      });
+      await registrar(aberto, "divergência corrigida pelo professor (original na lixeira de segurança).");
+      setAviso("Pronto: lançamento corrigido e aprovado; original guardado na lixeira de segurança."); fechar();
+    } catch (e) { setErro("Não foi possível corrigir: " + (e.message || e)); setGravando(false); }
+  }
+
   async function soMarcar() {
     setGravando(true);
     try { await registrar(aberto, "marcado como resolvido pelo professor, sem alterar dados."); fechar(); }
@@ -118,7 +179,7 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
     <div style={{ margin: "10px 0" }}>
       <div className="helper-note" style={{ marginBottom: 8 }}>
         <b>Resolução assistida:</b> {nResolvidos} de {itens.length} item(ns) resolvido(s). O sistema sugere, você confirma; nada é gravado sem o seu clique.
-        {nResolvidos === itens.length && " Todos resolvidos: pode marcar o chamado como resolvido."}
+        {nResolvidos === itens.length && (fechada ? " Todos resolvidos: emita o relatório de novo para conferir." : " Todos resolvidos: pode marcar o chamado como resolvido.")}
       </div>
       {aviso && <div className="helper-note" role="status" style={{ color: "var(--green)", marginBottom: 8 }}>{aviso}</div>}
       {itens.map((it) => {
@@ -159,7 +220,56 @@ export default function ResolverPendencias({ turmaId, chamado, documentos }) {
                 </>
               )
             )}
-            {dados && aberto.tipo !== "classificacao" && (
+            {dados && fechada && aberto.tipo === "lancdup" && (
+              !dados.remover.length ? (
+                <>
+                  <p>Não há lançamento repetido que possa ser removido (o repetido já está aprovado ou foi resolvido).</p>
+                  <div className="btn-row"><button className="btn" disabled={gravando} onClick={soMarcar}>Marcar este item como resolvido</button> <button className="btn secondary" onClick={fechar}>Fechar</button></div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ border: "2px solid var(--green)", padding: "8px 10px", fontSize: 13.5, flex: "1 1 260px" }}><b style={{ fontSize: 11 }}>MANTER</b><br />{dados.manter.status} · {dados.manter.historico}<br /><span style={{ fontSize: 12 }}>{partidasTxt(dados.manter)}</span></div>
+                    {dados.remover.map((l) => <div key={l.id} style={{ border: "2px dashed var(--red)", padding: "8px 10px", fontSize: 13.5, flex: "1 1 260px" }}><b style={{ fontSize: 11 }}>REMOVER</b><br />{l.status} · {l.historico}<br /><span style={{ fontSize: 12 }}>{partidasTxt(l)}</span></div>)}
+                  </div>
+                  <div className="helper-note" style={{ margin: "10px 0" }}>A etapa está encerrada: o aluno não pode mais excluir. Cópia do repetido vai para a lixeira de segurança; lançamento aprovado nunca é alterado.</div>
+                  <label style={{ display: "block", margin: "8px 0" }}><input type="checkbox" checked={conf} onChange={(e) => setConf(e.target.checked)} /> Conferi e quero remover o(s) repetido(s).</label>
+                  <div className="btn-row"><button className="btn red" disabled={!conf || gravando} onClick={removerRepetidos}>{gravando ? "Removendo…" : "Remover e guardar cópia"}</button> <button className="btn secondary" onClick={fechar}>Cancelar</button></div>
+                </>
+              )
+            )}
+            {dados && fechada && aberto.tipo === "diverg" && (
+              !dados.cs.length ? (
+                <>
+                  <p>Não encontrei lançamento enviado com divergência nesta nota. Talvez já tenha sido corrigido.</p>
+                  <div className="btn-row"><button className="btn" disabled={gravando} onClick={soMarcar}>Marcar este item como resolvido</button> <button className="btn secondary" onClick={fechar}>Fechar</button></div>
+                </>
+              ) : (
+                <>
+                  {dados.cs.length > 1 && <div className="field"><label>Lançamento a corrigir</label>
+                    <select value={alvoId} onChange={(e) => { const l = dados.cs.find((x) => x.id === e.target.value); const sg = sugerirCorrecao(l, dados.nota); setAlvoId(l.id); setVals((sg.auto ? sg.partidas : l.partidas || []).map((p) => String(p.valor ?? ""))); setConf(false); }}>
+                      {dados.cs.map((l) => <option key={l.id} value={l.id}>{l.historico || l.id} · {moeda(totalD(l))}</option>)}
+                    </select></div>}
+                  {alvoLanc && (
+                    <>
+                      <div className="helper-note">Conferência: {(dados.res[alvoLanc.id] || {}).motivo}. {dados.sug.auto ? "Os valores abaixo já vêm ajustados ao gabarito (" + moeda(dados.sug.esperado) + ")." : "Não consigo montar sozinho este tipo de lançamento: ajuste os valores à mão (débito deve ser igual a crédito)."}</div>
+                      <table>
+                        <thead><tr><th>D/C</th><th>Conta</th><th>Lançado pelo aluno</th><th>Valor corrigido</th></tr></thead>
+                        <tbody>{(alvoLanc.partidas || []).map((p, i) => (
+                          <tr key={i}><td>{p.tipo}</td><td>{p.conta}</td><td>{moeda(p.valor)}</td>
+                            <td><input style={{ width: 120 }} inputMode="decimal" value={vals[i] ?? ""} onChange={(e) => { const v = [...vals]; v[i] = e.target.value; setVals(v); setConf(false); }} /></td></tr>
+                        ))}</tbody>
+                      </table>
+                      <div style={{ fontSize: 13, margin: "6px 0", color: fechaDC ? "var(--green)" : "var(--red)" }}>Débitos {moeda(somaLado("D"))} · Créditos {moeda(somaLado("C"))} {fechaDC ? "✓ fecha" : "✗ não fecha"}</div>
+                      <div className="helper-note">O original vai para a lixeira de segurança e para o histórico do lançamento (“corrigido pelo professor”). O erro continua no relatório e pesa na nota. Se o erro for do gabarito, cancele e corrija o gabarito.</div>
+                      <label style={{ display: "block", margin: "8px 0" }}><input type="checkbox" checked={conf} onChange={(e) => setConf(e.target.checked)} /> Conferi e quero aplicar a correção e aprovar.</label>
+                      <div className="btn-row"><button className="btn" disabled={!conf || !fechaDC || gravando} onClick={corrigirPeloProfessor}>{gravando ? "Corrigindo…" : "Corrigir e aprovar"}</button> <button className="btn secondary" onClick={fechar}>Cancelar</button></div>
+                    </>
+                  )}
+                </>
+              )
+            )}
+            {dados && !fechada && aberto.tipo !== "classificacao" && (
               !dados.cand.length ? (
                 <>
                   <p>Não encontrei lançamento <b>enviado</b> {aberto.tipo === "lancdup" ? "repetido" : "com divergência"} nesta nota. Talvez já tenha sido devolvido, corrigido ou aprovado.</p>

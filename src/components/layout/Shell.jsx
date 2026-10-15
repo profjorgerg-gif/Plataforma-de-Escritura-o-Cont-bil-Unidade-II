@@ -40,6 +40,10 @@ import RegistroProcesso from "../professor/RegistroProcesso.jsx";
 import GuiaProfessor from "../professor/GuiaProfessor.jsx";
 import FluxoEtapa from "../shared/FluxoEtapa.jsx";
 import FluxoEtapaPI from "../shared/FluxoEtapaPI.jsx";
+import EtapaFechada from "../shared/EtapaFechada.jsx";
+import Fechamento from "../professor/Fechamento.jsx";
+import { situacaoPrazo } from "../../lib/fechamento.js";
+import { useFechamentoSync } from "../../hooks/useFechamentoSync.js";
 import { useChamados } from "../../hooks/useChamados.js";
 import Turmas from "../professor/Turmas.jsx";
 import FilaCorrecao from "../professor/FilaCorrecao.jsx";
@@ -759,6 +763,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
   const turmaSelecionada = turmasDoProfessor?.find((t) => t.id === turmaSelecionadaId) || turmasDoProfessor?.[0] || null;
+  useFechamentoSync(ehProfessorOuAdmin && !emTeste ? turmaSelecionada?.id : null);
 
   // Indicativo no menu do professor: lançamentos aguardando a análise dele
   // (envio inicial ou reenvio depois de uma correção) na turma selecionada.
@@ -869,6 +874,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : (ehProfessorOuAdmin && !emTeste ? "Hoje" : "Comece aqui");
   const etapaDaTelaAtual = papelEfetivo === "aluno" ? etapaDaTela(screen) : null;
   const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
+  const prazoTela = etapaDaTelaAtual ? situacaoPrazo(etapaDaTelaAtual, roteiroCfg) : { fechada: false };
 
   // Etapas abertas/fechadas no menu do aluno (só no navegador; não grava nada no Firestore).
   const [subsAbertas, setSubsAbertas] = useState(() => {
@@ -1119,6 +1125,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <RegistroProcesso turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "refazer") {
     tela = <RefazerNota turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && screen === "fechamento") {
+    tela = <Fechamento turma={turmaSelecionada} onIr={setScreen} />;
   } else if (ehProfessorOuAdmin && screen === "relatorio") {
     tela = <RelatorioOrientacao turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "documentos") {
@@ -1251,7 +1259,9 @@ export default function Shell({ usuario, perfil, onSair }) {
           )}
           {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} onSuporte={() => setScreen("suporte")} />}
           {papelEfetivo === "aluno" && <FluxoEtapaPI key={"pi" + screen} tela={screen} onSuporte={() => setScreen("suporte")} />}
-          {tela}
+          {papelEfetivo === "aluno" && !emTeste && etapaDaTelaAtual && prazoTela.fechada && infoEtapaTela && infoEtapaTela.disponivel
+            ? <EtapaFechada key={"ef" + screen} prazo={prazoTela.prazo} titulo={infoEtapaTela.titulo} onSuporte={() => setScreen("suporte")}>{tela}</EtapaFechada>
+            : tela}
         </div>
       </div>
     </div>

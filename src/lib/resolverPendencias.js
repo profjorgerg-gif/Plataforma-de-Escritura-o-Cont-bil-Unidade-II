@@ -52,3 +52,19 @@ export function orientacaoDuplicado(num) {
 export function orientacaoDivergencia(r) {
   return ["Motivo: " + (r.motivo || "diferença em relação à nota") + ".", r.acao ? "O que fazer: " + r.acao : ""].filter(Boolean).join(" ");
 }
+
+// Etapa fechada: entre os lançamentos da mesma nota, qual fica e quais o professor remove.
+// Nunca remove aprovado. Fica o aprovado; se não houver, o enviado que a conferência não chamou de repetido; senão o mais antigo.
+export function escolherRepetidos(daNota, resultado) {
+  const t = (l) => ms(l.enviadoEm) || ms(l.criadoEm);
+  const ord = [...daNota].sort((a, b) => t(a) - t(b));
+  const manter = ord.find((l) => l.status === "aprovado")
+    || ord.find((l) => l.status === "enviado" && !/^duplicado/i.test((resultado[l.id] || {}).motivo || ""))
+    || ord[0];
+  const remover = ord.filter((l) => l.id !== (manter && manter.id) && l.status !== "aprovado");
+  return { manter, remover };
+}
+// Lançamentos que o professor pode corrigir (divergentes) numa nota: não aprovados, com ✗ e não repetidos.
+export function candidatosCorrecao(daNota, resultado) {
+  return daNota.filter((l) => l.status !== "aprovado" && (resultado[l.id] || {}).estado === "no" && !/^duplicado/i.test((resultado[l.id] || {}).motivo || ""));
+}

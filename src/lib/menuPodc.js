@@ -174,6 +174,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
     ] },
     { label: "alunos e notas", itens: [
       ab("alunos", "Alunos"),
+      { key: "fechamento", label: "Fechamento da etapa" },
       ab("notas-aval", "Notas e avaliação"),
     ] },
     { label: "materiais", itens: [

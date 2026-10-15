@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { serverTimestamp } from "firebase/firestore";
+import { serverTimestamp, doc, getDoc, setDoc, arrayUnion } from "firebase/firestore";
+import { db } from "../../firebase.js";
+import ResolverPendencias from "./ResolverPendencias.jsx";
 import { criarChamadoNumerado } from "../../lib/chamados.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
@@ -155,13 +157,21 @@ function EtiquetaTeste() {
   return <span style={{ marginLeft: 8, background: "#FBF1DC", color: AMBAR, border: `1.5px dashed ${AMBAR}`, borderRadius: 99, padding: "1px 9px", fontSize: 12, fontWeight: 700, ...nowrap }}>CONTA DE TESTE</span>;
 }
 
-export default function RelatorioOrientacao({ turma }) {
+// Chave estável de cada pendência (para comparar uma emissão com a anterior)
+const chaveAchado = (a) => a.documento + "|" + a.titulo.replace(/ \(\d+ lançamentos.*\)$/, "").replace(/: .*$/, "") + "|" + a.quem;
+const fmtEm = (iso) => { try { return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
+
+// fechada=true: usado no "Fechamento da etapa" (etapa já encerrada). Aí cada emissão fica guardada (data, contagens,
+// chaves das pendências) em turmas/{t}/alunos/{m}/roteiro/emissoes, para comparar com a anterior; e as pendências do
+// professor ganham o botão Resolver (o aluno não mexe mais). Fora do Fechamento a tela funciona exatamente como antes.
+export default function RelatorioOrientacao({ turma, alunoInicial = "", fechada = false }) {
   const turmaId = turma?.id;
   const alunos = useAlunosDaTurma(turmaId);
   const documentos = useDocumentosDaTurma(turmaId);
   const { porMatricula } = useLancamentosDaTurma(turmaId, alunos);
   const progresso = useProgressoTurma(turmaId, alunos);
-  const [escolha, setEscolha] = useState("");     // "" | "__turma__" | matrícula
+  const [escolha, setEscolha] = useState(alunoInicial || "");
+  const [emis, setEmis] = useState(null);        // { anterior, atual } da última emissão (só no Fechamento)     // "" | "__turma__" | matrícula
   const [gerado, setGerado] = useState(null);     // { modo: "aluno"|"turma", ... }
   const [copiado, setCopiado] = useState(false);
   const [envAberto, setEnvAberto] = useState(false);   // painel "Enviar ao aluno"
@@ -196,6 +206,18 @@ export default function RelatorioOrientacao({ turma }) {
     prazo: prazoEfetivo(a, turma),
   });
 
+  async function registrarEmissao(rel) {
+    try {
+      const ref = doc(db, "turmas", turma.id, "alunos", rel.aluno.matricula, "roteiro", "emissoes");
+      const s = await getDoc(ref);
+      const lista = (s.exists() && s.data().itens) || [];
+      const anterior = lista.length ? lista[lista.length - 1] : null;
+      const atual = { em: new Date().toISOString(), etapa: "f1", nAluno: rel.comAluno, nProf: rel.comProfessor, nOk: rel.nOk, total: rel.total,
+        chaves: rel.achados.map(chaveAchado), corrigidos: (rel.corrigidos || []).length };
+      await setDoc(ref, { itens: arrayUnion(atual) }, { merge: true });
+      setEmis({ anterior, atual, n: lista.length + 1 });
+    } catch (e) { setEmis({ erro: "Não foi possível guardar esta emissão: " + (e?.message || e) }); }
+  }
   function gerar() {
     setCopiado(false);
     if (escolha === "__turma__") {
@@ -203,7 +225,7 @@ export default function RelatorioOrientacao({ turma }) {
       setGerado({ modo: "turma", linhas });
     } else {
       const a = alunos.find((x) => x.matricula === escolha);
-      if (a) setGerado({ modo: "aluno", rel: relatorioDe(a) });
+      if (a) { const rel = relatorioDe(a); setGerado({ modo: "aluno", rel }); if (fechada) { setEmis(null); registrarEmissao(rel); } }
     }
   }
   function abrirEnvio(rel) { setEnvTexto(relatorioParaAluno(rel)); setEnvMsg(""); setEnvAberto(true); }
@@ -344,6 +366,7 @@ export default function RelatorioOrientacao({ turma }) {
             <h3>Relatório de orientação — {gerado.rel.aluno.nome}{gerado.rel.contaTeste && <EtiquetaTeste />}</h3>
             <div className="no-print" style={{ display: "flex", gap: 8 }}>
               {gerado.veioDaTurma && <button className="btn secondary" onClick={() => setGerado(gerado.veioDaTurma)}>← Voltar ao resumo</button>}
+              {fechada && <button className="btn" onClick={gerar}>↻ Emitir novamente</button>}
               <button className="btn secondary" onClick={() => copiar(relatorioEmTexto(gerado.rel))}>{copiado ? "Copiado ✓" : "Copiar texto"}</button>
               <button className="btn secondary" onClick={() => imprimir("Relatório de orientação - " + gerado.rel.aluno.nome)}>Imprimir</button>
               <button className="btn" disabled={!relatorioParaAluno(gerado.rel)} title={relatorioParaAluno(gerado.rel) ? "" : "Nada a enviar: não há pendência do aluno"} onClick={() => abrirEnvio(gerado.rel)}>✉ Enviar ao aluno</button>
@@ -379,6 +402,39 @@ export default function RelatorioOrientacao({ turma }) {
             <p className="so-impressao" style={{ margin: "0 0 6px", fontSize: 11, color: "#666" }}>{turma.nome || ""} · emitido em {new Date().toLocaleString("pt-BR")}</p>
             <p style={{ marginTop: 0 }}>Em dia: <b>{gerado.rel.nOk}</b> de <b>{gerado.rel.total}</b> · com o <b>aluno</b>: <b>{gerado.rel.comAluno}</b> · com o <b>professor</b>: <b>{gerado.rel.comProfessor}</b>. Gerado agora, com os dados atuais do aluno.</p>
             <SituacaoPorDocumento linhas={gerado.rel.linhas} />
+            {fechada && emis && (
+              <div className="no-print panel" style={{ marginBottom: 12, borderWidth: 2 }}>
+                <div className="panel-body">
+                  {emis.erro ? <div className="aviso-pedagogico">{emis.erro}</div> : (() => {
+                    const ant = emis.anterior ? new Set(emis.anterior.chaves || []) : null;
+                    const atu = new Set(emis.atual.chaves || []);
+                    const resolvidas = ant ? [...ant].filter((k) => !atu.has(k)).length : 0;
+                    const novas = ant ? [...atu].filter((k) => !ant.has(k)).length : 0;
+                    return (
+                      <>
+                        <b>Emissão {emis.n} · {fmtEm(emis.atual.em)}</b>: {emis.atual.nAluno} com o aluno · {emis.atual.nProf} com o professor.
+                        {ant ? <> Emissão anterior ({fmtEm(emis.anterior.em)}): {emis.anterior.nAluno} com o aluno · {emis.anterior.nProf} com o professor. <b>{resolvidas}</b> pendência(s) resolvida(s) · <b>{novas}</b> nova(s).</> : " Primeira emissão deste aluno."}
+                        {emis.atual.nProf === 0
+                          ? <div style={{ marginTop: 6, color: "var(--green)", fontWeight: 700 }}>✓ Nenhuma pendência do professor. {emis.atual.nAluno > 0 ? "Restam pendências do aluno, já registradas no relatório e na nota." : "Pode atribuir a nota."}</div>
+                          : <div style={{ marginTop: 6, color: "var(--red)", fontWeight: 700 }}>Ainda há {emis.atual.nProf} pendência(s) do professor: resolva abaixo e emita de novo.</div>}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+            {fechada && contarPendenciasProfessor(gerado.rel) > 0 && (
+              <div className="no-print" style={{ marginBottom: 12 }}>
+                <b>Pendências do professor (etapa encerrada)</b>
+                <ResolverPendencias key={gerado.rel.aluno.matricula + (emis?.n || 0)} turmaId={turma.id} fechada documentos={documentos}
+                  texto={relatorioParaProfessor(gerado.rel)} matricula={gerado.rel.aluno.matricula} />
+              </div>
+            )}
+            {fechada && (gerado.rel.corrigidos || []).length > 0 && (
+              <div className="helper-note" style={{ marginBottom: 12 }}>
+                <b>Corrigido pelo professor após o encerramento:</b> {gerado.rel.corrigidos.map((c) => c.documento).join(", ")}. O erro do aluno continua registrado e pesa no critério de qualidade da nota; os valores corrigidos entram nas demonstrações.
+              </div>
+            )}
             <TabelaAchados achados={gerado.rel.achados} quebrarPagina={(gerado.rel.linhas || []).length > 12} />
             <p className="helper-note" style={{ marginBottom: 0 }}>Regras fixas do sistema, sem IA: elas apontam o que dá para detectar sozinho (duplicata, rascunho, histórico genérico, débito ≠ crédito, total diferente do gabarito, etapa faltando). Não avaliam se a conta contábil escolhida é a certa para a operação — isso continua sendo sua correção.</p>
           </div>

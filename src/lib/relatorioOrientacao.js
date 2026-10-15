@@ -22,6 +22,7 @@ function diasAteHoje(prazo) {
 export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analises, classificacoes, lancamentos, prazo }) {
   const achados = [];
   const linhas = [];
+  const corrigidos = [];
   // "quem" = quem precisa agir: o aluno, ou o professor (ex.: o aluno não consegue excluir repetidos).
   const QUEM_PROFESSOR = /^(Lançamento duplicado|Duas classificações|Divergência no lançamento enviado)/;
   const add = (gravidade, documento, titulo, orientacao, onde = "", etapa = "geral") =>
@@ -48,6 +49,8 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
     const aprovados = lans.filter((l) => l.status === "aprovado");
     const devolvidos = lans.filter((l) => l.status === "correcao");
 
+    // 2026-10-15 — lançamentos que o professor corrigiu após o prazo: não são pendência, mas ficam registrados no relatório
+    lans.filter((l) => l.corrigidoPeloProfessor).forEach((l) => corrigidos.push({ documento: nomeDoc(d), em: l.corrigidoEm || "" }));
     const antes = achados.length;
     const emDia = aprovados.length > 0 && lans.length === aprovados.length && lans.length === 1;
     if (emDia) {
@@ -180,7 +183,7 @@ export function gerarRelatorioOrientacao({ aluno, documentos, digitacoes, analis
   linhas.sort((a, b) => ordem[a.situacao] - ordem[b.situacao]);
   const comAluno = linhas.filter((l) => l.quem.includes("aluno")).length;
   const comProfessor = linhas.filter((l) => l.quem.includes("professor")).length;
-  return { aluno, total: documentos.length, nOk, achados, linhas, comAluno, comProfessor, contaTeste: !!aluno?.contaTeste };
+  return { aluno, total: documentos.length, nOk, achados, linhas, comAluno, comProfessor, corrigidos, contaTeste: !!aluno?.contaTeste };
 }
 
 export function relatorioEmTexto(rel) {
@@ -194,6 +197,7 @@ export function relatorioEmTexto(rel) {
     L.push(`   O que fazer: ${a.orientacao}`);
     if (a.onde) L.push(`   Onde: ${a.onde}`);
   });
+  if ((rel.corrigidos || []).length) L.push("", "Corrigido pelo professor após o encerramento da etapa: " + rel.corrigidos.map((c) => c.documento).join(", ") + ".");
   L.push("", "Qualquer dúvida, procure o professor em aula.");
   return L.join("\n");
 }

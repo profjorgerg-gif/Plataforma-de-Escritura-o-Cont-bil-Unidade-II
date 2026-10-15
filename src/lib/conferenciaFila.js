@@ -141,3 +141,20 @@ export function conferirAluno(enviados, todosDoAluno, catalogo) {
   });
   return res;
 }
+
+// 2026-10-15 — Correção pelo professor (etapa fechada). Só propõe sozinho o caso SEGURO: lançamento de UM só tributo
+// (ICMS, PIS, COFINS ou desconto) com 2 partidas (1 débito e 1 crédito) de mesmo valor. Aí troca os dois valores pelo da nota.
+// Qualquer outro formato: auto=false, e a tela deixa o professor ajustar os valores à mão (débito = crédito).
+export function sugerirCorrecao(l, doc) {
+  const ps = l.partidas || [];
+  if (!doc || ps.length !== 2) return { auto: false };
+  const d = ps.filter((p) => p.tipo === "D"), c = ps.filter((p) => p.tipo === "C");
+  if (d.length !== 1 || c.length !== 1 || !iguais(d[0].valor, c[0].valor)) return { auto: false };
+  const tipos = tiposDoLancamento(l);
+  if (tipos.length !== 1) return { auto: false };
+  const g = gab(doc);
+  const esperado = ["icms", "pis", "cofins"].includes(tipos[0]) ? g[tipos[0]] : tipos[0] === "desconto" ? g.desconto : 0;
+  if (!(esperado > 0)) return { auto: false };
+  const v = Math.round(esperado * 100) / 100;
+  return { auto: true, esperado: v, partidas: ps.map((p) => ({ ...p, valor: v })) };
+}
