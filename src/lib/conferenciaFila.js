@@ -50,10 +50,16 @@ function valorDaConta(l, contas) {
 // Confere UM lançamento. `doc` = nota do catálogo. `duplicadoDe` = true se outro igual já "vale".
 export function conferirUm(l, doc, duplicado) {
   if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota" };
+  let tipos = tiposDoLancamento(l);
+  if (tipos.length === 0) return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
+  // desconto creditado em receita aumenta a receita em vez de reduzir o valor a receber
+  const descNaReceita = (l.partidas || []).some((p) => p.tipo === "D" && String(p.conta) === DESC_SAIDA) &&
+    (l.partidas || []).some((p) => p.tipo === "C" && String(p.conta).startsWith("4.1.1."));
+  if (descNaReceita) return { estado: "no", motivo: "desconto creditado em Receita de Vendas: deveria reduzir Clientes (valor a receber)" };
+  if (tipos.includes("desconto")) tipos = tipos.filter((t) => t !== "venda");
+  if (!l.documento) return { estado: "no", motivo: "sem nota de origem: o valor não corresponde a nenhuma nota" };
   if (!doc) return { estado: "sem", motivo: "nota sem gabarito: confira manualmente" };
   const g = gab(doc);
-  const tipos = tiposDoLancamento(l);
-  if (tipos.length === 0) return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
   const ruins = [], bons = [], duvidas = [];
   tipos.forEach((t) => {
     if (t === "icms" || t === "pis" || t === "cofins") {
