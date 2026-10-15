@@ -239,6 +239,30 @@ service cloud.firestore {
           allow delete: if souAdmin();
         }
 
+
+        // ---------- Fluxo por etapas (2027.1): envio e aprovação por lote ----------
+        // Um documento por lote e passo, ex.: "L1_digitacao", "L1_analise", "L1_classificacao".
+        // status: andamento | enviado | devolvido | aprovado.
+        // O aluno (ou o professor na conta de teste) só consegue ENVIAR; quem aprova ou devolve é só o professor.
+        // Subcoleção nova: não altera nenhuma regra existente.
+        match /fluxo/{id} {
+          allow read: if signedIn() && (
+            souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
+          );
+          allow create: if podeAgirComoEsteAluno(turmaId, matricula)
+            && request.resource.data.status == 'enviado'
+            && request.resource.data.keys().hasOnly(['status', 'lote', 'passo', 'documentos', 'enviadoEm', 'historico']);
+          allow update: if
+            (podeAgirComoEsteAluno(turmaId, matricula)
+              && resource.data.status in ['andamento', 'devolvido']
+              && request.resource.data.status == 'enviado'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'documentos', 'enviadoEm', 'historico']))
+            || (souProfessorDaTurma(turmaId)
+              && request.resource.data.status in ['andamento', 'enviado', 'devolvido', 'aprovado']
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'orientacao', 'decididoEm', 'historico']));
+          allow delete: if souAdmin() || souProfessorDaTurma(turmaId);
+        }
+
         // ---------- Avaliação das etapas (nota 0 a 10 e retorno) ----------
         // Só o professor escreve. O aluno só lê as avaliações que o professor marcou como liberadas.
         match /avaliacoes/{etapaId} {
