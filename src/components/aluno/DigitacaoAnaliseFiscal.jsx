@@ -196,7 +196,7 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
     const somaItens = form.itens.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.valorUnit) || 0), 0);
     const totalOk = Math.abs((Number(form.total) || 0) - docFiscal.valorTotal) < 0.02;
     const itensOk = Math.abs(somaItens - docFiscal.itens.reduce((s, i) => s + i.total, 0)) < 0.02;
-    setConferido({ totalOk, itensOk });
+    setConferido({ totalOk, itensOk, somaDigitada: somaItens, totalDigitado: Number(form.total) || 0 });
   }
 
   async function salvarDigitacao() {
@@ -371,6 +371,12 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos 
           {conferido && !conferido.semGabarito && (
             <div className={"balance-check " + (conferido.totalOk && conferido.itensOk ? "ok" : "bad")}>
               {conferido.itensOk ? "✓" : "✗"} soma dos itens · {conferido.totalOk ? "✓" : "✗"} valor total da nota
+            </div>
+          )}
+          {conferido && !conferido.semGabarito && !(conferido.totalOk && conferido.itensOk) && conferido.somaDigitada !== undefined && (
+            <div className="helper-note" style={{ marginTop: 8 }}>
+              <b>Sua soma dos itens (quantidade × valor unitário): R$ {conferido.somaDigitada.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> · Total que você digitou: R$ {conferido.totalDigitado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.<br />
+              Confira no PDF se o <i>valor unitário</i> de cada item não é, na verdade, o valor total da linha, e se há desconto ou outras despesas.
             </div>
           )}
         </div>
