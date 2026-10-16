@@ -10,6 +10,7 @@ import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
 import { Abas } from "../shared/AgbUI.jsx";
 import EnunciadosCa from "./EnunciadosCa.jsx";
+import { casoDoEmpregado } from "../../lib/enunciadosCA.js";
 
 function Liberacao({ turma, ca }) {
   const { contas, deFallback } = usePlanoContas();
@@ -70,6 +71,13 @@ function EditorFolha({ turma, ca }) {
   const [emps, setEmps] = useState([]);
   const [carregou, setCarregou] = useState(false);
   const [msg, setMsg] = useState("");
+  const alunosTurma = useAlunosDaTurma(turma.id);
+  const { mapa: trabalhosTurma } = useTrabalhosCaDaTurma(turma.id, alunosTurma);
+  // alunos que já têm algo digitado na etapa 3 (folha do mês, provisões ou lançamentos)
+  const iniciados = Object.values(trabalhosTurma || {}).filter((t) => {
+    const d = (t && t.dados) || {};
+    return ["folha", "prov", "lanc"].some((k) => Object.values(d[k] || {}).some((v) => String(v ?? "").trim() !== ""));
+  }).length;
 
   useEffect(() => {
     if (ca.folha === undefined || carregou) return;
@@ -95,7 +103,24 @@ function EditorFolha({ turma, ca }) {
   const setE = (i, k, v) => setEmps(emps.map((e, j) => (j === i ? { ...e, [k]: v } : e)));
   const setAd = (i, k, v) => setEmps(emps.map((e, j) => (j === i ? { ...e, adicional: { ...e.adicional, [k]: v } } : e)));
 
+  // 2026-10-15 — monta a lista de empregados com os alunos da turma (só na tela; nada é gravado até "Salvar folha")
+  function montarComAlunos() {
+    const lista = [...(alunosTurma || [])].filter((a) => !a.contaTeste).sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+    if (lista.length === 0) { setMsg("Esta turma ainda não tem alunos."); return; }
+    const aviso = iniciados > 0 ? "\n\nATENÇÃO: " + iniciados + " aluno(s) já têm dados da etapa 3. Se você salvar, os valores esperados mudam e o que eles digitaram na tela Folha do mês (por posição do empregado) deixa de corresponder." : "";
+    if (!window.confirm("Trocar a lista atual (" + emps.length + " empregados) pelos " + lista.length + " alunos da turma? Nada é gravado até você clicar em Salvar folha." + aviso)) return;
+    setEmps(lista.map((a) => {
+      const c = casoDoEmpregado(a.matricula, "folha", comp);
+      return { nome: a.nome, salario: String(lerNumero(c.salario) ?? ""), he50: c.he50, he100: c.he100, hen50: c.hen50, hen100: c.hen100,
+        adicional: c.adTipo ? { tipo: c.adTipo, pct: c.adTipo === "AI" ? c.adPct : "" } : {} };
+    }));
+    setMsg("Lista montada com " + lista.length + " alunos. Confira o gabarito abaixo e clique em Salvar folha para valer.");
+  }
+
   async function salvar() {
+    const nomesAntes = ((ca.folha && ca.folha.empregados && ca.folha.empregados.length ? ca.folha.empregados : EMPREGADOS_MATERIAL).map((e) => e.nome)).join("|");
+    if (emps.map((e) => e.nome).join("|") !== nomesAntes && iniciados > 0
+      && !window.confirm(iniciados + " aluno(s) já têm dados da etapa 3. Trocar os empregados muda os valores esperados para eles. Salvar mesmo assim?")) { setMsg("Não salvo."); return; }
     setMsg("salvando…");
     try { await salvarFolhaCa(turma.id, { ...montar(), atualizadoEm: new Date().toISOString() }); setMsg("✓ salvo às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })); }
     catch (e) { setMsg("✗ não salvou: " + (e.message || e.code)); }
@@ -130,6 +155,7 @@ function EditorFolha({ turma, ca }) {
           </table>
         </div>
         <div className="btn-row">
+          <button className="btn secondary" onClick={montarComAlunos}>👥 Montar a folha com os alunos</button>
           <button className="btn secondary" onClick={() => setEmps([...emps, { nome: "Novo empregado", salario: "", he50: "", he100: "", hen50: "", hen100: "", adicional: {} }])}>+ empregado</button>
           {emps.length > 1 && <button className="btn secondary" onClick={() => setEmps(emps.slice(0, -1))}>− último</button>}
         </div>
