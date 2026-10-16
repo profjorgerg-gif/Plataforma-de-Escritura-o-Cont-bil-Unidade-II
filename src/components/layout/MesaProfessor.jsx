@@ -13,6 +13,7 @@ const CSS = `
 .mesa-mn.open .mesa-dd{display:block}
 .mesa-dd button{display:flex;justify-content:space-between;gap:14px;width:100%;text-align:left;background:none;border:0;padding:6px 14px;cursor:pointer;font:inherit;color:var(--ink,#1E2A38)}
 .mesa-dd button:hover{background:var(--green-dark,#163F33);color:#fff}
+.mesa-cab{padding:7px 14px 3px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft,#5B6672);border-top:1px solid var(--line,#D9CFBB);margin-top:3px}.mesa-cab:first-child{border-top:0;margin-top:0}
 .mesa-dd hr{border:0;border-top:1px solid var(--line,#D9CFBB);margin:4px 0}
 .mesa-dd small{color:#b7791f;font-size:11px}.mesa-dd button:hover small{color:#f3d9a4}
 .mesa-bg{display:inline-block;background:var(--red,#8C2F2F);color:#fff;font-size:11px;font-weight:700;padding:0 6px;margin-left:5px;min-width:18px;text-align:center;border-radius:9px}
@@ -48,6 +49,11 @@ const CSS = `
 @media print{.mesa-bar,.mesa-task,.mesa-wt,.rz{display:none!important}.mesa,.mesa-desk,.mesa-win,.mesa-wb{position:static!important;overflow:visible!important;box-shadow:none!important;border:0!important;width:auto!important;height:auto!important}.mesa-win.min{display:none!important}}
 `;
 
+function Aviso({ aviso, texto, limpar }) {
+  useEffect(() => { const t = setTimeout(limpar, 3500); return () => clearTimeout(t); }, [aviso.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div role="status" style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", background: "#1E2A38", color: "#fff", padding: "8px 16px", boxShadow: "0 6px 20px rgba(0,0,0,.3)", zIndex: 6000, maxWidth: "90%" }}>{texto}</div>;
+}
+
 function Menu({ menu, abrir, extras }) {
   const [aberto, setAberto] = useState(-1);
   useEffect(() => {
@@ -67,9 +73,9 @@ function Menu({ menu, abrir, extras }) {
           <div className={"mesa-mn" + (aberto === gi ? " open" : "")} key={gi} onMouseEnter={() => { if (aberto >= 0) setAberto(gi); }}>
             <button onClick={() => setAberto(aberto === gi ? -1 : gi)}>{g.label}</button>
             <div className="mesa-dd" style={g.direita ? { left: "auto", right: 0 } : undefined}>
-              {g.itens.map((it, ii) => it === null ? <hr key={ii} /> : (
-                <button key={ii} onClick={() => { setAberto(-1); if (it.acao) it.acao(); else abrir(it.key); }}>
-                  <span>{it.label}</span>
+              {g.itens.map((it, ii) => it === null ? <hr key={ii} /> : it.cab ? <div key={ii} className="mesa-cab">{it.label}</div> : (
+                <button key={ii} style={it.recuo ? { paddingLeft: 28 } : undefined} onClick={() => { setAberto(-1); if (it.acao) it.acao(); else abrir(it.key); }}>
+                  <span>{it.bloq ? "🔒 " : ""}{it.label}</span>
                   <span>{it.aviso && <small>{it.aviso}</small>}{it.badge > 0 && <span className="mesa-bg">{it.badge}</span>}</span>
                 </button>
               ))}
@@ -81,7 +87,7 @@ function Menu({ menu, abrir, extras }) {
   );
 }
 
-export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaNome, resumo, acoes }) {
+export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaNome, resumo, acoes, brand = "Mesa do Professor", homeChave = "painel-turma", homeLabel = "🏫 Painel", atalho = { chave: "inicio", label: "Sala de aula" }, textoAviso = null, extrasMenu = null }) {
   const deskRef = useRef(null);
   const snapRef = useRef(null);
   useLayoutEffect(() => {
@@ -150,11 +156,11 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
       { label: "Organizar em cascata", acao: () => mesa.organizar("cascata") },
       { label: "Organizar lado a lado", acao: () => mesa.organizar("lado") },
       { label: "Minimizar todas", acao: () => mesa.minimizarTodas() },
-      { label: "Fechar todas (menos o painel)", acao: () => mesa.fecharTodas() },
+      { label: "Fechar todas (menos a inicial)", acao: () => mesa.fecharTodas() },
     ] },
     { label: "Ajuda", direita: true, itens: [
       { label: "Voltar ao menu lateral", acao: acoes.voltarClassico },
-      { label: "Baixar backup da turma", acao: acoes.backup },
+      { label: acoes.rotuloBackup || "Baixar backup da turma", acao: acoes.backup },
     ] },
   ];
 
@@ -162,8 +168,8 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
     <div className="mesa" role="application" aria-label="Mesa do professor">
       <style>{CSS}</style>
       <div className="mesa-bar" role="menubar">
-        <div className="mesa-brand">Mesa do Professor</div>
-        <Menu menu={menu} abrir={(k) => mesa.abrir(k)} extras={extras} />
+        <div className="mesa-brand">{brand}</div>
+        <Menu menu={menu} abrir={(k) => mesa.abrir(k)} extras={extrasMenu || extras} />
         <div className="mesa-sp" />
         <div className="mesa-info">
           <span className="nome">{turmaNome}</span>
@@ -190,13 +196,14 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
             </div>
           );
         })}
+        {mesa.aviso && textoAviso && <Aviso aviso={mesa.aviso} texto={textoAviso(mesa.aviso.chave)} limpar={mesa.limparAviso} />}
         <div className="mesa-snap" ref={snapRef} style={{ display: "none" }} />
         {janelas.length === 0 && <div style={{ padding: 40, color: "var(--ink-soft,#5B6672)" }}>Nenhuma janela aberta. Use o menu no topo ou o botão “🏫 Painel” na barra de baixo.</div>}
       </div>
       <div className="mesa-task">
-        <button className="home" onClick={() => mesa.abrir("painel-turma")} title="Voltar ao painel da turma">🏫 Painel</button>
-        <button onClick={() => mesa.abrir("inicio")} title="Sala de aula">Sala de aula</button>
-        {janelas.filter((j) => j.chave !== "painel-turma" && j.chave !== "inicio").map((j) => (
+        <button className="home" onClick={() => mesa.abrir(homeChave, null, { avisar: false })} title="Voltar ao início">{homeLabel}</button>
+        {atalho && <button onClick={() => mesa.abrir(atalho.chave, null, { avisar: false })} title={atalho.label}>{atalho.label}</button>}
+        {janelas.filter((j) => j.chave !== homeChave && (!atalho || j.chave !== atalho.chave)).map((j) => (
           <button key={j.chave} className={(topo && topo.chave === j.chave ? "on" : "") + (j.min ? " m" : "")} onClick={() => (topo && topo.chave === j.chave ? mesa.minimizar(j.chave) : mesa.focar(j.chave))}>{tituloDe(j.chave, j.foco)}</button>
         ))}
         <span className="st">{resumo}</span>

@@ -208,3 +208,18 @@ export function menuSuperiorProfessor({ papel, badgeFila, badgeSuporte }) {
   });
   return out;
 }
+
+// Menu da "Mesa do aluno" (barra no topo): sai do mesmo menu lateral PODC de sempre, só reorganizado em listas.
+export function menuSuperiorAluno(grupos) {
+  const out = [];
+  (grupos || []).forEach((g) => {
+    if (!g.podc) { (g.itens || []).forEach((it) => out.push({ key: it.key, label: it.label })); return; }
+    const itens = (g.itens || []).map((it) => ({ key: it.key, label: it.label, badge: it.badge || 0 }));
+    (g.etapas || []).forEach((e) => {
+      itens.push({ cab: true, label: "Etapa " + e.n + " · " + e.label + " (" + e.disc + ") — " + (e.disponivel ? e.curto : "Bloqueada") });
+      e.itens.forEach((it) => itens.push({ key: it.key, label: it.label, badge: it.badge || 0, recuo: true, bloq: !e.disponivel }));
+    });
+    out.push({ label: g.podc.letra + " · " + g.podc.titulo, itens });
+  });
+  return out;
+}
