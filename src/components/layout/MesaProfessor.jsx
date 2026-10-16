@@ -174,7 +174,7 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
         <div className="mesa-info">
           <span className="nome">{turmaNome}</span>
           <button onClick={acoes.voltarClassico} title="Voltar ao menu lateral de antes (para imprimir, por exemplo)">☰ Menu lateral</button>
-          <button onClick={acoes.sair}>Sair</button>
+          <button onClick={acoes.sair}>{acoes.rotuloSair || "Sair"}</button>
         </div>
       </div>
       <div className="mesa-desk" ref={deskRef}>

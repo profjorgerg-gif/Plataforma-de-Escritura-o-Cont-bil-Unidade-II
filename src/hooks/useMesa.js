@@ -25,6 +25,7 @@ export function useMesa({ home = "painel-turma", avisarRepetida = false } = {}) 
     });
   }, [home, avisarRepetida]);
   const limparAviso = useCallback(() => setAviso(null), []);
+  const limpar = useCallback(() => setJanelas([]), []);
   const mudar = (chave, f) => setJanelas((js) => js.map((j) => (j.chave === chave ? { ...j, ...f(j) } : j)));
   const focar = useCallback((chave) => mudar(chave, () => ({ min: false, z: ++z.current })), []);
   const fechar = useCallback((chave) => setJanelas((js) => js.filter((j) => j.chave !== chave)), []);
@@ -53,5 +54,5 @@ export function useMesa({ home = "painel-turma", avisarRepetida = false } = {}) 
   const minimizarTodas = useCallback(() => setJanelas((js) => js.map((j) => ({ ...j, min: true }))), []);
   const fecharTodas = useCallback(() => setJanelas((js) => js.filter((j) => j.chave === home)), [home]);
 
-  return { janelas, aviso, limparAviso, definirArea, abrir, focar, fechar, minimizar, alternarMax, geometria, encaixar, organizar, minimizarTodas, fecharTodas };
+  return { janelas, aviso, limparAviso, limpar, definirArea, abrir, focar, fechar, minimizar, alternarMax, geometria, encaixar, organizar, minimizarTodas, fecharTodas };
 }

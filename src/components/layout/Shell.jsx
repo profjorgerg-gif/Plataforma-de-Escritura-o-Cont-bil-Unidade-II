@@ -695,24 +695,30 @@ export default function Shell({ usuario, perfil, onSair }) {
   const [pilhaTelas, setPilhaTelas] = useState([]);
   // "foco": a Sala de aula manda o professor a uma tela já posicionada (fila só de um aluno, um chamado). Qualquer outra navegação limpa o foco.
   const [foco, setFoco] = useState(null);
+  const [testeAtivo, setTesteAtivo] = useState(null); // { turmaId, matricula, nome } | null
+  const emTeste = ehProfessorOuAdmin && !!testeAtivo;
   // "Mesa do professor" (2026-10-16): formato novo, em paralelo com o menu lateral. Quando ligada, abrir uma tela abre uma janela.
   // Mesa do aluno (2026-10-16): mesmo formato, opcional, só em tela larga. A escolha de cada papel é guardada separadamente neste navegador.
-  const ehAluno = perfil.papel === "aluno";
-  const homeMesa = ehAluno ? "inicio" : "painel-turma";
-  const chaveMesa = ehAluno ? "modoMesaAluno" : "modoMesa";
+  // No modo de teste o professor vê as telas do aluno, então usa a Mesa do aluno (sem precisar do link ?mesa=1).
+  const mesaDeAluno = emTeste || perfil.papel === "aluno";
+  const homeMesa = mesaDeAluno ? "inicio" : "painel-turma";
   const telaLarga = useTelaLarga();
-  const mesa = useMesa({ home: homeMesa, avisarRepetida: ehAluno });
-  const mesaAlunoOk = ehAluno && mesaAlunoLiberada();
-  const [modoMesa, setModoMesaRaw] = useState(() => { try { return localStorage.getItem(chaveMesa) === "1"; } catch { return false; } });
+  const mesa = useMesa({ home: homeMesa, avisarRepetida: mesaDeAluno });
+  const mesaAlunoOk = emTeste || (perfil.papel === "aluno" && mesaAlunoLiberada());
+  const lerMesa = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
+  const [modoMesaProf, setModoMesaProf] = useState(() => lerMesa("modoMesa"));
+  const [modoMesaAluno, setModoMesaAluno] = useState(() => lerMesa("modoMesaAluno"));
+  const modoMesa = mesaDeAluno ? modoMesaAluno : modoMesaProf;
   function setModoMesa(v) {
-    setModoMesaRaw(v);
-    try { localStorage.setItem(chaveMesa, v ? "1" : "0"); } catch { /* sem armazenamento */ }
+    (mesaDeAluno ? setModoMesaAluno : setModoMesaProf)(v);
+    try { localStorage.setItem(mesaDeAluno ? "modoMesaAluno" : "modoMesa", v ? "1" : "0"); } catch { /* sem armazenamento */ }
     if (v) mesa.abrir(homeMesa);
   }
-  // Professor/admin: Mesa sempre disponível. Aluno: só se liberada e em computador (tela larga).
-  const mesaPossivel = ehProfessorOuAdmin ? true : (mesaAlunoOk && telaLarga);
-  const mesaLigada = () => !emTeste && modoMesa && mesaPossivel;
-  useEffect(() => { if (modoMesa && mesaPossivel) mesa.abrir(homeMesa); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Professor/admin: Mesa sempre disponível. Aluno: só se liberada (ou no modo de teste) e em computador (tela larga).
+  const mesaPossivel = mesaDeAluno ? (mesaAlunoOk && telaLarga) : true;
+  const mesaLigada = () => modoMesa && mesaPossivel;
+  // Ao entrar ou sair do modo de teste as janelas trocam de papel: fecha todas e abre a inicial do papel atual.
+  useEffect(() => { mesa.limpar(); if (modoMesa && mesaPossivel) mesa.abrir(homeMesa); }, [emTeste]); // eslint-disable-line react-hooks/exhaustive-deps
   function setScreen(nova) {
     if (mesaLigada()) { mesa.abrir(nova); return; }
     setFoco(null);
@@ -737,7 +743,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   // trocamos direto para a tela do Diário, que consome e limpa este estado.
   const [rascunhoDeClassificacao, setRascunhoDeClassificacao] = useState(null);
   function usarClassificacaoNoLancamento(classificacao) {
-    if (!emTeste && modoMesa && ehAluno && mesaAlunoOk && telaLarga) {
+    if (mesaDeAluno && modoMesa && mesaPossivel) {
       // Mesa do aluno: o Diário abre em outra janela, já preenchido, e a Classificação continua aberta ao lado.
       // Se o Diário já estiver aberto, avisa antes: preencher o formulário substitui o que estiver digitado nele.
       const jaAberto = mesa.janelas.some((j) => j.chave === "diario");
@@ -750,9 +756,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     setScreen("diario");
   }
 
-  // --- Modo de teste (só existe para professor/admin) ---
-  const [testeAtivo, setTesteAtivo] = useState(null); // { turmaId, matricula, nome } | null
-  const emTeste = ehProfessorOuAdmin && !!testeAtivo;
+  // --- Modo de teste (só existe para professor/admin) --- (o estado fica logo acima da Mesa, que depende dele)
 
   function sairDoModoTeste() {
     setTesteAtivo(null);
@@ -1212,7 +1216,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   }
 
   // ---- Mesa (formato novo, em paralelo): professor/admin e, em teste, aluno ----
-  if (!emTeste && modoMesa && mesaPossivel && ehAluno) {
+  if (mesaDeAluno && modoMesa && mesaPossivel) {
     const tituloAluno = (chave) => (nomeDaTela[chave] || chave).replace(/^[^\p{L}\p{N}]+/u, "");
     return (
       <MesaProfessor
@@ -1221,10 +1225,10 @@ export default function Shell({ usuario, perfil, onSair }) {
         mesa={mesa}
         renderTela={(chave, f) => (<div key={chave}>{conteudoDaTela(chave, f)}</div>)}
         tituloDe={tituloAluno}
-        turmaNome={"Matrícula " + perfil.matricula}
+        turmaNome={emTeste ? "🧪 Modo de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula}
         resumo={(menuGrupos.flatMap((g) => g.itens || []).find((i) => i.key === "suporte") || {}).badge ? "Você tem resposta no suporte" : ""}
         textoAviso={(chave) => "Você já tem a tela “" + tituloAluno(chave) + "” aberta. Trouxe ela para a frente."}
-        acoes={{ voltarClassico: () => setModoMesa(false), sair: onSair, backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
+        acoes={{ voltarClassico: () => setModoMesa(false), sair: emTeste ? sairDoModoTeste : onSair, rotuloSair: emTeste ? "Sair do teste" : "Sair", backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
       />
     );
   }
@@ -1337,7 +1341,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           <div className="role-switch">
             {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>Sair do modo de teste</button>}
             {ehProfessorOuAdmin && !emTeste && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
-            {ehAluno && !emTeste && mesaAlunoOk && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste, só no computador)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
+            {mesaDeAluno && mesaAlunoOk && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste, só no computador)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
               {gerandoBackup ? "Gerando backup…" : "Baixar backup"}
             </button>
