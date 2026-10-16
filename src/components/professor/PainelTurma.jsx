@@ -50,7 +50,7 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
     else onAbrirHistorico && onAbrirHistorico(x.aluno);
   };
   const Kpi = ({ cor, n, t, sub, onClick }) => (
-    <button type="button" onClick={onClick} style={{ textAlign: "left", background: "#fff", border: "1px solid var(--line)", borderLeft: "4px solid " + cor, padding: "9px 12px", cursor: "pointer", font: "inherit", color: "inherit" }}>
+    <button type="button" onClick={onClick} style={{ textAlign: "left", background: "var(--surface)", border: "1px solid var(--line)", borderLeft: "4px solid " + cor, padding: "9px 12px", cursor: "pointer", font: "inherit", color: "inherit" }}>
       <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.05 }}>{n}</div>
       <div>{t}</div>
       <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>{sub}</div>

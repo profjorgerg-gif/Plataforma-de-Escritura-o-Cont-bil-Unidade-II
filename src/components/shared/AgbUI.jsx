@@ -87,7 +87,7 @@ export function MeuCalculo({ valor, esperado, onChange, tolerancia = 0.15, largu
       <input
         className="mono" inputMode="decimal" value={valor || ""} disabled={desabilitado}
         onChange={(e) => onChange(e.target.value)} placeholder="seu valor"
-        style={{ width: largura, padding: "4px 6px", textAlign: "right", border: "1px solid var(--line-strong)", background: "#fff", fontSize: 13 }}
+        style={{ width: largura, padding: "4px 6px", textAlign: "right", border: "1px solid var(--line-strong)", background: "var(--surface)", fontSize: 13 }}
       />
       <span style={{ width: 16, color: r === true ? "var(--green)" : "var(--red)", fontWeight: 700 }}>{r === true ? "✓" : r === false ? "✗" : ""}</span>
     </span>

@@ -57,7 +57,7 @@ export default function CampoFiscalAutocomplete({ tipo, value, onChange, dados, 
           onMouseDown={cancelarFechar}
           style={{
             position: "absolute", zIndex: 30, top: "100%", left: 0, minWidth: 320,
-            background: "#fff", border: "1px solid var(--line-strong)", boxShadow: "0 10px 24px rgba(20,30,24,0.15)",
+            background: "var(--surface)", border: "1px solid var(--line-strong)", boxShadow: "0 10px 24px rgba(20,30,24,0.15)",
             maxHeight: 240, overflowY: "auto", marginTop: 2,
           }}
         >
@@ -67,7 +67,7 @@ export default function CampoFiscalAutocomplete({ tipo, value, onChange, dados, 
               onClick={() => selecionar(d.codigo)}
               style={{ padding: "7px 10px", fontSize: 12.5, cursor: "pointer", borderBottom: "1px solid var(--line)", lineHeight: 1.4 }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--paper-deep)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; }}
             >
               <span className="mono" style={{ fontWeight: 700 }}>{d.codigo}</span> — {tipo === "cfop" ? d.titulo : d.descricao}
             </div>

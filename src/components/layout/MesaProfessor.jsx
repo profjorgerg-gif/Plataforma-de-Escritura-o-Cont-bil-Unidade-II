@@ -3,13 +3,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 // Mesa do professor (2026-10-16): menus no topo + janelas flutuantes + barra de tarefas.
 // Só organiza a tela: cada janela mostra a MESMA tela que o menu lateral já mostra. Nada é gravado aqui.
 const CSS = `
-.mesa{--m-tit1:#163F33;--m-tit2:#1F5C4A;--m-desk:#E6E0D0;--m-grid:#DCD5C2;position:fixed;inset:0;display:flex;flex-direction:column;background:var(--m-desk);z-index:50;font-size:14px}
+[data-tema="escuro"] .mesa{--m-desk-c:#0E1217;--m-grid-c:#171D25;--m-tit1:#0F2E25;--m-tit2:#1C5442}
+[data-tema="escuro"] .mesa-dd button:hover,[data-tema="escuro"] .mesa-task .home{color:#E6E9EC}
+.mesa{--m-tit1:#163F33;--m-tit2:#1F5C4A;--m-desk:var(--m-desk-c,#E6E0D0);--m-grid:var(--m-grid-c,#DCD5C2);position:fixed;inset:0;display:flex;flex-direction:column;background:var(--m-desk);z-index:50;font-size:14px}
 .mesa-bar{display:flex;align-items:stretch;background:var(--paper-deep,#EFE9DA);border-bottom:1px solid var(--line-strong,#C3B79E);height:36px;flex:none;position:relative;z-index:60;user-select:none}
 .mesa-brand{display:flex;align-items:center;padding:0 12px;font-weight:700;color:var(--green-dark,#163F33);white-space:nowrap}
 .mesa-mn{position:relative}
 .mesa-mn>button{height:100%;white-space:nowrap;padding:0 10px;background:none;border:0;cursor:pointer;color:var(--ink,#1E2A38);font:inherit}
 .mesa-mn>button:hover,.mesa-mn.open>button{background:var(--green-pale,#E4EEE9)}
-.mesa-dd{display:none;position:absolute;top:100%;left:0;min-width:250px;background:#fff;border:1px solid var(--line-strong,#C3B79E);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0;z-index:70}
+.mesa-dd{display:none;position:absolute;top:100%;left:0;min-width:250px;background:var(--surface,#fff);border:1px solid var(--line-strong,#C3B79E);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0;z-index:70}
 .mesa-mn.open .mesa-dd{display:block}
 .mesa-dd button{display:flex;justify-content:space-between;gap:14px;width:100%;text-align:left;background:none;border:0;padding:6px 14px;cursor:pointer;font:inherit;color:var(--ink,#1E2A38)}
 .mesa-dd button:hover{background:var(--green-dark,#163F33);color:#fff}
@@ -39,7 +41,7 @@ const CSS = `
 .rz[data-d=sw]{left:0;bottom:0;width:12px;height:12px;cursor:nesw-resize}.rz[data-d=ne]{right:0;top:0;width:12px;height:6px;cursor:nesw-resize}.rz[data-d=nw]{left:0;top:0;width:12px;height:6px;cursor:nwse-resize}
 .mesa-snap{position:absolute;background:#1F5C4A;opacity:.16;border:2px solid #1F5C4A;z-index:55;pointer-events:none}
 .mesa-task{flex:none;display:flex;gap:4px;align-items:center;background:var(--paper-deep,#EFE9DA);border-top:1px solid var(--line-strong,#C3B79E);padding:4px 6px;min-height:36px;overflow-x:auto}
-.mesa-task button{background:#fff;border:1px solid var(--line-strong,#C3B79E);padding:3px 10px;cursor:pointer;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;font:inherit;color:var(--ink,#1E2A38)}
+.mesa-task button{background:var(--surface,#fff);border:1px solid var(--line-strong,#C3B79E);padding:3px 10px;cursor:pointer;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;font:inherit;color:var(--ink,#1E2A38)}
 .mesa-task button.on{border-color:var(--green,#1F5C4A);box-shadow:inset 0 -3px 0 var(--green,#1F5C4A)}.mesa-task button.m{opacity:.6}
 .mesa-task .home{font-weight:600;background:var(--green-dark,#163F33);color:#fff;border-color:var(--green-dark,#163F33)}
 .mesa-task .st{margin-left:auto;color:var(--ink-faint,#8B8477);white-space:nowrap;padding-right:6px;font-size:12px}
@@ -173,6 +175,7 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
         <div className="mesa-sp" />
         <div className="mesa-info">
           <span className="nome">{turmaNome}</span>
+          {acoes.tema && <button onClick={acoes.tema.alternar} title="Trocar entre modo claro e escuro">{acoes.tema.tema === "escuro" ? "☀️ Claro" : "🌙 Escuro"}</button>}
           <button onClick={acoes.voltarClassico} title="Voltar ao menu lateral de antes (para imprimir, por exemplo)">☰ Menu lateral</button>
           <button onClick={acoes.sair}>{acoes.rotuloSair || "Sair"}</button>
         </div>

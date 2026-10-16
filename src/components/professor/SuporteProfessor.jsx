@@ -25,7 +25,7 @@ function Bolha({ m }) {
   return (
     <div style={{
       padding: "10px 12px", borderRadius: 8, margin: "8px 0", maxWidth: "88%", fontSize: 14, whiteSpace: "pre-wrap",
-      background: prof ? "#E5EFEA" : "#fff", border: "1px solid " + (prof ? "#b9d3c7" : "#d9d2c0"), marginLeft: prof ? "auto" : 0,
+      background: prof ? "var(--green-pale)" : "var(--surface)", border: "1px solid " + (prof ? "#b9d3c7" : "#d9d2c0"), marginLeft: prof ? "auto" : 0,
     }}>
       <small style={{ display: "block", color: "#7a7466", fontSize: 11, marginBottom: 3 }}>{prof ? "Professor" : "Aluno"} · {formatarDataHora(m.em)}</small>
       {m.tipo === "devolucao" && <div style={{ marginBottom: 4 }}><b>↩ Devolução da NF {m.documentoNumero || ""}:</b> {(m.etapas || []).join(", ")}</div>}

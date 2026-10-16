@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTema } from "../../hooks/useTema.js";
 import { useEscrituracao } from "../../hooks/useEscrituracao.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
@@ -703,6 +704,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const mesaDeAluno = emTeste || perfil.papel === "aluno";
   const homeMesa = mesaDeAluno ? "inicio" : "painel-turma";
   const telaLarga = useTelaLarga();
+  const temaUi = useTema(); // claro/escuro (professor e aluno)
   const mesa = useMesa({ home: homeMesa, avisarRepetida: mesaDeAluno });
   const mesaAlunoOk = emTeste || (perfil.papel === "aluno" && mesaAlunoLiberada());
   const lerMesa = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
@@ -1228,7 +1230,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         turmaNome={emTeste ? "🧪 Modo de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula}
         resumo={(menuGrupos.flatMap((g) => g.itens || []).find((i) => i.key === "suporte") || {}).badge ? "Você tem resposta no suporte" : ""}
         textoAviso={(chave) => "Você já tem a tela “" + tituloAluno(chave) + "” aberta. Trouxe ela para a frente."}
-        acoes={{ voltarClassico: () => setModoMesa(false), sair: emTeste ? sairDoModoTeste : onSair, rotuloSair: emTeste ? "Sair do teste" : "Sair", backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
+        acoes={{ voltarClassico: () => setModoMesa(false), sair: emTeste ? sairDoModoTeste : onSair, rotuloSair: emTeste ? "Sair do teste" : "Sair", tema: temaUi, backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
       />
     );
   }
@@ -1245,7 +1247,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         tituloDe={tituloDe}
         turmaNome={turmaSelecionada ? "Turma: " + turmaSelecionada.nome : "Nenhuma turma selecionada"}
         resumo={correcoesPendentesProfessor + " na fila · " + suporteNaoLidoProfessor + " no suporte"}
-        acoes={{ voltarClassico: () => setModoMesa(false), sair: onSair, backup: () => { if (!gerandoBackup && turmaSelecionada) gerarBackup(); } }}
+        acoes={{ voltarClassico: () => setModoMesa(false), sair: onSair, tema: temaUi, backup: () => { if (!gerandoBackup && turmaSelecionada) gerarBackup(); } }}
       />
     );
   }
@@ -1345,6 +1347,7 @@ export default function Shell({ usuario, perfil, onSair }) {
             <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
               {gerandoBackup ? "Gerando backup…" : "Baixar backup"}
             </button>
+            <button className="role-btn" title="Trocar entre modo claro e escuro" onClick={temaUi.alternar}>{temaUi.tema === "escuro" ? "☀️ Modo claro" : "🌙 Modo escuro"}</button>
             <button className="role-btn" onClick={onSair}>Sair</button>
           </div>
         </div>

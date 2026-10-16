@@ -39,7 +39,7 @@ function Conversa({ c }) {
       ) : (
         <div key={i} style={{
           padding: "10px 12px", borderRadius: 8, margin: "8px 0", maxWidth: "88%", fontSize: 14, whiteSpace: "pre-wrap",
-          background: m.tipo === "devolucao" ? "#FBF1DC" : m.autor === "professor" ? "#E5EFEA" : "#fff",
+          background: m.tipo === "devolucao" ? "var(--amber-pale)" : m.autor === "professor" ? "var(--green-pale)" : "var(--surface)",
           border: "1px solid " + (m.tipo === "devolucao" ? "#e2c27a" : m.autor === "professor" ? "#b9d3c7" : "#d9d2c0"),
           marginLeft: m.autor === "professor" ? "auto" : 0,
         }}>
