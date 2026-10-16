@@ -98,7 +98,8 @@ export function resumirAluno(d, agora, limiteMin) {
     sinais.push({ tom: "a", alvo: "suporte", chamadoId: c.id, texto: "✉ Pediu ajuda" + (c.numero ? " (chamado " + fmtNumero(c.numero) + ")" : "") });
   }
   if (r.env > 0) sinais.push({ tom: nNo === 0 && nOk === r.env ? "g" : "a", alvo: "fila", texto: nNo === 0 && nOk === r.env ? "✅ " + r.env + (r.env === 1 ? " enviado confere" : " enviados conferem") : "⏳ " + r.env + (r.env === 1 ? " enviado" : " enviados") });
-  if (r.cor > 0) sinais.push({ tom: "a", alvo: "historico", texto: "↩ " + r.cor + (r.cor === 1 ? " devolvido, ainda não corrigiu" : " devolvidos, ainda não corrigiu") });
+  // devolvido e ainda não corrigido = tarefa do ALUNO: não conta como "precisa de você" (tom neutro)
+  if (r.cor > 0) sinais.push({ tom: "c", alvo: "historico", texto: "↩ " + r.cor + (r.cor === 1 ? " devolvido, ainda não corrigiu" : " devolvidos, ainda não corrigiu") });
 
   const precisa = sinais.some((s) => s.tom === "r" || (s.tom === "a"));
   const semHoje = !ultima || !mesmoDia(ultima, agora);

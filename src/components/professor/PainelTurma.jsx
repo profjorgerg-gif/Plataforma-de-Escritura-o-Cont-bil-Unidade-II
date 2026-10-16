@@ -67,6 +67,7 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
     </button>
   );
   const precisam = L.filter((x) => x.grupo === "pre").slice(0, 8);
+  const aguardando = L.filter((x) => x.devolvidos > 0).sort((a, b) => b.devolvidos - a.devolvidos);
   const porNome = [...L].sort((a, b) => (a.aluno.nome || "").localeCompare(b.aluno.nome || ""));
 
   // ---- etapas 2 a 6 e visão geral (só leitura do que o aluno já gravou) ----
@@ -89,6 +90,20 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
         <tbody>{linhas}</tbody>
       </table>
     </div></div>
+  );
+  // devolvidos que o aluno ainda não corrigiu: quem age é o aluno, o professor só acompanha
+  const blocoAguardando = () => (
+    <div style={{ marginTop: 14, paddingTop: 10, borderTop: "2px solid var(--line-strong)" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>AGUARDANDO O ALUNO · DEVOLVIDOS, AINDA NÃO CORRIGIRAM</div>
+      {aguardando.length === 0 && <div style={{ color: "var(--ink-soft)" }}>Nenhum devolvido pendente.</div>}
+      {aguardando.map((x) => (
+        <div key={x.aluno.matricula} style={{ borderBottom: "1px solid var(--line)", padding: "5px 0", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+          <button type="button" onClick={() => onAbrirHistorico && onAbrirHistorico(x.aluno)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", fontWeight: 700, color: "inherit", padding: 0 }}>{x.aluno.nome}</button>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>↩ {x.devolvidos} {x.devolvidos === 1 ? "devolvido" : "devolvidos"}</span>
+          <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>última atividade {haQuanto(x.ultima, agora)}</span>
+        </div>
+      ))}
+    </div>
   );
   const etapaGenerica = () => {
     const e = etapaPorId(etapaId);
@@ -130,11 +145,12 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
             {precisam.map((x) => (
               <div key={x.aluno.matricula} style={{ borderBottom: "1px solid var(--line)", padding: "5px 0" }}>
                 <button type="button" onClick={() => abrirAluno(x)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", fontWeight: 700, color: "inherit", padding: 0 }}>{x.aluno.nome}</button>
-                <div>{x.sinais.map((s, i) => (
+                <div>{x.sinais.filter((s) => s.alvo !== "historico").map((s, i) => (
                   <button type="button" key={i} onClick={() => irSinal(x, s)} style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", margin: "2px 6px 2px 0", border: "1px solid " + COR[s.tom], color: COR[s.tom], background: "transparent", cursor: "pointer" }}>{s.texto}</button>
                 ))}</div>
               </div>
             ))}
+            {blocoAguardando()}
           </div></div>
         </div>
         {quadroAluno(e.passos.map(([n], j) => (j + 1) + " " + n), cont.map(({ x, v }) => (
@@ -245,7 +261,7 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
         <Kpi cor="var(--amber)" n={nFila} t="na fila de correção" sub={!catalogo ? "conferindo…" : "✅ " + nOk + " conferem · ❌ " + nNo + " com erro"} onClick={() => onIr("fila")} />
         <Kpi cor="var(--blue)" n={nSup} t="chamados no suporte" sub="esperando você" onClick={() => onIr("suporte")} />
         <Kpi cor="var(--red)" n={sala.cont.pre} t="precisam de você" sub={"de " + L.length + " alunos"} onClick={() => sala_("pre")} />
-        <Kpi cor="var(--amber)" n={nDev} t="com devolução pendente" sub="o aluno ainda não corrigiu" onClick={() => sala_("pre")} />
+        <Kpi cor="var(--amber)" n={nDev} t="com devolução pendente" sub="o aluno ainda não corrigiu" onClick={() => sala_("all")} />
         <Kpi cor="var(--ink-faint)" n={sala.cont.par} t="parados" sub={"sem gravar há " + LIMITE_PADRAO + " min ou mais"} onClick={() => sala_("par")} />
         <Kpi cor="var(--green)" n={sala.cont.ok + " de " + L.length} t="em dia" sub="Etapa 1 concluída" onClick={() => sala_("ok")} />
       </div>
@@ -278,12 +294,13 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
           {precisam.map((x) => (
             <div key={x.aluno.matricula} style={{ borderBottom: "1px solid var(--line)", padding: "5px 0" }}>
               <button type="button" onClick={() => onAbrirHistorico && onAbrirHistorico(x.aluno)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", fontWeight: 700, color: "inherit", padding: 0 }}>{x.aluno.nome}</button>
-              <div>{x.sinais.map((s, i) => (
+              <div>{x.sinais.filter((s) => s.alvo !== "historico").map((s, i) => (
                 <button type="button" key={i} onClick={() => irSinal(x, s)} style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", margin: "2px 6px 2px 0", border: "1px solid " + COR[s.tom], color: COR[s.tom], background: "transparent", cursor: "pointer", font: "inherit" }}>{s.texto} ›</button>
               ))}</div>
             </div>
           ))}
           {sala.cont.pre > precisam.length && <button className="btn secondary" style={{ marginTop: 8 }} onClick={() => sala_("pre")}>Ver todos os {sala.cont.pre}</button>}
+          {blocoAguardando()}
         </div></div>
       </div>
 
