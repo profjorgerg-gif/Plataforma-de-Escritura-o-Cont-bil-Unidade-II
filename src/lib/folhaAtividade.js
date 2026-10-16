@@ -107,28 +107,51 @@ export const PASSOS_CONTRACHEQUE = [
   { k: "liq", nome: "SALÁRIO LÍQUIDO", como: "Proventos − descontos.", v: (c) => c.liquido },
 ];
 
+// Valor de um campo da ficha do empregado: o que o aluno digitou; se ele ainda não mexeu no campo (nunca gravado),
+// vale o dado do enunciado (base). Assim os dados vêm preenchidos sem gravar nada no banco.
+export function valorDoCampo(fp, id, campo, base) {
+  const v = (fp || {})[id + "__" + campo];
+  if (v !== undefined && v !== null) return v;
+  return base && base[campo] !== undefined && base[campo] !== null ? base[campo] : "";
+}
+
 // Situação de um empregado: { iniciado, passos:[{k,ok,digitado}], acertos, concluido }
-export function situacaoEmpregado(fp, id, t = T) {
-  const get = (c) => ((fp || {})[id + "__" + c]) ?? "";
+// base (opcional) = dados do enunciado do empregado (casoDoEmpregado), usados enquanto o aluno não alterar o campo.
+export function situacaoEmpregado(fp, id, t = T, base = null) {
+  const get = (c) => valorDoCampo(fp, id, c, base);
   const salario = num(get("salario"));
   const c = calcularContracheque(empregadoDeCampos(get), t);
   const passos = PASSOS_CONTRACHEQUE.map((p) => {
-    const d = num(get("m_" + p.k));
+    const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
     return { k: p.k, digitado: d !== null, ok: d !== null && Math.abs(d - p.v(c)) <= TOLERANCIA_PEDAGOGICA };
   });
   const acertos = passos.filter((p) => p.ok).length;
   return { iniciado: salario !== null && salario > 0 && passos.some((p) => p.digitado), passos, acertos, concluido: salario !== null && salario > 0 && acertos === passos.length };
 }
 
-// Resumo da atividade do aluno: contracheques concluídos, aproveitamento dos cálculos e notas automáticas (0 a 10)
-export function resumoAtividade(fp, ids, minimo = 3) {
+// Conferência detalhada (tela do professor): dados usados, valor correto e valor digitado de cada linha.
+export function detalheEmpregado(fp, id, t = T, base = null) {
+  const get = (c) => valorDoCampo(fp, id, c, base);
+  const c = calcularContracheque(empregadoDeCampos(get), t);
+  const linhas = PASSOS_CONTRACHEQUE.map((p) => {
+    const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
+    const esperado = p.v(c);
+    return { k: p.k, nome: p.nome, esperado, digitado: d, ok: d !== null && Math.abs(d - esperado) <= TOLERANCIA_PEDAGOGICA };
+  });
+  const dados = Object.fromEntries(CAMPOS_EMPREGADO.map((k) => [k, get(k)]));
+  return { dados, linhas, acertos: linhas.filter((l) => l.ok).length, ...situacaoEmpregado(fp, id, t, base) };
+}
+
+// Resumo da atividade do aluno: contracheques concluídos, aproveitamento dos cálculos e notas automáticas (0 a 10).
+// O mínimo é automático: um contracheque por empregado da lista (= número de alunos da turma). baseDe(id) devolve o enunciado do empregado.
+export function resumoAtividade(fp, ids, minimo, baseDe) {
   let concluidos = 0, tentados = 0, acertos = 0, total = 0;
   ids.forEach((id) => {
-    const s = situacaoEmpregado(fp, id);
+    const s = situacaoEmpregado(fp, id, T, baseDe ? baseDe(id) : null);
     if (s.iniciado) { tentados++; acertos += s.acertos; total += s.passos.length; }
     if (s.concluido) concluidos++;
   });
-  const m = Math.max(1, Number(minimo) || 1);
+  const m = Math.max(1, ids.length || Number(minimo) || 1);
   return {
     concluidos, tentados, minimo: m, pronto: concluidos >= m,
     notaCalculos: total ? Math.round((acertos / total) * 100) / 10 : null,

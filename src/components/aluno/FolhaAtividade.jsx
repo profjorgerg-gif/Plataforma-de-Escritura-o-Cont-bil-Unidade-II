@@ -1,18 +1,22 @@
 import { useMemo, useState } from "react";
 import { fmt } from "../../lib/contabil.js";
-import { calcularContracheque, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
+import { calcularContracheque, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
 import { folhaEmUso } from "../../lib/folha.js";
+import { casoDoEmpregado } from "../../lib/enunciadosCA.js";
 
 const SEC = "fp";
 export default function FolhaAtividade({ trab, ca, matricula }) {
   const campos = useCampos(trab, false);
   const [sel, setSel] = useState(null);
   const empregados = (ca.config && ca.config.empregados) || [];
-  const minimo = (ca.config && ca.config.fpMinimo) || 3;
   const fp = (trab.dados || {}).fp || {};
-  const res = useMemo(() => resumoAtividade(fp, empregados.map((e) => e.id), minimo), [fp, empregados.length, minimo]); // eslint-disable-line
+  // Os dados de cada empregado vêm do enunciado (calculados na hora, sem gravar nada); o que o aluno alterar passa a valer.
+  const competencia = folhaEmUso(ca.folha).competencia;
+  const baseDe = (id) => casoDoEmpregado(matricula || "", id, competencia);
+  // O mínimo é automático: um contracheque por empregado da lista (= alunos da turma).
+  const res = useMemo(() => resumoAtividade(fp, empregados.map((e) => e.id), empregados.length, baseDe), [fp, empregados.length, matricula, competencia]); // eslint-disable-line
   if (ca.config === undefined || trab.carregando) return <Carregando />;
   if (empregados.length === 0) return (
     <>
@@ -22,7 +26,8 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
     </>
   );
   const emp = empregados.find((e) => e.id === sel) || empregados[0];
-  const get = (c) => campos.get(SEC, emp.id + "__" + c);
+  const caso = baseDe(emp.id);
+  const get = (c) => valorDoCampo(fp, emp.id, c, caso);
   const set = (c, v) => campos.set(SEC, emp.id + "__" + c, v);
   const c = calcularContracheque(empregadoDeCampos(get));
   const usadoSalario = lerValor(get("salario"));
@@ -45,24 +50,24 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
     <>
       <div className="screen-eyebrow">atividade · folha de pagamento</div>
       <h2 className="screen-title">Elaborar a folha de pagamento</h2>
-      <p className="screen-sub">Escolha um empregado da lista, defina a situação dele e calcule o contracheque até o salário líquido. Você faz a conta, o sistema confere.</p>
+      <p className="screen-sub">Cada empregado da lista já vem com os dados do caso. Escolha um empregado e calcule o contracheque até o salário líquido. Você faz a conta, o sistema confere.</p>
       {ca.config.fpSugestao && <div className="balance-check ok" style={{ marginBottom: 12 }}><b>Sugestão do professor:</b> {ca.config.fpSugestao}</div>}
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />
       <div className="panel"><div className="panel-body">
-        <div style={{ marginBottom: 8 }}><b>{res.concluidos}</b> de {res.minimo} contracheques conferidos (mínimo) · {empregados.length} empregados na lista {res.pronto ? <span className="tag-pill ok">pronto para análise do professor</span> : <span className="tag-pill warn">em andamento</span>}</div>
+        <div style={{ marginBottom: 8 }}><b>{res.concluidos}</b> de {res.minimo} contracheques conferidos · um por empregado ({empregados.length} na lista) {res.pronto ? <span className="tag-pill ok">pronto para análise do professor</span> : <span className="tag-pill warn">em andamento</span>}</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {empregados.map((e) => {
-            const s = situacaoEmpregado(fp, e.id);
+            const s = situacaoEmpregado(fp, e.id, undefined, baseDe(e.id));
             return <button key={e.id} className={"btn" + (e.id === emp.id ? "" : " secondary")} style={{ padding: "4px 10px", fontSize: 12.5 }} onClick={() => setSel(e.id)}>{e.nome}{s.concluido ? " ✓" : s.iniciado ? " …" : ""}</button>;
           })}
         </div>
       </div></div>
 
-      {ca.config.enunciadoAtivo !== false && <EnunciadoEmpregado matricula={matricula} emp={emp} competencia={folhaEmUso(ca.folha).competencia} obs={ca.config.enunciadoObs} get={get} set={set} />}
+      {ca.config.enunciadoAtivo !== false && <EnunciadoEmpregado matricula={matricula} emp={emp} competencia={competencia} obs={ca.config.enunciadoObs} get={get} set={set} automatico />}
       <div className="panel">
         <div className="panel-head"><h3>Situação de {emp.nome}</h3></div>
         <div className="panel-body">
-          <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Todas as opções estão liberadas: escolha o que quer praticar. Você pode inventar os valores.</p>
+          <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Estes são os dados do seu caso, já preenchidos. Se quiser praticar outra situação, pode alterar os valores; o que você alterar é o que vale para a conferência.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 10 }}>
             {campo("salario", "Salário-base (R$)")}
             {campo("adTipo", "Adicional", "adicional")}

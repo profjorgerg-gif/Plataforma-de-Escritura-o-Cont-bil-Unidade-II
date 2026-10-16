@@ -148,13 +148,11 @@ function Situacao({ turma, config }) {
 function AtividadeFolha({ turma }) {
   const alunos = useAlunosDaTurma(turma.id);
   const ca = useCaTurma(turma.id);
-  const [min, setMin] = useState(null);
   const [sug, setSug] = useState(null);
   const [msg, setMsg] = useState("");
   if (!alunos || ca.config === undefined) return <div className="empty-state">Carregando…</div>;
   const cfg = ca.config || {};
   const atuais = cfg.empregados || [];
-  const minimo = min ?? String(cfg.fpMinimo || 3);
   const sugestao = sug ?? (cfg.fpSugestao || "");
 
   async function publicar() {
@@ -169,7 +167,7 @@ function AtividadeFolha({ turma }) {
   }
   async function salvarCfg() {
     setMsg("salvando…");
-    try { await salvarConfigCa(turma.id, { fpMinimo: Math.max(1, Number(minimo) || 3), fpSugestao: sugestao.trim(), atualizadoEm: new Date().toISOString() }); setMsg("✓ salvo"); }
+    try { await salvarConfigCa(turma.id, { fpSugestao: sugestao.trim(), atualizadoEm: new Date().toISOString() }); setMsg("✓ salvo"); }
     catch (e) { setMsg("✗ " + (e.message || e.code)); }
   }
   async function alternarObrig() {
@@ -185,7 +183,7 @@ function AtividadeFolha({ turma }) {
         <button className="btn green" onClick={publicar}>Publicar lista a partir dos alunos da turma</button>
       </div></div>
       <div className="panel"><div className="panel-head"><h3>Ajustes da atividade</h3></div><div className="panel-body">
-        <div className="field" style={{ maxWidth: 260 }}><label>Mínimo de contracheques conferidos</label><input value={minimo} onChange={(e) => setMin(e.target.value)} /></div>
+        <div className="helper-note" style={{ marginBottom: 10 }}><b>Mínimo automático:</b> cada aluno faz um contracheque por empregado da lista ({atuais.length || "nº de alunos da turma"}). Os dados de cada empregado já vêm preenchidos para o aluno.</div>
         <div className="field"><label>Sugestão para os alunos (opcional)</label><textarea rows={3} value={sugestao} onChange={(e) => setSug(e.target.value)} placeholder="Ex.: faça o seu contracheque e mais dois colegas, com casos diferentes." /></div>
         <button className="btn green" onClick={salvarCfg}>Salvar ajustes</button>
         <hr style={{ margin: "14px 0" }} />

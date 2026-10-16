@@ -91,6 +91,7 @@ import { useMesa } from "../../hooks/useMesa.js";
 import { useTelaLarga } from "../../hooks/useTelaLarga.js";
 import { mesaAlunoLiberada } from "../../lib/mesaAluno.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
+import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
@@ -979,6 +980,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         <TelaComAbas key={screen} inicial={aba || "etapa1"} abas={[
           { key: "etapa1", label: "Notas · Etapa 1", render: () => <Notas turma={turmaSelecionada} /> },
           { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
+          { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
           { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
         ]} />
       );

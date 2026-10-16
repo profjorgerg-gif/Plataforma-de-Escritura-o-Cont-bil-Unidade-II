@@ -4,7 +4,7 @@ import { CAMPOS_EMPREGADO } from "../../lib/folhaAtividade.js";
 
 // Etapa 2: o aluno PEDE o seu caso. O caso é calculado na hora (não é gravado) a partir da matrícula + empregado + mês,
 // então é sempre o mesmo. "Usar estes dados" só preenche campos VAZIOS; se já houver algo digitado, pergunta antes.
-export default function EnunciadoEmpregado({ matricula, emp, competencia, obs, get, set }) {
+export default function EnunciadoEmpregado({ matricula, emp, competencia, obs, get, set, automatico }) {
   const [aberto, setAberto] = useState(false);
   const [msg, setMsg] = useState("");
   const caso = useMemo(() => casoDoEmpregado(matricula || "", emp.id, competencia), [matricula, emp.id, competencia]);
@@ -20,13 +20,13 @@ export default function EnunciadoEmpregado({ matricula, emp, competencia, obs, g
     <div className="panel">
       <div className="panel-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <h3 style={{ margin: 0 }}>📄 Enunciado de {emp.nome}</h3>
-        <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => { setAberto(!aberto); setMsg(""); }}>{aberto ? "fechar" : "Receber meu caso"}</button>
+        <button className="btn secondary" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => { setAberto(!aberto); setMsg(""); }}>{aberto ? "fechar" : (automatico ? "Ver o enunciado" : "Receber meu caso")}</button>
       </div>
       {aberto && (
         <div className="panel-body">
           <p style={{ marginTop: 0 }}>{texto}</p>
           <div className="btn-row">
-            <button className="btn" onClick={usar}>Usar estes dados no meu contracheque</button>
+            {!automatico && <button className="btn" onClick={usar}>Usar estes dados no meu contracheque</button>}
             <button className="btn secondary" onClick={copiar}>Copiar enunciado</button>
           </div>
           {msg && <div className="helper-note" style={{ marginTop: 8 }} role="status">{msg}</div>}
