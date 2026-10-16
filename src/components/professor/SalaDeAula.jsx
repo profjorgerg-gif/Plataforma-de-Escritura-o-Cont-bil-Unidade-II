@@ -22,7 +22,7 @@ function Sinal({ s, onClick }) {
 // Lembra o filtro e o aluno aberto quando o professor volta de outra tela (só em memória).
 let memoria = { filtro: "pre", aberto: null };
 
-export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
+export default function SalaDeAula({ turma, onIr, onAbrirHistorico, foco = null }) {
   const turmaId = turma && turma.id;
   const alunos = useAlunosReaisDaTurma(turmaId);
   const { porMatricula } = useLancamentosDaTurma(turmaId, alunos);
@@ -37,6 +37,8 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
   const setAberto = (a) => { memoria.aberto = a; setAbertoRaw(a); };
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setAgora(Date.now()), 30000); return () => clearInterval(t); }, []);
+  // Vindo do Painel da turma: abre já no filtro escolhido.
+  useEffect(() => { if (foco && foco.filtro) { setFiltro(foco.filtro); setAberto(null); } }, [foco]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sala = useMemo(() => {
     if (!alunos) return null;

@@ -157,6 +157,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
   // O grupo que contém a tela aberta abre sozinho. Nenhuma tela foi retirada; só mudaram de lugar.
   return [
     { itens: [
+      { key: "painel-turma", label: "📊 Painel da turma" },
       { key: "inicio", label: "🏫 Sala de aula" },
       b("fila", "Fila de correção", badgeFila),
       b("suporte", "Suporte", badgeSuporte),
@@ -195,4 +196,15 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ] },
   ];
+}
+
+// Menu da "Mesa do professor" (barra no topo): sai do mesmo menu lateral de sempre, só reorganizado em botões e listas.
+export function menuSuperiorProfessor({ papel, badgeFila, badgeSuporte }) {
+  const grupos = gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte });
+  const rotulo = (t) => { const x = String(t).replace(/^[^\p{L}]+/u, "").replace(/\s*\(.*\)\s*$/, ""); return x.charAt(0).toUpperCase() + x.slice(1); };
+  const out = (grupos[0].itens || []).map((it) => ({ key: it.key, label: it.label, badge: it.badge || 0, novo: it.key === "painel-turma" }));
+  grupos.slice(1).forEach((g) => {
+    out.push({ label: rotulo(g.label) + (g.id === "manutencao" ? " ⚠" : ""), itens: g.itens.map((it) => ({ key: it.key, label: it.label, aviso: it.aviso, badge: it.badge || 0 })) });
+  });
+  return out;
 }

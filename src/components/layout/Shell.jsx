@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEscrituracao } from "../../hooks/useEscrituracao.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
@@ -83,7 +83,10 @@ import SalaDeAula from "../professor/SalaDeAula.jsx";
 import RoteiroTestes, { FaixaTeste } from "../professor/RoteiroTestes.jsx";
 import { useProgressoTestes } from "../../hooks/useProgressoTestes.js";
 import { passoDoTeste } from "../../lib/roteiroTestes.js";
-import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, montarEtapasAluno, etapaDaTela, ABRIR_EM, TELAS_COM_ABAS } from "../../lib/menuPodc.js";
+import { gruposMenuAlunoPodc, gruposMenuProfessorPodc, menuSuperiorProfessor, montarEtapasAluno, etapaDaTela, ABRIR_EM, TELAS_COM_ABAS } from "../../lib/menuPodc.js";
+import MesaProfessor from "./MesaProfessor.jsx";
+import PainelTurma from "../professor/PainelTurma.jsx";
+import { useMesa } from "../../hooks/useMesa.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
@@ -690,13 +693,27 @@ export default function Shell({ usuario, perfil, onSair }) {
   const [pilhaTelas, setPilhaTelas] = useState([]);
   // "foco": a Sala de aula manda o professor a uma tela já posicionada (fila só de um aluno, um chamado). Qualquer outra navegação limpa o foco.
   const [foco, setFoco] = useState(null);
+  // "Mesa do professor" (2026-10-16): formato novo, em paralelo com o menu lateral. Quando ligada, abrir uma tela abre uma janela.
+  const mesa = useMesa();
+  const [modoMesa, setModoMesaRaw] = useState(() => { try { return localStorage.getItem("modoMesa") === "1"; } catch { return false; } });
+  function setModoMesa(v) {
+    setModoMesaRaw(v);
+    try { localStorage.setItem("modoMesa", v ? "1" : "0"); } catch { /* sem armazenamento */ }
+    if (v) mesa.abrir("painel-turma");
+  }
+  const mesaLigada = () => ehProfessorOuAdmin && !emTeste && modoMesa;
+  useEffect(() => { if (modoMesa && ehProfessorOuAdmin) mesa.abrir("painel-turma"); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   function setScreen(nova) {
+    if (mesaLigada()) { mesa.abrir(nova); return; }
     setFoco(null);
     if (nova === screen) return;
     setPilhaTelas((p) => [...p, screen].slice(-30));
     setScreenRaw(nova);
   }
-  function irComFoco(tela, f) { setScreen(tela); setFoco({ tela, ...f }); }
+  function irComFoco(tela, f) {
+    if (mesaLigada()) { mesa.abrir(tela, { tela, ...f }); return; }
+    setScreen(tela); setFoco({ tela, ...f });
+  }
   function voltarUmaTela() {
     const anterior = pilhaTelas[pilhaTelas.length - 1];
     if (!anterior) { setScreenRaw("inicio"); return; }
@@ -896,6 +913,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   const TELAS_COM_ESCRITURACAO = ["dashboard", "minha-nota", "diario", "razao", "balancete", "are", "dre", "bp", "agb-av", "agb-ind", "agb-giro", "agb-parecer", "agb-comp", "ca-cont", "ca-efeitos"];
   const TELAS_COM_DOCUMENTOS = ["documentos", "digitacao", "analise-fiscal", "classificacao"];
 
+  // Monta a tela de uma chave. Recebe a chave e o foco para servir tanto ao menu lateral (uma tela) quanto à Mesa (várias janelas).
+  function montarTela(screen, foco) {
   // Itens do menu do professor que reúnem telas em abas (2026-10-13). Chave antiga → item novo + aba certa.
   const alvoAbas = ehProfessorOuAdmin && !emTeste ? (ABRIR_EM[screen] || (TELAS_COM_ABAS.includes(screen) ? [screen, null] : null)) : null;
   function telaComAbas(item, aba) {
@@ -975,7 +994,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (screen === "inicio" && papelEfetivo === "aluno") {
     tela = <InicioAluno etapas={etapasAluno} mostrarPi={mostrarPi} onIr={setScreen} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
   } else if (screen === "inicio" && ehProfessorOuAdmin) {
-    tela = <SalaDeAula turma={turmaSelecionada} onIr={(t, f) => (f ? irComFoco(t, f) : setScreen(t))} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
+    tela = <SalaDeAula turma={turmaSelecionada} onIr={(t, f) => (f ? irComFoco(t, f) : setScreen(t))} onAbrirHistorico={selecionarAlunoEVerHistorico} foco={foco && foco.tela === "inicio" ? foco : null} />;
+  } else if (ehProfessorOuAdmin && screen === "painel-turma") {
+    tela = <PainelTurma turma={turmaSelecionada} onIr={(t, f) => (f ? irComFoco(t, f) : setScreen(t))} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
   } else if (screen === "hoje" && ehProfessorOuAdmin) {
     tela = <InicioProfessor turma={turmaSelecionada} onIr={setScreen} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
   } else if (infoEtapaTela && !infoEtapaTela.disponivel) {
@@ -1121,7 +1142,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       />
     );
   } else if (ehProfessorOuAdmin && screen === "fila") {
-    tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} foco={foco && foco.tela === "fila" ? foco : null} onVerTodos={() => setFoco(null)} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
+    tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} foco={foco && foco.tela === "fila" ? foco : null} onVerTodos={() => (mesaLigada() ? mesa.abrir("fila", null) : setFoco(null))} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   } else if (ehProfessorOuAdmin && screen === "historico") {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
   } else if (ehProfessorOuAdmin && screen === "suporte") {
@@ -1144,6 +1165,28 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <ModelosMensagens turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={perfil.papel} />;
+  }
+  return tela;
+  }
+  const tela = montarTela(screen, foco);
+
+  // ---- Mesa do professor (formato novo, em paralelo) ----
+  if (ehProfessorOuAdmin && !emTeste && modoMesa) {
+    const tituloDe = (chave, f) => {
+      const base = (nomeDaTela[chave] || chave).replace(/^[^\p{L}\p{N}]+/u, "");
+      return base + (f && f.nome && chave === "fila" ? " · " + String(f.nome).split(" ")[0] : "");
+    };
+    return (
+      <MesaProfessor
+        menu={menuSuperiorProfessor({ papel: perfil.papel, badgeFila: correcoesPendentesProfessor, badgeSuporte: suporteNaoLidoProfessor })}
+        mesa={mesa}
+        renderTela={(chave, f) => (<div key={chave}>{montarTela(chave, f)}</div>)}
+        tituloDe={tituloDe}
+        turmaNome={turmaSelecionada ? "Turma: " + turmaSelecionada.nome : "Nenhuma turma selecionada"}
+        resumo={correcoesPendentesProfessor + " na fila · " + suporteNaoLidoProfessor + " no suporte"}
+        acoes={{ voltarClassico: () => setModoMesa(false), sair: onSair, backup: () => { if (!gerandoBackup && turmaSelecionada) gerarBackup(); } }}
+      />
+    );
   }
 
   return (
@@ -1236,6 +1279,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           </div>
           <div className="role-switch">
             {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>Sair do modo de teste</button>}
+            {ehProfessorOuAdmin && !emTeste && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
               {gerandoBackup ? "Gerando backup…" : "Baixar backup"}
             </button>
