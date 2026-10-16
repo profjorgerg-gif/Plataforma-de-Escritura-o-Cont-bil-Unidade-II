@@ -12,9 +12,15 @@ import { montarSala, chamadoAguardando, haQuanto, LIMITES_PARADO, LIMITE_PADRAO 
 const COR = { r: "var(--red)", a: "#b7791f", g: "var(--green)", c: "var(--ink-faint)" };
 const FILTROS = [["pre", "Precisam de mim"], ["par", "Parados"], ["tra", "Trabalhando"], ["ok", "Em dia"], ["all", "Todos"]];
 
-function Sinal({ s }) {
-  return <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, padding: "2px 7px", margin: "2px 6px 2px 0", border: "1px solid " + COR[s.tom], color: COR[s.tom] }}>{s.texto}</span>;
+// Cada sinal é um botão: leva direto à tela onde o professor resolve aquilo (fila só deste aluno, o chamado, o histórico).
+function Sinal({ s, onClick }) {
+  return (
+    <button type="button" title="Abrir" onClick={(e) => { e.stopPropagation(); onClick(s); }}
+      style={{ display: "inline-block", fontSize: 12, fontWeight: 700, padding: "2px 7px", margin: "2px 6px 2px 0", border: "1px solid " + COR[s.tom], color: COR[s.tom], background: "transparent", cursor: "pointer", font: "inherit", fontSize: 12 }}>{s.texto} ›</button>
+  );
 }
+// Lembra o filtro e o aluno aberto quando o professor volta de outra tela (só em memória).
+let memoria = { filtro: "pre", aberto: null };
 
 export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
   const turmaId = turma && turma.id;
@@ -24,9 +30,11 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
   const documentos = useDocumentosDaTurma(turmaId);
   const { chamados } = useChamados(turmaId, null);
   const andamento = useAndamentoDaTurma(turmaId, alunos);
-  const [filtro, setFiltro] = useState("pre");
+  const [filtro, setFiltroRaw] = useState(memoria.filtro);
+  const setFiltro = (f) => { memoria.filtro = f; setFiltroRaw(f); };
   const [limite, setLimite] = useState(LIMITE_PADRAO);
-  const [aberto, setAberto] = useState(null);
+  const [aberto, setAbertoRaw] = useState(memoria.aberto);
+  const setAberto = (a) => { memoria.aberto = a; setAbertoRaw(a); };
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setAgora(Date.now()), 30000); return () => clearInterval(t); }, []);
 
@@ -45,6 +53,12 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
   const nFila = sala.linhas.reduce((t, x) => t + x.enviados, 0);
   const nOk = sala.linhas.reduce((t, x) => t + x.nOk, 0), nNo = sala.linhas.reduce((t, x) => t + x.nNo, 0);
   const nSup = (chamados || []).filter(chamadoAguardando).length;
+  // Leva o professor direto ao processo certo, com o aluno já escolhido; o botão "← Voltar" (ou "🏫 Sala de aula") traz de volta.
+  function irSinal(x, s) {
+    if (s.alvo === "fila") onIr("fila", { matricula: x.aluno.matricula, nome: x.aluno.nome });
+    else if (s.alvo === "suporte") onIr("suporte", { chamadoId: s.chamadoId });
+    else if (onAbrirHistorico) onAbrirHistorico(x.aluno);
+  }
   const lista = sala.linhas.filter((x) => filtro === "all" || x.grupo === filtro);
   const carregando = !catalogo || !chamados;
 
@@ -104,7 +118,7 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
                   <div style={{ fontSize: 12.5, color: "var(--ink-faint)" }}>
                     {x.etapa}{x.total > 0 && x.etapa.startsWith("Etapa 1") ? " · ① " + x.prog.dig + "/" + x.total + " ② " + x.prog.ana + "/" + x.total + " ③ " + x.prog.cla + "/" + x.total + " ④ " + x.prog.apr + "/" + x.total : ""}
                   </div>
-                  <div>{x.sinais.map((s, i) => <Sinal key={i} s={s} />)}</div>
+                  <div>{x.sinais.map((s, i) => <Sinal key={i} s={s} onClick={(sg) => irSinal(x, sg)} />)}</div>
                 </div>
                 <span style={{ color: "var(--ink-faint)" }}>{ab ? "▾" : "▸"}</span>
               </div>
@@ -118,9 +132,9 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
                   {x.enviados > 0 && x.erros.length === 0 && <p style={{ margin: "4px 0" }}>⏳ {x.enviados} lançamento(s) esperando a sua aprovação na fila.</p>}
                   {!x.erros.length && !x.devolvidos && !x.chamado && !x.enviados && <p style={{ margin: "4px 0", color: "var(--ink-faint)" }}>Sem pendências. {x.concluido ? "A Etapa 1 deste aluno está concluída." : "Se estiver parado, vale uma conversa rápida."}</p>}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                    <button className="btn" onClick={() => onAbrirHistorico && onAbrirHistorico(a)}>Abrir o histórico do aluno</button>
-                    {x.enviados > 0 && <button className="btn secondary" onClick={() => onIr("fila")}>Abrir a fila</button>}
-                    {x.chamado && <button className="btn secondary" onClick={() => onIr("suporte")}>Abrir o suporte</button>}
+                    {(x.enviados > 0 || x.erros.length > 0) && <button className="btn" onClick={() => onIr("fila", { matricula: a.matricula, nome: a.nome })}>Corrigir na fila (só {String(a.nome || "").split(" ")[0]})</button>}
+                    {x.chamado && <button className="btn" onClick={() => onIr("suporte", { chamadoId: x.chamado.id })}>Responder o chamado</button>}
+                    <button className={"btn" + (x.enviados > 0 || x.chamado ? " secondary" : "")} onClick={() => onAbrirHistorico && onAbrirHistorico(a)}>Abrir o histórico do aluno</button>
                     <button className="btn secondary" onClick={() => onIr("modelos")}>Mensagens prontas</button>
                   </div>
                 </div>
@@ -129,7 +143,7 @@ export default function SalaDeAula({ turma, onIr, onAbrirHistorico }) {
           );
         })}
       </div></div>
-      <div className="helper-note">Esta tela só mostra; nada é aprovado, devolvido ou alterado por aqui. “Parado” e “sem atividade hoje” usam a última vez que o aluno gravou algo. O sistema ainda não registra a hora de entrada do aluno.</div>
+      <div className="helper-note">Aqui você escolhe o aluno e o sistema leva direto ao processo (fila, suporte ou histórico). Para voltar a esta tela use “← Voltar” ou “🏫 Sala de aula”, no topo. Nada é aprovado, devolvido ou alterado por esta tela. “Parado” e “sem atividade hoje” usam a última vez que o aluno gravou algo. O sistema ainda não registra a hora de entrada do aluno.</div>
     </>
   );
 }

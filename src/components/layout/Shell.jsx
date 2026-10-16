@@ -688,11 +688,15 @@ export default function Shell({ usuario, perfil, onSair }) {
   // Botão "Voltar": guarda as últimas telas visitadas (só no navegador, em memória; não grava nada).
   // Toda navegação passa por setScreen(), então qualquer botão ou item de menu entra na pilha.
   const [pilhaTelas, setPilhaTelas] = useState([]);
+  // "foco": a Sala de aula manda o professor a uma tela já posicionada (fila só de um aluno, um chamado). Qualquer outra navegação limpa o foco.
+  const [foco, setFoco] = useState(null);
   function setScreen(nova) {
+    setFoco(null);
     if (nova === screen) return;
     setPilhaTelas((p) => [...p, screen].slice(-30));
     setScreenRaw(nova);
   }
+  function irComFoco(tela, f) { setScreen(tela); setFoco({ tela, ...f }); }
   function voltarUmaTela() {
     const anterior = pilhaTelas[pilhaTelas.length - 1];
     if (!anterior) { setScreenRaw("inicio"); return; }
@@ -971,7 +975,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (screen === "inicio" && papelEfetivo === "aluno") {
     tela = <InicioAluno etapas={etapasAluno} mostrarPi={mostrarPi} onIr={setScreen} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
   } else if (screen === "inicio" && ehProfessorOuAdmin) {
-    tela = <SalaDeAula turma={turmaSelecionada} onIr={setScreen} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
+    tela = <SalaDeAula turma={turmaSelecionada} onIr={(t, f) => (f ? irComFoco(t, f) : setScreen(t))} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
   } else if (screen === "hoje" && ehProfessorOuAdmin) {
     tela = <InicioProfessor turma={turmaSelecionada} onIr={setScreen} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
   } else if (infoEtapaTela && !infoEtapaTela.disponivel) {
@@ -1117,11 +1121,11 @@ export default function Shell({ usuario, perfil, onSair }) {
       />
     );
   } else if (ehProfessorOuAdmin && screen === "fila") {
-    tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
+    tela = turmaSelecionada ? <FilaCorrecao turmaId={turmaSelecionada.id} foco={foco && foco.tela === "fila" ? foco : null} onVerTodos={() => setFoco(null)} /> : <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   } else if (ehProfessorOuAdmin && screen === "historico") {
     tela = <HistoricoAluno turmaId={turmaSelecionada?.id} alunoSelecionado={alunoSelecionado} onVoltarParaTurmas={() => setScreen("turmas")} />;
   } else if (ehProfessorOuAdmin && screen === "suporte") {
-    tela = <SuporteProfessor turma={turmaSelecionada} />;
+    tela = <SuporteProfessor turma={turmaSelecionada} chamadoFoco={foco && foco.tela === "suporte" ? foco.chamadoId : null} />;
   } else if (ehProfessorOuAdmin && screen === "guia") {
     tela = <GuiaProfessor turma={turmaSelecionada} onIr={(k) => setScreen(k)} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
   } else if (ehProfessorOuAdmin && screen === "registro") {
@@ -1245,6 +1249,7 @@ export default function Shell({ usuario, perfil, onSair }) {
                 <div className="voltar-bar">
                   <button className="btn secondary" onClick={voltarUmaTela}>← Voltar</button>
                   <span className="voltar-para">para {rotuloAnterior}</span>
+                  {ehProfessorOuAdmin && !emTeste && <button className="btn secondary" style={{ marginLeft: 10 }} onClick={() => setScreen("inicio")}>🏫 Sala de aula</button>}
                 </div>
               )}
               {ehProfessorOuAdmin && passoAtivo && screen !== "roteiro-testes" && (

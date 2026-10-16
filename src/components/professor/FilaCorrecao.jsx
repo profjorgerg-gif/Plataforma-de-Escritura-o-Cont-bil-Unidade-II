@@ -61,7 +61,7 @@ function tempoDesde(timestamp) {
   return `há ${d} dia${d > 1 ? "s" : ""}`;
 }
 
-export default function FilaCorrecao({ turmaId }) {
+export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }) {
   const { contas } = usePlanoContas();
   const alunos = useAlunosDaTurma(turmaId);
   const catalogo = useCatalogoDocumentos();
@@ -70,6 +70,7 @@ export default function FilaCorrecao({ turmaId }) {
   // no topo da fila.
   const fila = todos
     .filter(({ lancamento }) => lancamento.status === "enviado")
+    .filter(({ aluno }) => !foco || aluno.matricula === foco.matricula)
     .sort((a, b) => millisDoEnvio(a.lancamento) - millisDoEnvio(b.lancamento));
   const [mostrarAuto, setMostrarAuto] = useState(false);
   const [confirmaBloco, setConfirmaBloco] = useState(null); // "ap" | "de" | null
@@ -189,6 +190,12 @@ export default function FilaCorrecao({ turmaId }) {
       <div className="helper-note" style={{ borderLeftColor: "var(--green)", background: "var(--green-pale)", color: "var(--green-dark)" }}>
         <b>O que aparece aqui:</b> só os lançamentos já prontos no Livro Diário — a última etapa do fluxo do aluno. Digitação e análise fiscal em andamento (antes de virar lançamento) não entram nesta fila; para acompanhar essas etapas, use <b>Histórico do aluno</b>.
       </div>
+      {foco && (
+        <div className="helper-note" style={{ borderLeftColor: "var(--red)" }}>
+          Mostrando só os lançamentos de <b>{foco.nome || foco.matricula}</b>, vindo da Sala de aula. Os botões “Aprovar” e “Devolver” em bloco valem só para esta lista.{" "}
+          {onVerTodos && <button className="btn secondary" style={{ marginLeft: 6 }} onClick={onVerTodos}>Ver a fila de todos</button>}
+        </div>
+      )}
       {fila.length > 0 && (
         <div style={{ margin: "10px 0" }}>
           <button className="btn secondary" onClick={() => setMostrarAuto((v) => !v)}>{mostrarAuto ? "▲ Fechar" : "⚡ Abrir"} conferência automática por aluno</button>

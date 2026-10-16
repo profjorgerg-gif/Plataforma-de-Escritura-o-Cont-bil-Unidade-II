@@ -92,24 +92,24 @@ export function resumirAluno(d, agora, limiteMin) {
 
   const meusChamados = (d.chamados || []).filter((c) => (c.matricula === d.aluno.matricula || c.alunoMatricula === d.aluno.matricula) && chamadoAguardando(c));
   const sinais = [];
-  if (nNo > 0) sinais.push({ tom: "r", texto: "❌ " + nNo + (nNo === 1 ? " erro" : " erros") + " na conferência" });
+  if (nNo > 0) sinais.push({ tom: "r", alvo: "fila", texto: "❌ " + nNo + (nNo === 1 ? " erro" : " erros") + " na conferência" });
   if (meusChamados.length) {
     const c = meusChamados[0];
-    sinais.push({ tom: "a", texto: "✉ Pediu ajuda" + (c.numero ? " (chamado " + fmtNumero(c.numero) + ")" : "") });
+    sinais.push({ tom: "a", alvo: "suporte", chamadoId: c.id, texto: "✉ Pediu ajuda" + (c.numero ? " (chamado " + fmtNumero(c.numero) + ")" : "") });
   }
-  if (r.env > 0) sinais.push({ tom: nNo === 0 && nOk === r.env ? "g" : "a", texto: nNo === 0 && nOk === r.env ? "✅ " + r.env + (r.env === 1 ? " enviado confere" : " enviados conferem") : "⏳ " + r.env + (r.env === 1 ? " enviado" : " enviados") });
-  if (r.cor > 0) sinais.push({ tom: "a", texto: "↩ " + r.cor + (r.cor === 1 ? " devolvido, ainda não corrigiu" : " devolvidos, ainda não corrigiu") });
+  if (r.env > 0) sinais.push({ tom: nNo === 0 && nOk === r.env ? "g" : "a", alvo: "fila", texto: nNo === 0 && nOk === r.env ? "✅ " + r.env + (r.env === 1 ? " enviado confere" : " enviados conferem") : "⏳ " + r.env + (r.env === 1 ? " enviado" : " enviados") });
+  if (r.cor > 0) sinais.push({ tom: "a", alvo: "historico", texto: "↩ " + r.cor + (r.cor === 1 ? " devolvido, ainda não corrigiu" : " devolvidos, ainda não corrigiu") });
 
   const precisa = sinais.some((s) => s.tom === "r" || (s.tom === "a"));
   const semHoje = !ultima || !mesmoDia(ultima, agora);
   const parado = !concluido && !precisa && (semHoje || agora - ultima > limiteMin * 60000);
   if (!precisa && !concluido) {
-    if (!ultima) sinais.push({ tom: "c", texto: "💤 ainda não começou" });
-    else if (semHoje) sinais.push({ tom: "c", texto: "💤 sem atividade hoje" });
-    else if (parado) sinais.push({ tom: "c", texto: "💤 parado há " + Math.floor((agora - ultima) / 60000) + " min" });
+    if (!ultima) sinais.push({ tom: "c", alvo: "historico", texto: "💤 ainda não começou" });
+    else if (semHoje) sinais.push({ tom: "c", alvo: "historico", texto: "💤 sem atividade hoje" });
+    else if (parado) sinais.push({ tom: "c", alvo: "historico", texto: "💤 parado há " + Math.floor((agora - ultima) / 60000) + " min" });
   }
-  if (concluido && !sinais.length) sinais.push({ tom: "g", texto: "✅ tudo aprovado" });
-  if (!sinais.length) sinais.push({ tom: "g", texto: "✅ trabalhando" });
+  if (concluido && !sinais.length) sinais.push({ tom: "g", alvo: "historico", texto: "✅ tudo aprovado" });
+  if (!sinais.length) sinais.push({ tom: "g", alvo: "historico", texto: "✅ trabalhando" });
 
   const grupo = concluido && !precisa ? "ok" : precisa ? "pre" : parado ? "par" : "tra";
   const semaforo = sinais.some((s) => s.tom === "r") ? "r" : grupo === "pre" ? "a" : grupo === "par" ? "c" : "g";

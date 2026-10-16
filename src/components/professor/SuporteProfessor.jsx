@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useChamados } from "../../hooks/useChamados.js";
@@ -45,7 +45,7 @@ function vezDe(c) {
   return String(ult.texto || "").trim() === RESPOSTAS_RAPIDAS[0] ? "pro" : "alu";
 }
 
-export default function SuporteProfessor({ turma }) {
+export default function SuporteProfessor({ turma, chamadoFoco = null }) {
   const turmaId = turma?.id;
   const { chamados, erro: erroLeitura } = useChamados(turmaId, null);
   const alunos = useAlunosDaTurma(turmaId);
@@ -71,6 +71,14 @@ export default function SuporteProfessor({ turma }) {
   const [dirEtapas, setDirEtapas] = useState([]);
   const [dirTexto, setDirTexto] = useState(MODELO_ORIENTACAO);
   const [aviso, setAviso] = useState("");
+  // Vindo da Sala de aula: abre direto o chamado do aluno (uma vez).
+  const [focoUsado, setFocoUsado] = useState(null);
+  useEffect(() => {
+    if (!chamadoFoco || focoUsado === chamadoFoco || !chamados) return;
+    const c = chamados.find((x) => x.id === chamadoFoco);
+    if (!c) return;
+    setFocoUsado(chamadoFoco); setAba(vezDe(c)); abrirChamado(c);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
 
