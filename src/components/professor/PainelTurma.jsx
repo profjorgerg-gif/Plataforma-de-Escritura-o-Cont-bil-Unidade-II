@@ -7,6 +7,8 @@ import { useChamados } from "../../hooks/useChamados.js";
 import { useAndamentoDaTurma } from "../../hooks/useAndamentoDaTurma.js";
 import { useCaTurma } from "../../hooks/useCa.js";
 import { useAgbTurma } from "../../hooks/useAgb.js";
+import { useRoteiroDosAlunos } from "../../hooks/useRoteiro.js";
+import { ETAPAS as ETAPAS_AVAL, fmtNota } from "../../lib/avaliacao.js";
 import { ETAPAS_PAINEL, etapaPorId, contagemDoAluno } from "../../lib/painelEtapas.js";
 import { montarSala, chamadoAguardando, haQuanto, LIMITE_PADRAO } from "../../lib/salaDeAula.js";
 
@@ -33,6 +35,7 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
   const caT = useCaTurma(turmaId), agbT = useAgbTurma(turmaId);
   const [etapaId, setEtapaId] = useState(memoriaEtapa);
   const escolher = (id) => { memoriaEtapa = id; setEtapaId(id); };
+  const { mapa: roteiro, recarregar: recarregarNotas } = useRoteiroDosAlunos(turmaId, etapaId === "notas" ? alunos : null); // só lê quando a aba Notas está aberta
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setAgora(Date.now()), 30000); return () => clearInterval(t); }, []);
 
@@ -74,14 +77,14 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
   const celula = (txt, est, onClick, titulo) => (
     <button type="button" title={titulo} onClick={onClick} style={{ minWidth: 58, height: 24, border: 0, background: ESTADO[est].bg, color: ESTADO[est].cor, fontWeight: 700, cursor: "pointer", font: "inherit", fontSize: 12 }}>{txt}</button>
   );
-  const quadroAluno = (cabs, linhas) => (
+  const quadroAluno = (cabs, linhas, comUltima = true) => (
     <div className="panel" style={{ margin: "14px 0 0" }}><div className="panel-body" style={{ overflowX: "auto" }}>
       <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>MAPA DA TURMA · CLIQUE NA CÉLULA PARA ABRIR O ALUNO</div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
         <thead><tr>
           <th style={{ textAlign: "left", padding: "4px 6px" }}>Aluno</th>
           {cabs.map((c, i) => <th key={i} style={{ padding: "4px 6px", fontSize: 12 }}>{c}</th>)}
-          <th style={{ textAlign: "left", padding: "4px 6px" }}>Última atividade</th>
+          {comUltima && <th style={{ textAlign: "left", padding: "4px 6px" }}>Última atividade</th>}
         </tr></thead>
         <tbody>{linhas}</tbody>
       </table>
@@ -145,6 +148,44 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
       </>
     );
   };
+  const mapaNotas = () => {
+    if (!roteiro) return <div className="empty-state">Carregando notas…</div>;
+    const cel = (x, e) => {
+      const r = roteiro[x.aluno.matricula] || {}, av = (r.avaliacoes || {})[e.id], ent = r.entregas || {};
+      const nota = av && typeof av.nota === "number" ? av.nota : null;
+      if (nota !== null) return { nota, k: av.liberada ? "lib" : "aval" };
+      return { nota: null, k: ent[e.id] || ent["p_" + e.id] ? "entreg" : "sem" };
+    };
+    const linhas = porNome.map((x) => { const c = ETAPAS_AVAL.map((e) => cel(x, e)); const ns = c.filter((q) => q.nota !== null).map((q) => q.nota); return { x, c, media: ns.length ? ns.reduce((t, n) => t + n, 0) / ns.length : null }; });
+    const todas = linhas.flatMap((l) => l.c), com = todas.filter((q) => q.nota !== null);
+    const nLib = todas.filter((q) => q.k === "lib").length, nAguard = todas.filter((q) => q.k === "entreg").length;
+    const mediaTurma = com.length ? com.reduce((t, q) => t + q.nota, 0) / com.length : null;
+    const COR_N = { lib: ["var(--green-pale)", "var(--green)", "✓ "], aval: ["var(--blue-pale)", "var(--blue)", "… "], entreg: ["var(--amber-pale)", "var(--amber)", "✉ "], sem: ["var(--paper-deep)", "var(--ink-faint)", "· "] };
+    return (
+      <>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 8, margin: "0 0 4px" }}>
+          <Kpi cor="var(--blue)" n={com.length} t="avaliações feitas" sub="nota lançada" onClick={() => onIr("aval-prof")} />
+          <Kpi cor="var(--green)" n={nLib} t="liberadas ao aluno" sub="o aluno já vê a nota" onClick={() => onIr("aval-prof")} />
+          <Kpi cor="var(--amber)" n={nAguard} t="aguardando avaliação" sub="entregue, sem nota" onClick={() => onIr("aval-prof")} />
+          <Kpi cor="var(--ink-faint)" n={fmtNota(mediaTurma)} t="média da turma" sub="das notas já lançadas" onClick={() => onIr("notas")} />
+        </div>
+        {quadroAluno(["① Escrituração", "② Folha", "③ Provisões", "④ Rescisão", "⑤ AGB", "⑥ Comparativa", "Média"], linhas.map(({ x, c, media }) => (
+          <tr key={x.aluno.matricula} style={{ borderTop: "1px solid var(--line)" }}>
+            <td style={{ padding: "4px 6px", whiteSpace: "nowrap" }}><button type="button" onClick={() => abrirAluno(x)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", color: "inherit", padding: 0 }}>{x.aluno.nome}</button></td>
+            {c.map((q, j) => (
+              <td key={j} style={{ textAlign: "center", padding: "3px 4px" }}>
+                <button type="button" title={ETAPAS_AVAL[j].titulo} onClick={() => onIr("aval-prof")} style={{ minWidth: 58, height: 24, border: 0, background: COR_N[q.k][0], color: COR_N[q.k][1], fontWeight: 700, cursor: "pointer", font: "inherit", fontSize: 12 }}>
+                  {COR_N[q.k][2]}{q.nota !== null ? fmtNota(q.nota) : q.k === "entreg" ? "entregue" : ""}
+                </button>
+              </td>
+            ))}
+            <td style={{ textAlign: "center", fontWeight: 700 }} className="mono">{fmtNota(media)}</td>
+          </tr>
+        )), false)}
+        <div className="helper-note" style={{ marginTop: 12 }}>✓ liberada ao aluno · … avaliada, ainda não liberada · ✉ entregue, falta avaliar · · sem entrega. Clicar numa célula abre <b>Avaliação das etapas</b>. Nada é alterado aqui. <button className="btn secondary" style={{ marginLeft: 8 }} onClick={recarregarNotas}>Atualizar notas</button></div>
+      </>
+    );
+  };
   const visaoGeral = () => {
     const et = ETAPAS_PAINEL.filter((e) => e.n > 1);
     const dados = porNome.map((x) => ({ x, e1: total > 0 ? Math.round(x.prog.apr / total * 100) : 0, ets: et.map((e) => { const v = contagem(e, x); return { ini: v.filter((n) => n > 0).length, de: v.length }; }) }));
@@ -185,9 +226,9 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
             const on = e.id === etapaId, fechada = fechadaDa(e);
             return (
               <button key={e.id} type="button" aria-pressed={on} onClick={() => escolher(e.id)}
-                style={{ textAlign: "left", padding: "6px 12px", cursor: "pointer", font: "inherit", border: "1px solid " + (on ? "var(--green)" : "var(--line-strong)"), borderStyle: e.id === "geral" && !on ? "dashed" : "solid",
+                style={{ textAlign: "left", padding: "6px 12px", cursor: "pointer", font: "inherit", borderWidth: 1, borderStyle: e.id === "geral" && !on ? "dashed" : "solid", borderColor: on ? "var(--green)" : "var(--line-strong)",
                   background: on ? "var(--green)" : "var(--surface)", color: on ? "#fff" : "var(--ink)", opacity: fechada && !on ? 0.65 : 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{e.n ? e.n + " · " : ""}{e.rot}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{(e.n || e.num) ? (e.n || e.num) + " · " : ""}{e.rot}</div>
                 <div className="mono" style={{ fontSize: 10.5, opacity: 0.8 }}>{e.sub}{e.n ? (fechada ? " · fechada" : " · liberada") : ""}</div>
               </button>
             );
@@ -196,7 +237,8 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
       </div>
 
       {etapaId === "geral" && visaoGeral()}
-      {etapaId !== "f1" && etapaId !== "geral" && etapaGenerica()}
+      {etapaId === "notas" && mapaNotas()}
+      {etapaId !== "f1" && etapaId !== "geral" && etapaId !== "notas" && etapaGenerica()}
       {etapaId === "f1" && (
         <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, margin: "10px 0 14px" }}>

@@ -37,6 +37,7 @@ export const ETAPAS_PAINEL = [
   { id: "comp", n: 6, rot: "Análise comparativa", sub: "AGB", lib: "agb", passos: [
     ["Exercícios comparativos", "agb", (t) => IDS_EX.reduce((s, id) => s + secao(t, id), 0)],
     ["Comparativo entre empresas", "agb", (t) => secao(t, "comp")] ] },
+  { id: "notas", num: "7", rot: "Notas e avaliação", sub: "etapas 1 a 6" },
 ];
 export const etapaPorId = (id) => ETAPAS_PAINEL.find((e) => e.id === id) || ETAPAS_PAINEL[1];
 
