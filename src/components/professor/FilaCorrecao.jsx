@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { doc, updateDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
@@ -8,6 +8,7 @@ import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { contaInfo, fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 import ConferenciaAuto from "./ConferenciaAuto.jsx";
+import { conferirAluno } from "../../lib/conferenciaFila.js";
 
 // ANÁLISE POR IA — sem Cloud Function, sem custo, sem chave secreta.
 // Em vez do sistema chamar uma API de IA (o que exigiria guardar uma chave
@@ -71,6 +72,56 @@ export default function FilaCorrecao({ turmaId }) {
     .filter(({ lancamento }) => lancamento.status === "enviado")
     .sort((a, b) => millisDoEnvio(a.lancamento) - millisDoEnvio(b.lancamento));
   const [mostrarAuto, setMostrarAuto] = useState(false);
+  const [confirmaBloco, setConfirmaBloco] = useState(null); // "ap" | "de" | null
+  const [msgBloco, setMsgBloco] = useState("");
+  const [ocupadoBloco, setOcupadoBloco] = useState(false);
+  // 2026-10-15 — conferência automática visível em cada card da Fila (✅ confere · ❌ erro · ⚪ confira).
+  // Só sugere; nada é aprovado ou devolvido sem o clique do professor.
+  const conf = useMemo(() => {
+    const res = {};
+    if (!catalogo) return res;
+    const porAluno = {};
+    fila.forEach(({ aluno, lancamento }) => { (porAluno[aluno.matricula] = porAluno[aluno.matricula] || []).push(lancamento); });
+    Object.keys(porAluno).forEach((m) => {
+      const todosDele = todos.filter((t) => t.aluno.matricula === m).map((t) => t.lancamento);
+      Object.assign(res, conferirAluno(porAluno[m], todosDele, catalogo));
+    });
+    return res;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todos, catalogo]);
+  const estadoDe = (l) => (conf[l.id] || { estado: "sem" }).estado;
+  const nOk = fila.filter(({ lancamento }) => estadoDe(lancamento) === "ok").length;
+  const nNo = fila.filter(({ lancamento }) => estadoDe(lancamento) === "no").length;
+  const nSem = fila.length - nOk - nNo;
+  async function devolverComErro() {
+    setOcupadoBloco(true); setMsgBloco("");
+    try {
+      let n = 0;
+      for (const { aluno, lancamento: l } of fila) {
+        const r = conf[l.id];
+        if (!r || r.estado !== "no") continue;
+        const o = [("Motivo: " + r.motivo + "."), r.acao && ("O que fazer: " + r.acao), (obs[chave(aluno.matricula, l.id)] || "").trim()].filter(Boolean).join(" ");
+        const historico = [...(l.historicoCorrecoes || []), { obs: o, em: new Date().toISOString() }];
+        await updateDoc(doc(db, "turmas", turmaId, "alunos", aluno.matricula, "lancamentos", l.id), { status: "correcao", obsCorrecao: o, historicoCorrecoes: historico, ...(r.podeExcluir ? { podeExcluir: true } : {}) });
+        n++;
+      }
+      setMsgBloco(n + " lançamento(s) devolvido(s) ao aluno com o motivo e a orientação.");
+    } catch (e) { setMsgBloco("Não foi possível devolver: " + (e.message || e)); }
+    setConfirmaBloco(null); setOcupadoBloco(false);
+  }
+  async function aprovarConferem() {
+    setOcupadoBloco(true); setMsgBloco("");
+    try {
+      let n = 0;
+      for (const { aluno, lancamento: l } of fila) {
+        if (estadoDe(l) !== "ok") continue;
+        await updateDoc(doc(db, "turmas", turmaId, "alunos", aluno.matricula, "lancamentos", l.id), { status: "aprovado" });
+        n++;
+      }
+      setMsgBloco(n + " lançamento(s) aprovado(s).");
+    } catch (e) { setMsgBloco("Não foi possível aprovar: " + (e.message || e)); }
+    setConfirmaBloco(null); setOcupadoBloco(false);
+  }
   const [obs, setObs] = useState({});
   const [copiado, setCopiado] = useState({}); // chave -> true por alguns segundos, feedback visual
   const [extras, setExtras] = useState({}); // chave -> { aberto, carregando, analise, classificacoes }
@@ -143,6 +194,37 @@ export default function FilaCorrecao({ turmaId }) {
           <button className="btn secondary" onClick={() => setMostrarAuto((v) => !v)}>{mostrarAuto ? "▲ Fechar" : "⚡ Abrir"} conferência automática por aluno</button>
         </div>
       )}
+      {fila.length > 0 && (
+        <div className="panel" style={{ margin: "10px 0" }}>
+          <div className="panel-body">
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", fontSize: 14 }}>
+              <b style={{ color: "var(--green)" }}>✅ {nOk} conferem</b>
+              <b style={{ color: "var(--red)" }}>❌ {nNo} com erro</b>
+              <b style={{ color: "var(--ink-faint)" }}>⚪ {nSem} para você conferir</b>
+              {!catalogo && <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>carregando as notas…</span>}
+            </div>
+            <div className="btn-row" style={{ marginTop: 8 }}>
+              {!confirmaBloco && (
+                <>
+                  <button className="btn green" disabled={!nOk || ocupadoBloco} onClick={() => { setConfirmaBloco("ap"); setMsgBloco(""); }}>Aprovar os {nOk} que conferem</button>
+                  <button className="btn red" disabled={!nNo || ocupadoBloco} onClick={() => { setConfirmaBloco("de"); setMsgBloco(""); }}>Devolver os {nNo} que têm erro</button>
+                </>
+              )}
+              {confirmaBloco && (
+                <>
+                  <span style={{ fontSize: 13 }}>
+                    {confirmaBloco === "ap" ? "Aprovar " + nOk + " lançamento(s) marcados ✅? Os ❌ e ⚪ não são tocados." : "Devolver " + nNo + " lançamento(s) marcados ❌ com o motivo e a orientação? Os ✅ e ⚪ não são tocados."}
+                  </span>
+                  <button className={"btn " + (confirmaBloco === "ap" ? "green" : "red")} disabled={ocupadoBloco} onClick={confirmaBloco === "ap" ? aprovarConferem : devolverComErro}>Sim, confirmar</button>
+                  <button className="btn secondary" onClick={() => setConfirmaBloco(null)}>Cancelar</button>
+                </>
+              )}
+            </div>
+            {msgBloco && <div className="helper-note" style={{ marginTop: 8 }}>{msgBloco}</div>}
+            <div style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 6 }}>Conferência pelo gabarito da nota: contas do plano de contas e valores. O sistema só sugere; a decisão é sua.</div>
+          </div>
+        </div>
+      )}
       {mostrarAuto && <ConferenciaAuto turmaId={turmaId} fila={fila} todos={todos} catalogo={catalogo} contas={contas} />}
       {fila.length === 0 && <div className="panel"><div className="empty-state">Nenhum lançamento pendente no momento.</div></div>}
       {fila.map(({ aluno, lancamento: l }) => {
@@ -165,6 +247,24 @@ export default function FilaCorrecao({ turmaId }) {
               <StatusBadge status={l.status} />
             </div>
             <div className="panel-body">
+              {(() => {
+                const r = conf[l.id];
+                if (!r) return null;
+                const cor = { ok: "var(--green)", no: "var(--red)", sem: "var(--ink-faint)" }[r.estado] || "var(--ink-faint)";
+                const simb = { ok: "✅", no: "❌", sem: "⚪" }[r.estado] || "⚪";
+                return (
+                  <div style={{ marginBottom: 10, padding: "6px 10px", border: "1px solid " + cor, fontSize: 13 }}>
+                    <b style={{ color: cor }}>{simb} {r.estado === "ok" ? (r.motivo.charAt(0).toUpperCase() + r.motivo.slice(1)) : r.estado === "no" ? "Erro encontrado" : "Para você conferir"}</b>
+                    {r.estado !== "ok" && <span> — {r.motivo}</span>}
+                    {r.estado === "no" && r.acao && (
+                      <div style={{ marginTop: 4 }}>
+                        <b>O que fazer:</b> {r.acao}{" "}
+                        <button className="btn secondary" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setObs((o) => ({ ...o, [k]: "Motivo: " + r.motivo + ". O que fazer: " + r.acao }))}>usar como observação</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {l.historicoCorrecoes?.length > 0 && (
                 <div className="helper-note" style={{ marginBottom: 12, borderColor: "var(--red)" }}>
                   <b>Histórico de correções deste lançamento ({l.historicoCorrecoes.length}):</b>
