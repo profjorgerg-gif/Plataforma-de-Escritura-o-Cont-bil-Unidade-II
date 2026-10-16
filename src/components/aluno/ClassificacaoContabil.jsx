@@ -151,7 +151,8 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
             </div>
           </div>
           <div className="field"><label>Histórico</label><input value={historico} onChange={(e) => setHistorico(e.target.value)} /></div>
-          <div className="field"><label>Tratamento tributário (se houver)</label><input value={tratamento} onChange={(e) => setTratamento(e.target.value)} /></div>
+          <div className="field"><label>Tratamento tributário (se houver)</label><input value={tratamento} onChange={(e) => setTratamento(e.target.value)} placeholder="Ex.: ICMS destacado, crédito a recuperar" />
+            <div style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 4 }}>Escreva como o tributo desta nota foi tratado (ex.: crédito de ICMS/PIS/COFINS a recuperar, ou sem direito a crédito). Se a Análise Fiscal apontou CFOP, NCM ou CST incorreto, preencha aqui o que seria o correto. Se não houve aviso nem tratamento especial, pode deixar em branco. Não precisa repetir valores.</div></div>
           <div className="btn-row"><button className="btn" onClick={salvar}>Salvar classificação</button></div>
         </div>
       </div>
