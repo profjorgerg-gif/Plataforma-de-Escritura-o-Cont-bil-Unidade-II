@@ -17,6 +17,8 @@ function gab(doc) {
     icms: Number(imp.icms?.valor) || 0, pis: Number(imp.pis?.valor) || 0, cofins: Number(imp.cofins?.valor) || 0,
     total: Number(doc.valorTotal) || 0, produtos: Number(doc.totais?.produtos) || itens, itens,
     desconto: Number(doc.totais?.desconto) || 0, direcao: doc.direcao,
+    ipi: Number(imp.ipi?.valor) || 0,
+    texto: [doc.natureza, doc.naturezaOperacao, doc.descricao, doc.operacao].filter(Boolean).join(" "),
   };
 }
 
@@ -31,6 +33,8 @@ export function tiposDoLancamento(l) {
     else if (COFINS.includes(c)) t.add("cofins");
     else if (PISCOFINS_VENDA.includes(c)) t.add("pisCofins");
     else if (c === DESC_SAIDA || c === DESC_ENTRADA) t.add("desconto");
+    // 2026-10-15 — compra principal: débito em estoque (1.1.3.*) ou crédito em Fornecedores/Duplicatas a Pagar (2.1.1.*)
+    if ((p.tipo === "D" && c.startsWith("1.1.3.")) || (p.tipo === "C" && c.startsWith("2.1.1."))) t.add("compra");
   });
   return [...t].sort();
 }
@@ -64,6 +68,72 @@ function comCaminho(r) {
   return { ...r, acao: a };
 }
 
+
+// 2026-10-15 — Conferência das CONTAS do plano de contas (além dos valores).
+// Só marca erro quando a conta é claramente de outro tipo; o que pode ter motivo (à vista, ICMS-ST, nota que não é de revenda) vira "confira".
+const REC = { icms: "1.1.2.11", pis: "1.1.2.14", cofins: "1.1.2.15" };
+const RECUPERAR = ["1.1.2.11", "1.1.2.12", "1.1.2.14", "1.1.2.15"];
+const RECOLHER_VENDA = ["2.1.8.04", "2.1.8.05", "2.1.8.06", "4.2.01", "4.2.02"];
+const NOME = { "1.1.3.01": "Mercadorias para Revenda", "1.1.2.11": "ICMS a Recuperar", "1.1.2.14": "PIS a Recuperar", "1.1.2.15": "COFINS a Recuperar" };
+const rot = (c) => c + (NOME[c] ? " " + NOME[c] : "");
+function conferirContas(l, g, tipos) {
+  const ruins = [], duvidas = [], acoes = [];
+  const ps = l.partidas || [];
+  const D = ps.filter((p) => p.tipo === "D").map((p) => String(p.conta));
+  const C = ps.filter((p) => p.tipo === "C").map((p) => String(p.conta));
+  const entrada = g.direcao === "entrada", saida = g.direcao === "saida";
+  if (!entrada && !saida) return { ruins, duvidas, acoes };
+  const ehCompra = tipos.includes("compra");
+  const revenda = entrada && /comercializ|revenda/i.test(g.texto || "");
+  const ruim = (m, a) => { ruins.push(m); acoes.push(a); };
+  if (entrada) {
+    if (C.some((c) => c.startsWith("4.1.1.")) || D.some((c) => c === "1.1.2.01" || c === "1.1.2.02"))
+      ruim("nota de compra com contas de venda (Clientes/Receita)", "Corrija as contas: na compra o débito é Mercadorias para Revenda (1.1.3.01) e o crédito é Fornecedores/Duplicatas a Pagar.");
+    if (D.some((c) => RECOLHER_VENDA.includes(c)) || C.some((c) => RECOLHER_VENDA.includes(c)))
+      ruim("nota de compra com conta de imposto a recolher ou de dedução de vendas", "Corrija as contas: na compra o imposto é a RECUPERAR (ICMS 1.1.2.11, PIS 1.1.2.14, COFINS 1.1.2.15), não a recolher.");
+    if (ehCompra) {
+      const dEst = D.filter((c) => c.startsWith("1.1.3."));
+      if (dEst.some((c) => c !== "1.1.3.01")) {
+        if (revenda) ruim("compra para revenda com débito em " + dEst.find((c) => c !== "1.1.3.01") + " (deveria ser 1.1.3.01 Mercadorias para Revenda)", "Corrija a conta de débito para 1.1.3.01 Mercadorias para Revenda e reenvie.");
+        else duvidas.push("débito em " + dEst.find((c) => c !== "1.1.3.01") + ": confira se é a conta certa para esta nota");
+      } else if (dEst.length === 0) {
+        if (revenda) ruim("compra para revenda sem débito em 1.1.3.01 Mercadorias para Revenda", "Corrija a conta de débito para 1.1.3.01 Mercadorias para Revenda e reenvie.");
+        else duvidas.push("compra sem débito em estoque: confira a conta");
+      }
+      const cForn = C.filter((c) => c.startsWith("2.1.1."));
+      if (cForn.length === 0) {
+        if (C.some((c) => c.startsWith("1.1.1."))) duvidas.push("compra paga à vista (Caixa/Banco): confira se a nota é à vista");
+        else if (!C.length || C.every((c) => c === "1.1.3.01")) { /* sem crédito de compra: nada a dizer */ }
+        else duvidas.push("crédito da compra fora de Fornecedores: confira");
+      }
+    }
+    // lançamento só de imposto na compra: débito no imposto a recuperar, crédito em Mercadorias
+    if (!ehCompra) ["icms", "pis", "cofins"].forEach((t) => {
+      if (!tipos.includes(t)) return;
+      const rec = REC[t];
+      if (D.some((c) => RECUPERAR.includes(c)) && !D.includes(rec) && !D.includes("1.1.2.12")) ruim(t.toUpperCase() + " da compra lançado em outra conta de tributo a recuperar", "Corrija a conta de débito para " + rot(rec) + " e reenvie.");
+      else if (D.includes("1.1.2.12") && t === "icms") duvidas.push("ICMS-ST a Recuperar: confira se a nota tem substituição tributária");
+      if (D.includes(rec) && C.length && !C.includes("1.1.3.01") && !C.some((c) => RECUPERAR.includes(c))) duvidas.push("crédito do " + t.toUpperCase() + " da compra fora de 1.1.3.01 Mercadorias para Revenda: confira");
+    });
+  }
+  if (saida) {
+    if (C.some((c) => c.startsWith("2.1.1.")))
+      ruim("nota de venda com conta de compra (Fornecedores)", "Corrija as contas: na venda o débito é Clientes/Duplicatas a Receber e o crédito é Receita de Vendas.");
+    if (D.some((c) => RECUPERAR.includes(c)) || C.some((c) => RECUPERAR.includes(c)))
+      ruim("nota de venda com imposto a recuperar", "Corrija as contas: na venda o imposto é a RECOLHER (ICMS 2.1.8.04, PIS 2.1.8.05, COFINS 2.1.8.06) e a dedução é 4.2.01 / 4.2.02.");
+    if (tipos.includes("venda")) {
+      const dv = D.filter((c) => !c.startsWith("4.2.") && !c.startsWith("2.1.8."));
+      if (dv.length && !dv.some((c) => c === "1.1.2.01" || c === "1.1.2.02")) {
+        if (dv.some((c) => c.startsWith("1.1.1."))) duvidas.push("venda recebida à vista (Caixa/Banco): confira se a nota é à vista");
+        else duvidas.push("débito da venda fora de Clientes/Duplicatas a Receber: confira");
+      }
+      const cr = C.filter((c) => c.startsWith("4.1.1."));
+      if (cr.some((c) => c !== "4.1.1.01") && /mercadoria/i.test(g.texto || "")) duvidas.push("receita em " + cr.find((c) => c !== "4.1.1.01") + ": a nota é de mercadorias, confira (esperado 4.1.1.01)");
+    }
+  }
+  return { ruins, duvidas, acoes };
+}
+
 export function conferirUm(l, doc, duplicado) { return comCaminho(conferirUm0(l, doc, duplicado)); }
 function conferirUm0(l, doc, duplicado) {
   if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
@@ -78,6 +148,7 @@ function conferirUm0(l, doc, duplicado) {
   if (!doc) return { estado: "sem", motivo: "nota sem gabarito: confira manualmente" };
   const g = gab(doc);
   const ruins = [], bons = [], duvidas = [], acoes = []; let podeExc = false;
+  { const cc = conferirContas(l, g, tipos); ruins.push(...cc.ruins); duvidas.push(...cc.duvidas); acoes.push(...cc.acoes); if (!cc.ruins.length && !cc.duvidas.length && tipos.includes("compra") && g.direcao === "entrada") bons.push("contas da compra"); }
   tipos.forEach((t) => {
     if (t === "icms" || t === "pis" || t === "cofins") {
       const contas = t === "icms" ? ICMS : t === "pis" ? PIS : COFINS;
@@ -101,6 +172,20 @@ function conferirUm0(l, doc, duplicado) {
       else if (!g.desconto) { ruins.push("a nota não tem desconto"); acoes.push("Esta nota não tem desconto: exclua este lançamento pelo botão no Livro Diário."); podeExc = true; }
       else if (iguais(v, g.desconto)) bons.push("desconto");
       else { ruins.push("desconto diferente: a nota traz " + brl(g.desconto)); acoes.push("Corrija o valor do desconto para " + brl(g.desconto) + " e reenvie."); }
+    } else if (t === "compra") {
+      if (g.direcao !== "entrada") return;
+      const ps = l.partidas || [];
+      const soma = (f) => ps.filter(f).reduce((a, p) => a + (Number(p.valor) || 0), 0);
+      const dMerc = soma((p) => p.tipo === "D" && String(p.conta).startsWith("1.1.3."));
+      const cForn = soma((p) => p.tipo === "C" && String(p.conta).startsWith("2.1.1."));
+      const imp = (tipos.includes("icms") ? g.icms : 0) + (tipos.includes("pis") ? g.pis : 0) + (tipos.includes("cofins") ? g.cofins : 0);
+      const complexa = g.desconto > 0 || g.ipi > 0;
+      const probs = [];
+      if (cForn > 0 && !iguais(cForn, g.total)) probs.push("valor a pagar (Fornecedores/Duplicatas) diferente: a nota traz " + brl(g.total));
+      if (dMerc > 0 && !iguais(dMerc, g.total - imp)) probs.push("valor em Mercadorias diferente: o esperado é " + brl(g.total - imp) + (imp ? " (total da nota menos os impostos lançados junto)" : " (total da nota)"));
+      if (!probs.length) bons.push("valor da compra");
+      else if (complexa) duvidas.push("compra: " + probs.join("; ") + ". A nota tem desconto/IPI: confira");
+      else { ruins.push("compra: " + probs.join("; ")); acoes.push("Corrija o valor da compra conforme a nota e reenvie."); }
     } else if (t === "venda") {
       const v = valorDaConta(l, (l.partidas || []).filter((p) => String(p.conta).startsWith("4.1.1.")).map((p) => String(p.conta)));
       if (iguais(v, g.total) || iguais(v, g.produtos) || iguais(v, g.itens)) bons.push("venda");
