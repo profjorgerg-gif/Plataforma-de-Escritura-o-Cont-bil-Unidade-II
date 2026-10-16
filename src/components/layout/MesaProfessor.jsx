@@ -21,7 +21,7 @@ const CSS = `
 .mesa-bg{display:inline-block;background:var(--red,#8C2F2F);color:#fff;font-size:11px;font-weight:700;padding:0 6px;margin-left:5px;min-width:18px;text-align:center;border-radius:9px}
 .mesa-novo{font-size:10px;font-weight:700;color:var(--amber,#9C6B1F);text-transform:uppercase;margin-left:3px}
 .mesa-sp{flex:1}
-.mesa-info{display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--ink-soft,#5B6672);white-space:nowrap}
+.mesa-info .nome{overflow:hidden;text-overflow:ellipsis;max-width:200px}.mesa-info{flex:none;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--ink-soft,#5B6672);white-space:nowrap}
 .mesa-info button{background:none;border:1px solid var(--line-strong,#C3B79E);padding:3px 9px;cursor:pointer;font:inherit;color:inherit}
 .mesa-info button:hover{background:var(--green-pale,#E4EEE9)}
 .mesa-desk{position:relative;flex:1;min-height:0;overflow:hidden;background:linear-gradient(var(--m-grid) 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,var(--m-grid) 1px,transparent 1px) 0 0/32px 32px}
@@ -162,6 +162,7 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
     ] },
     { label: "Ajuda", direita: true, itens: [
       { label: "Voltar ao menu lateral", acao: acoes.voltarClassico },
+      ...(acoes.tema ? [{ label: acoes.tema.tema === "escuro" ? "☀️ Modo claro" : "🌙 Modo escuro", acao: acoes.tema.alternar }] : []),
       { label: acoes.rotuloBackup || "Baixar backup da turma", acao: acoes.backup },
     ] },
   ];
@@ -175,7 +176,7 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
         <div className="mesa-sp" />
         <div className="mesa-info">
           <span className="nome">{turmaNome}</span>
-          {acoes.tema && <button onClick={acoes.tema.alternar} title="Trocar entre modo claro e escuro">{acoes.tema.tema === "escuro" ? "☀️ Claro" : "🌙 Escuro"}</button>}
+          {acoes.tema && <button onClick={acoes.tema.alternar} title="Trocar entre modo claro e escuro">{acoes.tema.tema === "escuro" ? "☀️" : "🌙"}</button>}
           <button onClick={acoes.voltarClassico} title="Voltar ao menu lateral de antes (para imprimir, por exemplo)">☰ Menu lateral</button>
           <button onClick={acoes.sair}>{acoes.rotuloSair || "Sair"}</button>
         </div>
