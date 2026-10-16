@@ -79,6 +79,7 @@ import { estadoFluxo } from "../../lib/fluxoLotes.js";
 import TelaComAbas from "../professor/TelaComAbas.jsx";
 import InicioAluno, { FaixaEtapa, EtapaBloqueada } from "../shared/InicioAluno.jsx";
 import InicioProfessor from "../professor/InicioProfessor.jsx";
+import SalaDeAula from "../professor/SalaDeAula.jsx";
 import RoteiroTestes, { FaixaTeste } from "../professor/RoteiroTestes.jsx";
 import { useProgressoTestes } from "../../hooks/useProgressoTestes.js";
 import { passoDoTeste } from "../../lib/roteiroTestes.js";
@@ -871,7 +872,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const nomeDaTela = {};
   menuGrupos.forEach((g) => { (g.itens || []).forEach((it) => { nomeDaTela[it.key] = it.label; (it.apelidos || []).forEach((k) => { nomeDaTela[k] = it.label; }); }); (g.etapas || []).forEach((e) => e.itens.forEach((it) => { nomeDaTela[it.key] = it.label; })); });
   const telaAnterior = pilhaTelas[pilhaTelas.length - 1] || null;
-  const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : (ehProfessorOuAdmin && !emTeste ? "Hoje" : "Comece aqui");
+  const rotuloAnterior = telaAnterior ? (nomeDaTela[telaAnterior] || "tela anterior").replace(/^[^\p{L}\p{N}]+/u, "") : (ehProfessorOuAdmin && !emTeste ? "Sala de aula" : "Comece aqui");
   const etapaDaTelaAtual = papelEfetivo === "aluno" ? etapaDaTela(screen) : null;
   const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
   const prazoTela = etapaDaTelaAtual ? situacaoPrazo(etapaDaTelaAtual, roteiroCfg) : { fechada: false };
@@ -970,6 +971,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (screen === "inicio" && papelEfetivo === "aluno") {
     tela = <InicioAluno etapas={etapasAluno} mostrarPi={mostrarPi} onIr={setScreen} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} />;
   } else if (screen === "inicio" && ehProfessorOuAdmin) {
+    tela = <SalaDeAula turma={turmaSelecionada} onIr={setScreen} onAbrirHistorico={selecionarAlunoEVerHistorico} />;
+  } else if (screen === "hoje" && ehProfessorOuAdmin) {
     tela = <InicioProfessor turma={turmaSelecionada} onIr={setScreen} contadores={{ fila: correcoesPendentesProfessor, suporte: suporteNaoLidoProfessor }} />;
   } else if (infoEtapaTela && !infoEtapaTela.disponivel) {
     tela = <EtapaBloqueada info={infoEtapaTela} etapas={etapasAluno} onIr={setScreen} mostrarPi={mostrarPi} />;

@@ -52,14 +52,14 @@ export const BLOCOS_TESTE = [
       {
         "id": "2.2",
         "fazer": "Entre como professor.",
-        "esperado": "Abre em \"Hoje\", com a fila e o suporte, \"Onde fica cada coisa\" e a rotina sugerida.",
+        "esperado": "Abre na \"Sala de aula\": fila, suporte, quantos alunos precisam de você e a lista de alunos com o motivo de cada um.",
         "quem": "prof",
         "tela": "inicio"
       },
       {
         "id": "2.3",
         "fazer": "Confira o menu lateral.",
-        "esperado": "Grupos: todo dia, planejar o ciclo, etapas do projeto, alunos e notas, materiais. \"Ajuda\" e \"Manutenção (com cuidado)\" no fim, recolhíveis.",
+        "esperado": "À vista: Sala de aula, Fila de correção e Suporte. Recolhidos: planejar, avaliar e fechar, etapas do projeto, materiais e ajuda, manutenção. O grupo da tela aberta abre sozinho.",
         "quem": "prof",
         "tela": "inicio"
       },
@@ -72,10 +72,10 @@ export const BLOCOS_TESTE = [
       },
       {
         "id": "2.5",
-        "fazer": "Em \"Hoje\", clique nos botões \"Abrir\" de \"Onde fica cada coisa\" e da rotina.",
+        "fazer": "Abra \"Materiais e ajuda\" → \"Como o menu funciona\" e clique nos botões \"Abrir\".",
         "esperado": "Cada botão leva à tela indicada, sem erro.",
         "quem": "prof",
-        "tela": "inicio"
+        "tela": "hoje"
       }
     ]
   },
@@ -416,7 +416,7 @@ export const BLOCOS_TESTE = [
       {
         "id": "12.1",
         "fazer": "Clique em \"Sair do modo de teste\".",
-        "esperado": "Volta ao \"Hoje\" do professor.",
+        "esperado": "Volta à \"Sala de aula\" do professor.",
         "quem": "prof",
         "tela": "inicio"
       },

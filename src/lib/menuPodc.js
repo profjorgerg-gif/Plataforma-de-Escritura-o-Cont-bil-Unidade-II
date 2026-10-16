@@ -153,40 +153,41 @@ export const ABA_DO_ROTEIRO = { "roteiro-folha": "folha" };
 export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
   const b = (key, label, n, extra) => ({ key, label, ...(n > 0 ? { badge: n } : {}), ...(extra || {}) });
   const ab = (key, label) => ({ key, label, apelidos: apelidos(key) });
+  // 2026-10-16 — menu enxuto: 3 itens à vista (Sala de aula, Fila, Suporte) e o resto em grupos recolhidos.
+  // O grupo que contém a tela aberta abre sozinho. Nenhuma tela foi retirada; só mudaram de lugar.
   return [
-    { label: "todo dia", itens: [
-      { key: "inicio", label: "🧭 Hoje" },
+    { itens: [
+      { key: "inicio", label: "🏫 Sala de aula" },
       b("fila", "Fila de correção", badgeFila),
       b("suporte", "Suporte", badgeSuporte),
-      { key: "envios", label: "Envios por lote (2027.1)" },
-      { key: "diretriz", label: "Diretriz da semana (quadro)" },
     ] },
-    { label: "planejar o ciclo", itens: [
+    { id: "g-planejar", label: "🗓 planejar", recolhivel: true, itens: [
       ab("planejar", "Etapas, prazos e liberação"),
       { key: "turmas", label: "Turmas" },
+      { key: "diretriz", label: "Diretriz da semana (quadro)" },
+      { key: "envios", label: "Envios por lote (2027.1)" },
     ] },
-    { label: "etapas do projeto", itens: [
+    { id: "g-avaliar", label: "📊 avaliar e fechar", recolhivel: true, itens: [
+      ab("alunos", "Alunos"),
+      { key: "fechamento", label: "Fechamento da etapa" },
+      ab("notas-aval", "Notas e avaliação"),
+    ] },
+    { id: "g-etapas", label: "etapas do projeto", recolhivel: true, itens: [
       ab("etapa1", "Etapa 1 · Escrituração"),
       { key: "ca-prof", label: "Etapas 2–3 · CA" },
       { key: "resc-prof", label: "Etapa 4 · Rescisão" },
       { key: "agb-prof", label: "Etapas 5–6 · AGB" },
       { key: "roteiro-folha", label: "Atividade da folha" },
     ] },
-    { label: "alunos e notas", itens: [
-      ab("alunos", "Alunos"),
-      { key: "fechamento", label: "Fechamento da etapa" },
-      ab("notas-aval", "Notas e avaliação"),
-    ] },
-    { label: "materiais", itens: [
+    { id: "g-materiais", label: "materiais e ajuda", recolhivel: true, itens: [
       { key: "caderno", label: "Caderno do Aluno (imprimir)" },
       { key: "planos", label: "Planos semestrais (imprimir)" },
       { key: "descricoes", label: "Descrições para a escola" },
       { key: "roteiro", label: "Roteiro do Aluno" },
       ab("consultas", "Consultas"),
       { key: "modelos", label: "Modelos de mensagens" },
-    ] },
-    { id: "ajuda", label: "ajuda", recolhivel: true, itens: [
       ab("ajuda", "Guias e manuais"),
+      { key: "hoje", label: "🧭 Como o menu funciona" },
       { key: "roteiro-testes", label: "🧪 Roteiro de testes" },
     ] },
     { id: "manutencao", label: "manutenção (com cuidado)", recolhivel: true, itens: [
