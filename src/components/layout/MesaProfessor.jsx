@@ -49,7 +49,7 @@ const CSS = `
 @media(max-width:1500px){.mesa-info .nome{display:none}}
 @media(max-width:1500px){.mesa-brand{display:none}}
 @media(max-width:760px){.mesa-win{inset:0!important;width:auto!important;height:auto!important}.rz,.mesa-wt .sn{display:none}.mesa-wt{cursor:default}.mesa-info{display:none}}
-@media print{.mesa-bar,.mesa-task,.mesa-wt,.rz{display:none!important}.mesa,.mesa-desk,.mesa-win,.mesa-wb{position:static!important;overflow:visible!important;box-shadow:none!important;border:0!important;width:auto!important;height:auto!important}.mesa-win.min{display:none!important}}
+@media print{.mesa-bar,.mesa-task,.mesa-wt,.rz{display:none!important}.mesa,.mesa-desk,.mesa-win,.mesa-wb{position:static!important;overflow:visible!important;box-shadow:none!important;border:0!important;width:auto!important;height:auto!important}.mesa-win.min{display:none!important}.mesa-win:not(.on){display:none!important}}
 `;
 
 function Aviso({ aviso, texto, limpar }) {

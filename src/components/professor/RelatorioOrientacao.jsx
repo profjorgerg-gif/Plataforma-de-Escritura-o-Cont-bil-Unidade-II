@@ -184,8 +184,8 @@ export default function RelatorioOrientacao({ turma, alunoInicial = "", fechada 
   if (!turma) {
     return (
       <>
-        <div className="screen-eyebrow">relatório de orientação</div>
-        <h2 className="screen-title">Relatório de orientação por aluno</h2>
+        <div className="screen-eyebrow no-print">relatório de orientação</div>
+        <h2 className="screen-title no-print">Relatório de orientação por aluno</h2>
         <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>
       </>
     );
@@ -299,9 +299,9 @@ export default function RelatorioOrientacao({ turma, alunoInicial = "", fechada 
   return (
     <>
       <style>{"@media screen{.so-impressao{display:none}}"}</style>
-      <div className="screen-eyebrow">relatório de orientação</div>
-      <h2 className="screen-title">Relatório de orientação por aluno</h2>
-      <p className="screen-sub">Aponta o que cada aluno precisa corrigir e o que fazer. Gerado na hora, com os dados atuais.</p>
+      <div className="screen-eyebrow no-print">relatório de orientação</div>
+      <h2 className="screen-title no-print">Relatório de orientação por aluno</h2>
+      <p className="screen-sub no-print">Aponta o que cada aluno precisa corrigir e o que fazer. Gerado na hora, com os dados atuais.</p>
 
       <div className="panel no-print">
         <div className="panel-body">
