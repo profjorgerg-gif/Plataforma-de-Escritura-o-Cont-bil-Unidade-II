@@ -5,6 +5,9 @@ import { useCatalogoDocumentos } from "../../hooks/useCatalogoDocumentos.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
 import { useChamados } from "../../hooks/useChamados.js";
 import { useAndamentoDaTurma } from "../../hooks/useAndamentoDaTurma.js";
+import { useCaTurma } from "../../hooks/useCa.js";
+import { useAgbTurma } from "../../hooks/useAgb.js";
+import { ETAPAS_PAINEL, etapaPorId, contagemDoAluno } from "../../lib/painelEtapas.js";
 import { montarSala, chamadoAguardando, haQuanto, LIMITE_PADRAO } from "../../lib/salaDeAula.js";
 
 // Painel da turma (2026-10-16): visão geral da turma, com tudo clicável.
@@ -16,6 +19,7 @@ const ESTADO = {
   and: { g: "…", bg: "var(--blue-pale)", cor: "var(--blue)", t: "em andamento" },
   nao: { g: "·", bg: "var(--paper-deep)", cor: "var(--ink-faint)", t: "não começou" },
 };
+let memoriaEtapa = "f1"; // lembra a etapa escolhida ao ir e voltar entre telas
 const estadoDe = (n, total) => (total > 0 && n >= total ? "ok" : n > 0 ? "and" : "nao");
 
 export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
@@ -26,6 +30,9 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
   const documentos = useDocumentosDaTurma(turmaId);
   const { chamados } = useChamados(turmaId, null);
   const andamento = useAndamentoDaTurma(turmaId, alunos);
+  const caT = useCaTurma(turmaId), agbT = useAgbTurma(turmaId);
+  const [etapaId, setEtapaId] = useState(memoriaEtapa);
+  const escolher = (id) => { memoriaEtapa = id; setEtapaId(id); };
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setAgora(Date.now()), 30000); return () => clearInterval(t); }, []);
 
@@ -59,12 +66,139 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
   const precisam = L.filter((x) => x.grupo === "pre").slice(0, 8);
   const porNome = [...L].sort((a, b) => (a.aluno.nome || "").localeCompare(b.aluno.nome || ""));
 
+  // ---- etapas 2 a 6 e visão geral (só leitura do que o aluno já gravou) ----
+  const liberada = { fp: caT.liberado, ca: caT.liberado, resc: !!(caT.config && caT.config.rescisaoLiberada), agb: agbT.liberado, comp: agbT.liberado };
+  const fechadaDa = (e) => !!e.n && e.n > 1 && liberada[e.id] === false;
+  const contagem = (e, x) => contagemDoAluno(e, andamento[x.aluno.matricula]);
+  const abrirAluno = (x) => onAbrirHistorico && onAbrirHistorico(x.aluno);
+  const celula = (txt, est, onClick, titulo) => (
+    <button type="button" title={titulo} onClick={onClick} style={{ minWidth: 58, height: 24, border: 0, background: ESTADO[est].bg, color: ESTADO[est].cor, fontWeight: 700, cursor: "pointer", font: "inherit", fontSize: 12 }}>{txt}</button>
+  );
+  const quadroAluno = (cabs, linhas) => (
+    <div className="panel" style={{ margin: "14px 0 0" }}><div className="panel-body" style={{ overflowX: "auto" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>MAPA DA TURMA · CLIQUE NA CÉLULA PARA ABRIR O ALUNO</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
+        <thead><tr>
+          <th style={{ textAlign: "left", padding: "4px 6px" }}>Aluno</th>
+          {cabs.map((c, i) => <th key={i} style={{ padding: "4px 6px", fontSize: 12 }}>{c}</th>)}
+          <th style={{ textAlign: "left", padding: "4px 6px" }}>Última atividade</th>
+        </tr></thead>
+        <tbody>{linhas}</tbody>
+      </table>
+    </div></div>
+  );
+  const etapaGenerica = () => {
+    const e = etapaPorId(etapaId);
+    const cont = porNome.map((x) => ({ x, v: contagem(e, x) }));
+    const comecou = cont.filter((c) => c.v.some((n) => n > 0)).length;
+    const fechada = fechadaDa(e);
+    return (
+      <>
+        {fechada && <div className="helper-note" style={{ marginBottom: 10 }}>Esta etapa ainda está <b>fechada</b> para a turma. O painel mostra o que já existir gravado; os números aparecem quando você liberar.</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, margin: "0 0 14px" }}>
+          <Kpi cor="var(--blue)" n={nSup} t="chamados no suporte" sub="esperando você" onClick={() => onIr("suporte")} />
+          <Kpi cor="var(--red)" n={sala.cont.pre} t="precisam de você" sub={"de " + L.length + " alunos (turma toda)"} onClick={() => sala_("pre")} />
+          <Kpi cor="var(--green)" n={comecou + " de " + L.length} t="já começaram" sub={"Etapa " + e.n} onClick={() => onIr("inicio")} />
+          <Kpi cor="var(--ink-faint)" n={L.length - comecou} t="ainda não começaram" sub={"Etapa " + e.n} onClick={() => onIr("inicio")} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 14 }}>
+          <div className="panel" style={{ margin: 0 }}><div className="panel-body">
+            <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>ANDAMENTO DA ETAPA {e.n} · {e.rot.toUpperCase()}</div>
+            {e.passos.map(([nomeP], j) => {
+              const c = { and: cont.filter((q) => q.v[j] > 0).length };
+              c.nao = L.length - c.and;
+              return (
+                <div key={j} style={{ display: "grid", gridTemplateColumns: "minmax(110px,170px) 1fr 40px", gap: 8, alignItems: "center", margin: "6px 0" }}>
+                  <span>{j + 1} {nomeP}</span>
+                  <div style={{ display: "flex", height: 22, gap: 2 }}>
+                    {["and", "nao"].filter((k) => c[k]).map((k) => (
+                      <span key={k} title={ESTADO[k].t + ": " + c[k]} style={{ flex: c[k], background: ESTADO[k].bg, color: ESTADO[k].cor, fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" }}>{ESTADO[k].g} {c[k]}</span>
+                    ))}
+                  </div>
+                  <span className="mono" style={{ textAlign: "right", color: "var(--ink-soft)" }}>{L.length ? Math.round(c.and / L.length * 100) : 0}%</span>
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8 }}>… já preencheu alguma coisa · · não começou. Cada barra conta os alunos.</div>
+          </div></div>
+          <div className="panel" style={{ margin: 0 }}><div className="panel-body">
+            <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>PRECISAM DE VOCÊ AGORA</div>
+            {precisam.length === 0 && <div style={{ color: "var(--ink-soft)" }}>Ninguém precisa de você agora. 🎉</div>}
+            {precisam.map((x) => (
+              <div key={x.aluno.matricula} style={{ borderBottom: "1px solid var(--line)", padding: "5px 0" }}>
+                <button type="button" onClick={() => abrirAluno(x)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", fontWeight: 700, color: "inherit", padding: 0 }}>{x.aluno.nome}</button>
+                <div>{x.sinais.map((s, i) => (
+                  <button type="button" key={i} onClick={() => irSinal(x, s)} style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", margin: "2px 6px 2px 0", border: "1px solid " + COR[s.tom], color: COR[s.tom], background: "transparent", cursor: "pointer" }}>{s.texto}</button>
+                ))}</div>
+              </div>
+            ))}
+          </div></div>
+        </div>
+        {quadroAluno(e.passos.map(([n], j) => (j + 1) + " " + n), cont.map(({ x, v }) => (
+          <tr key={x.aluno.matricula} style={{ borderTop: "1px solid var(--line)" }}>
+            <td style={{ padding: "4px 6px", whiteSpace: "nowrap" }}><button type="button" onClick={() => abrirAluno(x)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", color: "inherit", padding: 0 }}>{x.aluno.nome}</button></td>
+            {v.map((n, j) => <td key={j} style={{ textAlign: "center", padding: "3px 4px" }}>{celula(ESTADO[n > 0 ? "and" : "nao"].g + " " + n, n > 0 ? "and" : "nao", () => abrirAluno(x), n + " campos preenchidos")}</td>)}
+            <td style={{ padding: "4px 6px", color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{haQuanto(x.ultima, agora)}</td>
+          </tr>
+        )))}
+        <div className="helper-note" style={{ marginTop: 12 }}>Nesta etapa o painel conta os <b>campos que o aluno já preencheu</b> em cada parte. Não existe fila de correção nem devolução por nota fora da Etapa 1.</div>
+      </>
+    );
+  };
+  const visaoGeral = () => {
+    const et = ETAPAS_PAINEL.filter((e) => e.n > 1);
+    const dados = porNome.map((x) => ({ x, e1: total > 0 ? Math.round(x.prog.apr / total * 100) : 0, ets: et.map((e) => { const v = contagem(e, x); return { ini: v.filter((n) => n > 0).length, de: v.length }; }) }));
+    const concl1 = dados.filter((d) => d.e1 >= 100).length;
+    return (
+      <>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 8, margin: "0 0 4px" }}>
+          <Kpi cor="var(--green)" n={concl1 + " de " + L.length} t="concluíram a Etapa 1" sub="notas aprovadas" onClick={() => escolher("f1")} />
+          {et.map((e, j) => (
+            <Kpi key={e.id} cor={fechadaDa(e) ? "var(--ink-faint)" : "var(--blue)"} n={dados.filter((d) => d.ets[j].ini > 0).length + " de " + L.length}
+              t={"começaram a Etapa " + e.n} sub={fechadaDa(e) ? "etapa fechada" : e.rot} onClick={() => escolher(e.id)} />
+          ))}
+          <Kpi cor="var(--red)" n={sala.cont.pre} t="precisam de você" sub={"de " + L.length + " alunos"} onClick={() => sala_("pre")} />
+        </div>
+        {quadroAluno(["① Escrituração", ...et.map((e) => e.n + " · " + e.rot.split(" ")[0])], dados.map(({ x, e1, ets }) => (
+          <tr key={x.aluno.matricula} style={{ borderTop: "1px solid var(--line)" }}>
+            <td style={{ padding: "4px 6px", whiteSpace: "nowrap" }}><button type="button" onClick={() => abrirAluno(x)} style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", color: "inherit", padding: 0 }}>{x.aluno.nome}</button></td>
+            <td style={{ textAlign: "center", padding: "3px 4px" }}>{celula((e1 >= 100 ? "✓ " : e1 > 0 ? "… " : "· ") + e1 + "%", e1 >= 100 ? "ok" : e1 > 0 ? "and" : "nao", () => escolher("f1"), "notas aprovadas")}</td>
+            {ets.map((c, j) => <td key={j} style={{ textAlign: "center", padding: "3px 4px" }}>{celula((c.ini > 0 ? "… " : "· ") + c.ini + "/" + c.de, c.ini > 0 ? "and" : "nao", () => escolher(et[j].id), c.ini + " de " + c.de + " passos começados")}</td>)}
+            <td style={{ padding: "4px 6px", color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{haQuanto(x.ultima, agora)}</td>
+          </tr>
+        )))}
+        <div className="helper-note" style={{ marginTop: 12 }}>Etapa 1: percentual de notas aprovadas. Etapas 2 a 6: quantos passos o aluno já começou. Clique numa célula ou num número para abrir aquela etapa.</div>
+      </>
+    );
+  };
+
   return (
     <>
       <div className="screen-eyebrow">projeto interdisciplinar CI–CA–AGB</div>
       <h2 className="screen-title">Painel da turma</h2>
       <p className="screen-sub">{turma.nome} · {L.length} alunos · atualiza sozinho · toque em qualquer número, nome ou célula para abrir.</p>
 
+      <div style={{ margin: "6px 0 12px" }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>ETAPA EM EXIBIÇÃO</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {ETAPAS_PAINEL.map((e) => {
+            const on = e.id === etapaId, fechada = fechadaDa(e);
+            return (
+              <button key={e.id} type="button" aria-pressed={on} onClick={() => escolher(e.id)}
+                style={{ textAlign: "left", padding: "6px 12px", cursor: "pointer", font: "inherit", border: "1px solid " + (on ? "var(--green)" : "var(--line-strong)"), borderStyle: e.id === "geral" && !on ? "dashed" : "solid",
+                  background: on ? "var(--green)" : "var(--surface)", color: on ? "#fff" : "var(--ink)", opacity: fechada && !on ? 0.65 : 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{e.n ? e.n + " · " : ""}{e.rot}</div>
+                <div className="mono" style={{ fontSize: 10.5, opacity: 0.8 }}>{e.sub}{e.n ? (fechada ? " · fechada" : " · liberada") : ""}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {etapaId === "geral" && visaoGeral()}
+      {etapaId !== "f1" && etapaId !== "geral" && etapaGenerica()}
+      {etapaId === "f1" && (
+        <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, margin: "10px 0 14px" }}>
         <Kpi cor="var(--amber)" n={nFila} t="na fila de correção" sub={!catalogo ? "conferindo…" : "✅ " + nOk + " conferem · ❌ " + nNo + " com erro"} onClick={() => onIr("fila")} />
         <Kpi cor="var(--blue)" n={nSup} t="chamados no suporte" sub="esperando você" onClick={() => onIr("suporte")} />
@@ -145,6 +279,8 @@ export default function PainelTurma({ turma, onIr, onAbrirHistorico }) {
           </tbody>
         </table>
       </div></div>
+        </>
+      )}
       <div className="helper-note" style={{ marginTop: 12 }}>Este painel só mostra e leva você às telas de trabalho: nada é aprovado, devolvido ou alterado aqui, e nada que o aluno digitou muda.</div>
     </>
   );

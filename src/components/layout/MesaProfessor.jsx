@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 // Só organiza a tela: cada janela mostra a MESMA tela que o menu lateral já mostra. Nada é gravado aqui.
 const CSS = `
 [data-tema="escuro"] .mesa{--m-desk-c:#0E1217;--m-grid-c:#171D25;--m-tit1:#0F2E25;--m-tit2:#1C5442}
+[data-tema="escuro"] .mesa-brand{color:var(--green)}
 [data-tema="escuro"] .mesa-dd button:hover,[data-tema="escuro"] .mesa-task .home{color:#E6E9EC}
 .mesa{--m-tit1:#163F33;--m-tit2:#1F5C4A;--m-desk:var(--m-desk-c,#E6E0D0);--m-grid:var(--m-grid-c,#DCD5C2);position:fixed;inset:0;display:flex;flex-direction:column;background:var(--m-desk);z-index:50;font-size:14px}
 .mesa-bar{display:flex;align-items:stretch;background:var(--paper-deep,#EFE9DA);border-bottom:1px solid var(--line-strong,#C3B79E);height:36px;flex:none;position:relative;z-index:60;user-select:none}
