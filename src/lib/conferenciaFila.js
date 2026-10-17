@@ -71,6 +71,8 @@ function comCaminho(r) {
 
 // 2026-10-15 — Conferência das CONTAS do plano de contas (além dos valores).
 // Só marca erro quando a conta é claramente de outro tipo; o que pode ter motivo (à vista, ICMS-ST, nota que não é de revenda) vira "confira".
+// 2026-10-17 — Etapa 1: TODAS as compras e vendas são a PRAZO (decisão do professor). Caixa/Banco numa compra ou venda é erro.
+const GUIA = " Dúvida? Consulte o Guia de lançamentos: compras e vendas (menu Organização → Guia de lançamentos, ou o botão 📘 no Livro Diário).";
 const REC = { icms: "1.1.2.11", pis: "1.1.2.14", cofins: "1.1.2.15" };
 const RECUPERAR = ["1.1.2.11", "1.1.2.12", "1.1.2.14", "1.1.2.15"];
 const RECOLHER_VENDA = ["2.1.8.04", "2.1.8.05", "2.1.8.06", "4.2.01", "4.2.02"];
@@ -85,8 +87,10 @@ function conferirContas(l, g, tipos) {
   if (!entrada && !saida) return { ruins, duvidas, acoes };
   const ehCompra = tipos.includes("compra");
   const revenda = entrada && /comercializ|revenda/i.test(g.texto || "");
-  const ruim = (m, a) => { ruins.push(m); acoes.push(a); };
+  const ruim = (m, a) => { ruins.push(m); acoes.push(a + GUIA); };
   if (entrada) {
+    if (C.some((c) => c.startsWith("1.1.1.")))
+      ruim("compra lançada à vista (Caixa/Banco), mas as compras desta etapa são a prazo", "Corrija a conta de crédito: na compra a prazo o crédito é 2.1.1.01 Duplicatas a Pagar (ou 2.1.1.02 Fornecedores Diversos), não Caixa/Banco.");
     if (C.some((c) => c.startsWith("4.1.1.")) || D.some((c) => c === "1.1.2.01" || c === "1.1.2.02"))
       ruim("nota de compra com contas de venda (Clientes/Receita)", "Corrija as contas: na compra o débito é Mercadorias para Revenda (1.1.3.01) e o crédito é Fornecedores/Duplicatas a Pagar.");
     if (D.some((c) => RECOLHER_VENDA.includes(c)) || C.some((c) => RECOLHER_VENDA.includes(c)))
@@ -102,7 +106,7 @@ function conferirContas(l, g, tipos) {
       }
       const cForn = C.filter((c) => c.startsWith("2.1.1."));
       if (cForn.length === 0) {
-        if (C.some((c) => c.startsWith("1.1.1."))) duvidas.push("compra paga à vista (Caixa/Banco): confira se a nota é à vista");
+        if (C.some((c) => c.startsWith("1.1.1."))) { /* à vista: já tratado acima como erro */ }
         else if (!C.length || C.every((c) => c === "1.1.3.01")) { /* sem crédito de compra: nada a dizer */ }
         else duvidas.push("crédito da compra fora de Fornecedores: confira");
       }
@@ -117,6 +121,8 @@ function conferirContas(l, g, tipos) {
     });
   }
   if (saida) {
+    if (D.some((c) => c.startsWith("1.1.1.")))
+      ruim("venda lançada à vista (Caixa/Banco), mas as vendas desta etapa são a prazo", "Corrija a conta de débito: na venda a prazo o débito é 1.1.2.01 Duplicatas a Receber (ou 1.1.2.02 Clientes), não Caixa/Banco.");
     if (C.some((c) => c.startsWith("2.1.1.")))
       ruim("nota de venda com conta de compra (Fornecedores)", "Corrija as contas: na venda o débito é Clientes/Duplicatas a Receber e o crédito é Receita de Vendas.");
     if (D.some((c) => RECUPERAR.includes(c)) || C.some((c) => RECUPERAR.includes(c)))
@@ -124,7 +130,7 @@ function conferirContas(l, g, tipos) {
     if (tipos.includes("venda")) {
       const dv = D.filter((c) => !c.startsWith("4.2.") && !c.startsWith("2.1.8."));
       if (dv.length && !dv.some((c) => c === "1.1.2.01" || c === "1.1.2.02")) {
-        if (dv.some((c) => c.startsWith("1.1.1."))) duvidas.push("venda recebida à vista (Caixa/Banco): confira se a nota é à vista");
+        if (dv.some((c) => c.startsWith("1.1.1."))) { /* à vista: já tratado acima como erro */ }
         else duvidas.push("débito da venda fora de Clientes/Duplicatas a Receber: confira");
       }
       const cr = C.filter((c) => c.startsWith("4.1.1."));
@@ -138,7 +144,14 @@ export function conferirUm(l, doc, duplicado) { return comCaminho(conferirUm0(l,
 function conferirUm0(l, doc, duplicado) {
   if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual para esta nota", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
   let tipos = tiposDoLancamento(l);
-  if (tipos.length === 0) return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
+  if (tipos.length === 0) {
+    // 2026-10-17 — sem tipo reconhecido, mas com a nota em mãos ainda dá para pegar erro de CONTA (ex.: Caixa contra Mercadorias numa venda a prazo)
+    if (doc && l.documento) {
+      const cc = conferirContas(l, gab(doc), []);
+      if (cc.ruins.length) return { estado: "no", motivo: cc.ruins.join("; "), acao: cc.acoes.join(" ") };
+    }
+    return { estado: "sem", motivo: "sem regra automática para este lançamento: confira" };
+  }
   // desconto creditado em receita aumenta a receita em vez de reduzir o valor a receber
   const descNaReceita = (l.partidas || []).some((p) => p.tipo === "D" && String(p.conta) === DESC_SAIDA) &&
     (l.partidas || []).some((p) => p.tipo === "C" && String(p.conta).startsWith("4.1.1."));
@@ -192,7 +205,7 @@ function conferirUm0(l, doc, duplicado) {
       else duvidas.push("valor da venda difere do total da nota (" + brl(g.total) + "): confira");
     }
   });
-  if (ruins.length) return { estado: "no", motivo: ruins.join("; "), acao: acoes.join(" "), podeExcluir: podeExc };
+  if (ruins.length) return { estado: "no", motivo: ruins.join("; ") + (duvidas.length ? ". Confira também: " + duvidas.join("; ") : ""), acao: acoes.join(" "), podeExcluir: podeExc };
   if (duvidas.length) return { estado: "sem", motivo: duvidas.join("; ") };
   return { estado: "ok", motivo: "confere com a nota (" + bons.join(", ") + ")" };
 }

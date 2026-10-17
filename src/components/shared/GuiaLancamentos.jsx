@@ -41,6 +41,7 @@ export default function GuiaLancamentos({ professor = false }) {
           <div style={{ border: "1px solid var(--line)", padding: "10px 12px", minWidth: 0 }}><b>Compra de mercadoria para revenda.</b> O imposto da nota é <b>a recuperar</b> (ativo). A mercadoria entra pelo valor da nota sem os impostos recuperáveis, e a dívida é com o fornecedor.</div>
           <div style={{ border: "1px solid var(--line)", padding: "10px 12px", minWidth: 0 }}><b>Venda de mercadoria.</b> O imposto da nota é <b>a recolher</b> (passivo) e aparece também como <b>dedução</b> da receita. O cliente deve o valor total da nota.</div>
         </div>
+        <p style={{ margin: "10px 0 0" }}><b>Nesta etapa, toda compra e toda venda é a prazo.</b> Na compra o crédito vai para Duplicatas a Pagar, e na venda o débito vai para Duplicatas a Receber. Nunca use Caixa ou Banco nesses lançamentos.</p>
       </Bloco>
 
       <Bloco titulo="Compras (nota de entrada)">
@@ -87,11 +88,13 @@ export default function GuiaLancamentos({ professor = false }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 14 }}>
           <div style={{ minWidth: 0 }}><b>Na compra</b><ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
             <li>Conta de venda: Clientes, Duplicatas a Receber ou Receita.</li>
+            <li>Crédito em Caixa ou Banco: a compra é a prazo.</li>
             <li>Imposto a recolher no lugar de imposto a recuperar.</li>
             <li>Valor a pagar ou valor em Mercadorias diferente da nota.</li>
           </ul></div>
           <div style={{ minWidth: 0 }}><b>Na venda</b><ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
             <li>Fornecedores no crédito.</li>
+            <li>Débito em Caixa ou Banco: a venda é a prazo.</li>
             <li>Imposto a recuperar no lugar de imposto a recolher.</li>
             <li>Desconto creditado em Receita (ele reduz o valor a receber).</li>
           </ul></div>
