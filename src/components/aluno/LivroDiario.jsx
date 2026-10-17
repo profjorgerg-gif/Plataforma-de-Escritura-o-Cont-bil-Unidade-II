@@ -4,6 +4,7 @@ import { db, auth } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 import { BotaoGuiaLancamentos } from "../shared/GuiaLancamentos.jsx";
+import SeletorConta from "../shared/SeletorConta.jsx";
 
 // Status em que o próprio aluno ainda pode editar o lançamento:
 // - rascunho: nunca foi enviado
@@ -31,6 +32,24 @@ function avisoCompetencia(dataLancamento, docSelecionado) {
   return `A data deste lançamento (${dataLancamento}) é de um mês diferente da emissão do documento de origem (${docSelecionado.data}) — pelo regime de competência, confira se o fato deveria ser reconhecido no período do documento.`;
 }
 
+// Resumo de conferência (só leitura): histórico, contas e valores do lançamento.
+function ResumoLancamento({ historico, partidas, contas }) {
+  const nome = (cod) => { const c = (contas || []).find((x) => x.codigo === cod); return cod + (c ? " — " + c.nome : ""); };
+  return (
+    <>
+      <div style={{ marginBottom: 6 }}><b>Histórico:</b> {historico || "—"}</div>
+      <table>
+        <thead><tr><th></th><th>Conta</th><th className="num">Valor</th></tr></thead>
+        <tbody>
+          {(partidas || []).map((p, i) => (
+            <tr key={i}><td>{p.tipo === "D" ? "Débito" : "Crédito"}</td><td>{nome(p.conta)}</td><td className="num mono">{fmt(Number(p.valor) || 0)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
 function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamentoExistente, valoresIniciais }) {
   const editando = !!lancamentoExistente;
   const base = lancamentoExistente || valoresIniciais || {};
@@ -43,6 +62,8 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
       : [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }]
   );
   const [salvando, setSalvando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false); // resumo de conferência antes de enviar
+  const [faltas, setFaltas] = useState([]); // o que impede o envio
 
   const docSelecionado = documentos.find((d) => d.id === documento);
   const avisoData = avisoCompetencia(data, docSelecionado);
@@ -57,6 +78,16 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
   function addPartida() { setPartidas([...partidas, { conta: "", tipo: "D", valor: "" }]); }
   function removePartida(i) { setPartidas(partidas.filter((_, idx) => idx !== i)); }
 
+  // Antes de enviar: confere o que falta e abre o resumo de confirmação (nada é enviado ainda).
+  function pedirEnvio() {
+    const f = [];
+    if (!bate) f.push("Débito e crédito precisam ser iguais.");
+    if (!historico.trim()) f.push("Preencha o histórico.");
+    if (partidas.some((p) => p.valor && !p.conta)) f.push("Escolha a conta de todas as partidas que têm valor.");
+    setFaltas(f);
+    setConfirmando(f.length === 0);
+  }
+
   async function salvar(status) {
     setSalvando(true);
     const dados = { data, documento, historico, partidas: partidas.filter((p) => p.conta && p.valor), status };
@@ -66,6 +97,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
     if (status === "enviado") dados.enviadoEm = serverTimestamp();
     await onSalvar(dados);
     setSalvando(false);
+    setConfirmando(false);
   }
 
   return (
@@ -118,17 +150,14 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
             const avisoNatureza = avisoNaturezaPartida(contaSel, p.tipo);
             return (
               <Fragment key={i}>
-                <div className="partida-row">
-                  <select value={p.conta} onChange={(e) => updatePartida(i, "conta", e.target.value)}>
-                    <option value="">Selecione a conta</option>
-                    {contas.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nome}</option>)}
-                  </select>
+                <div className="partida-row" style={{ alignItems: "start" }}>
+                  <SeletorConta contas={contas} value={p.conta} onChange={(v) => updatePartida(i, "conta", v)} ariaLabel={"Conta da partida " + (i + 1)} />
                   <select value={p.tipo} onChange={(e) => updatePartida(i, "tipo", e.target.value)}>
                     <option value="D">Débito</option>
                     <option value="C">Crédito</option>
                   </select>
                   <input className="mono" placeholder="Valor" type="number" value={p.valor} onChange={(e) => updatePartida(i, "valor", e.target.value)} />
-                  <div className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>{p.tipo === "D" ? "a débito" : "a crédito"}</div>
+                  <div className="mono" style={{ fontSize: 12, color: "var(--ink-faint)", paddingTop: 9 }}>{p.tipo === "D" ? "a débito" : "a crédito"}</div>
                   {partidas.length > 2 ? <button className="remove-partida" onClick={() => removePartida(i)}>×</button> : <span />}
                 </div>
                 {avisoNatureza && <div className="aviso-pedagogico" style={{ marginTop: -4 }}>⚠ {avisoNatureza}</div>}
@@ -143,11 +172,29 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
         </div>
         <div className="btn-row">
           {editando && <button className="btn secondary" disabled={salvando} onClick={onCancelar}>Cancelar</button>}
-          <button className="btn secondary" disabled={salvando} onClick={() => salvar("rascunho")}>Salvar como rascunho</button>
-          <button className="btn" disabled={!bate || !historico || salvando} onClick={() => salvar("enviado")}>
+          <button className="btn secondary" disabled={salvando || confirmando} onClick={() => salvar("rascunho")}>Salvar como rascunho</button>
+          <button className="btn" disabled={!bate || !historico || salvando || confirmando} onClick={pedirEnvio}>
             {editando ? "Reenviar para análise do professor" : "Enviar para análise do professor"}
           </button>
         </div>
+        {faltas.length > 0 && (
+          <div className="aviso-pedagogico" style={{ marginTop: 10 }}><b>Ainda não dá para enviar:</b>
+            <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>{faltas.map((f) => <li key={f}>{f}</li>)}</ul>
+          </div>
+        )}
+        {confirmando && (
+          <div className="panel" style={{ marginTop: 12, borderColor: "var(--green)", borderWidth: 2 }}>
+            <div className="panel-head"><h3>Confira antes de enviar</h3></div>
+            <div className="panel-body">
+              <ResumoLancamento historico={historico} partidas={partidas.filter((p) => p.conta && p.valor)} contas={contas} />
+              <p style={{ margin: "10px 0" }}>Depois de enviado, <b>só o professor pode devolver</b> este lançamento para você editar.</p>
+              <div className="btn-row">
+                <button className="btn" disabled={salvando} onClick={() => salvar("enviado")}>Confirmar envio</button>
+                <button className="btn secondary" disabled={salvando} onClick={() => setConfirmando(false)}>Voltar e revisar</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -155,6 +202,7 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
 
 export default function LivroDiario({ turmaId, matricula, lancamentos, contas, documentos = [], rascunhoDeClassificacao, onRascunhoConsumido, onIrClassificacao }) {
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [avisoRascunho, setAvisoRascunho] = useState(null); // { id, dados, confirmando } do último rascunho salvo
   const [editando, setEditando] = useState(null); // lançamento sendo editado, ou null = novo
   const [valoresIniciais, setValoresIniciais] = useState(null); // pré-preenchimento vindo da Classificação Contábil
   // Id da classificação que originou o pré-preenchimento atual (via "usar no
@@ -220,14 +268,18 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
   }
 
   async function salvar(novo) {
+    let idSalvo = editando ? editando.id : null;
     if (editando) {
       await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", editando.id), novo);
     } else {
-      await addDoc(collection(db, "turmas", turmaId, "alunos", matricula, "lancamentos"), {
+      const ref = await addDoc(collection(db, "turmas", turmaId, "alunos", matricula, "lancamentos"), {
         ...novo,
         criadoEm: serverTimestamp(),
       });
+      idSalvo = ref.id;
     }
+    // Aviso claro: rascunho NÃO vai para o professor (chamado do aluno, 16/10/2026).
+    setAvisoRascunho(novo.status === "rascunho" ? { id: idSalvo, dados: novo, confirmando: false } : null);
     // Fecha o laço Classificação → Diário (2026-10-08): antes, marcar a
     // classificação como "lançada" era um clique manual separado ("marcar
     // como lançada no Diário") — se o aluno esquecia, ela continuava
@@ -246,6 +298,17 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
     setEditando(null);
     setValoresIniciais(null);
     setClassificacaoVinculada(null);
+  }
+
+  // "Enviar agora" no aviso do rascunho: mesmo envio de sempre (status "enviado" + hora do envio), depois da confirmação.
+  async function enviarRascunhoAgora() {
+    if (!avisoRascunho || !avisoRascunho.id) return;
+    try {
+      await updateDoc(doc(db, "turmas", turmaId, "alunos", matricula, "lancamentos", avisoRascunho.id), { status: "enviado", enviadoEm: serverTimestamp() });
+      setAvisoRascunho(null);
+    } catch (e) {
+      window.alert("Não foi possível enviar: " + (e?.message || e));
+    }
   }
 
   // Exclui SÓ rascunho (nunca enviado/aprovado/devolvido — esses ficam no
@@ -366,6 +429,36 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
           )}
         </div>
       )}
+      {avisoRascunho && !mostrarForm && (() => {
+        const d = avisoRascunho.dados || {};
+        const ps = d.partidas || [];
+        const td = ps.filter((p) => p.tipo === "D").reduce((s, p) => s + (Number(p.valor) || 0), 0);
+        const tc = ps.filter((p) => p.tipo === "C").reduce((s, p) => s + (Number(p.valor) || 0), 0);
+        const faltas = [];
+        if (!(td > 0 && Math.abs(td - tc) < 0.005)) faltas.push("débito e crédito precisam ser iguais");
+        if (!String(d.historico || "").trim()) faltas.push("falta o histórico");
+        return (
+          <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 18 }}>
+            <div className="panel-head"><h3 style={{ margin: 0 }}>Rascunho salvo</h3></div>
+            <div className="panel-body">
+              <p style={{ marginTop: 0 }}><b>Salvo como rascunho. Ainda NÃO foi enviado ao professor.</b></p>
+              {avisoRascunho.confirmando && (
+                <>
+                  <ResumoLancamento historico={d.historico} partidas={ps} contas={contas} />
+                  <p style={{ margin: "10px 0" }}>Depois de enviado, <b>só o professor pode devolver</b> este lançamento para você editar.</p>
+                </>
+              )}
+              {faltas.length > 0 && <div className="aviso-pedagogico">Para enviar, corrija antes: {faltas.join("; ")}. Use "✏️ Editar" na lista abaixo.</div>}
+              <div className="btn-row">
+                {faltas.length === 0 && !avisoRascunho.confirmando && <button className="btn" onClick={() => setAvisoRascunho({ ...avisoRascunho, confirmando: true })}>Enviar agora</button>}
+                {avisoRascunho.confirmando && <button className="btn" onClick={enviarRascunhoAgora}>Confirmar envio</button>}
+                {avisoRascunho.confirmando && <button className="btn secondary" onClick={() => setAvisoRascunho({ ...avisoRascunho, confirmando: false })}>Voltar</button>}
+                <button className="btn secondary" onClick={() => setAvisoRascunho(null)}>Fechar este aviso</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {mostrarForm && (
         <NovoLancamentoForm
           onSalvar={salvar}

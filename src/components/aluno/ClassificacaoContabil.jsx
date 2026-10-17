@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BotaoGuiaLancamentos } from "../shared/GuiaLancamentos.jsx";
+import SeletorConta from "../shared/SeletorConta.jsx";
 import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
@@ -139,17 +140,11 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
           <div className="grid-2">
             <div className="field">
               <label>Conta a debitar</label>
-              <select value={contaDebito} onChange={(e) => setContaDebito(e.target.value)}>
-                <option value="">Selecione</option>
-                {contas.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nome}</option>)}
-              </select>
+              <SeletorConta contas={contas} value={contaDebito} onChange={setContaDebito} ariaLabel="Conta a debitar" />
             </div>
             <div className="field">
               <label>Conta a creditar</label>
-              <select value={contaCredito} onChange={(e) => setContaCredito(e.target.value)}>
-                <option value="">Selecione</option>
-                {contas.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nome}</option>)}
-              </select>
+              <SeletorConta contas={contas} value={contaCredito} onChange={setContaCredito} ariaLabel="Conta a creditar" />
             </div>
           </div>
           <div className="field"><label>Histórico</label><input value={historico} onChange={(e) => setHistorico(e.target.value)} /></div>
