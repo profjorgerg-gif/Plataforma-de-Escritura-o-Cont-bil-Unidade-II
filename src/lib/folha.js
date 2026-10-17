@@ -4,6 +4,7 @@
 export const r2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
 
 export const PARAMETROS_PADRAO = {
+  salarioMinimo: 1621, // 2026: base da insalubridade (AI); a periculosidade (AP) usa o salário-base
   cargaHoraria: 220, adicionalNoturno: 0.2, diasUteisDSR: 24, diasDescansoDSR: 6,
   inss: 20, fgts: 8, rat: 2, terceiros: 5.8, // percentuais didáticos (patronais)
 };
@@ -14,8 +15,10 @@ export function calcularEmpregado(emp, p = PARAMETROS_PADRAO) {
   const salario = Number(emp.salario) || 0;
   const ad = emp.adicional || {};
   const pctAd = ad.tipo === "AP" ? 30 : ad.tipo === "AI" ? Number(ad.pct) || 0 : 0;
-  const adicional = r2((salario * pctAd) / 100);
-  const baseIntegrada = salario + adicional;
+  // AI (insalubridade): percentual sobre o SALÁRIO MÍNIMO. AP (periculosidade): 30% sobre o SALÁRIO-BASE.
+  const baseAd = ad.tipo === "AI" ? (Number(p.salarioMinimo) > 0 ? Number(p.salarioMinimo) : PARAMETROS_PADRAO.salarioMinimo) : salario;
+  const adicional = r2((baseAd * pctAd) / 100);
+  const baseIntegrada = salario + adicional; // salário integrado: base da hora trabalhada integrada (HTI)
   const hti = baseIntegrada / p.cargaHoraria; // sem arredondar (como no gabarito)
   const he50 = r2(hti * 1.5 * (Number(emp.he50) || 0));
   const he100 = r2(hti * 2 * (Number(emp.he100) || 0));

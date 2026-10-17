@@ -23,7 +23,7 @@ export default function FolhaMes({ trab, ca }) {
       <div className="panel">
         <div className="panel-head"><h3>Dados da folha (informados pelo professor)</h3></div>
         <div className="panel-body" style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>
-          Carga horária {p.cargaHoraria} h · adicional noturno {Math.round(p.adicionalNoturno * 100)}% · DSR: {p.diasUteisDSR} dias úteis e {p.diasDescansoDSR} de descanso/feriados · salário-base como base do adicional.<br />
+          Carga horária {p.cargaHoraria} h · adicional noturno {Math.round(p.adicionalNoturno * 100)}% · DSR: {p.diasUteisDSR} dias úteis e {p.diasDescansoDSR} de descanso/feriados · insalubridade (AI) sobre o salário mínimo (R$ {fmt(p.salarioMinimo)}) e periculosidade (AP) 30% sobre o salário-base.<br />
           HE 50% = hora integrada × 1,5 · HE 100% = × 2 · HE noturna = × 1,20 × (1,5 ou 2) · hora integrada = (salário + adicional) ÷ {p.cargaHoraria} · DSR = horas extras ÷ {p.diasUteisDSR} × {p.diasDescansoDSR}.
         </div>
       </div>

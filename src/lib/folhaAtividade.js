@@ -95,7 +95,7 @@ export function empregadoDeCampos(get) {
 }
 
 export const PASSOS_CONTRACHEQUE = [
-  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Some as parcelas da remuneração.", v: (c) => c.bruta },
+  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
   { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "Salário ÷ 30 × (faltas + semanas com falta). Duas faltas na mesma semana: 2 dias + 1 repouso.", v: (c) => c.descFaltas },
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },

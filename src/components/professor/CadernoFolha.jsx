@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { htmlCabecalho, lerEscolha, gravarEscolha, lerNomeProf, lerEscola, lerEscrito } from "../../lib/cabecalhosCadernos.js";
 import EscolhaCabecalho from "./EscolhaCabecalho.jsx";
+import { GabaritoEmpregado, GabaritoEtapa3 } from "./GabaritoCalculos.jsx";
 import { createPortal } from "react-dom";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, nomeDoMes, CONTAS_NOVAS } from "../../lib/folha.js";
@@ -26,6 +27,7 @@ const CSS = `
 .cf-caso{border:1px solid #1d2630;padding:5px 8px;margin:5px 0;font-size:12px}
 .cf-rod{border-top:1px solid #999;margin-top:10px;padding-top:4px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
 .cf-ficha{break-inside:avoid;margin-bottom:12px}
+.cf-pg tr.gt td{font-weight:700;background:#f3f6f4}
 .cf-capa{padding-top:22px}.cf-capa-t{font:700 13px 'IBM Plex Sans',sans-serif;letter-spacing:.14em;color:#1f5c4a;margin-top:70px}
 .cf-capa-h{font:700 38px Georgia,serif;margin:6px 0 8px}.cf-capa-s{font-size:14px;margin-bottom:46px}
 .cf-capa-c{display:flex;gap:10px;border-bottom:1px solid #777;padding:6px 0;margin:8px 0;font-size:14px}.cf-capa-c b{min-width:110px}
@@ -64,10 +66,16 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
   const fichas = empregados.map((e, i) => {
     const caso = aluno ? casoDoEmpregado(aluno.matricula, e.id, f.competencia, opcoesDoEmpregado(cfg, e.id)) : null;
     const c = caso ? calcularContracheque(empregadoDeCampos((k) => caso[k])) : null;
-    return { e, i, caso, c };
+    const emp = caso ? empregadoDeCampos((k) => caso[k]) : null;
+    return { e, i, caso, c, emp };
   });
+  // Versão do professor: uma ficha por página, seguida da folha de gabarito dos cálculos do mesmo empregado.
+  const porPag = comResp && aluno ? 1 : 2;
   const pares = [];
-  for (let i = 0; i < fichas.length; i += 2) pares.push(fichas.slice(i, i + 2));
+  for (let i = 0; i < fichas.length; i += porPag) pares.push(fichas.slice(i, i + porPag));
+  let pn = 1; // numeração sequencial das páginas (a capa não conta)
+  const prox = () => ++pn;
+  const rodGab = "Gabarito · versão do professor, não entregar aos alunos";
   const lanc = lancamentosDaFolha(f.provisoes);
   const enun = enunciadosLancamentos(folha);
   const pv = f.provisoes;
@@ -117,8 +125,9 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
       </div>
 
       {pares.map((par, pi) => (
-        <div className="cf-pg" key={pi}>
-          {cab("Etapa 2 · Contracheque", "fichas " + (pi * 2 + 1) + (par.length > 1 ? " e " + (pi * 2 + 2) : "") + " de " + empregados.length)}
+        <Fragment key={pi}>
+        <div className="cf-pg">
+          {cab("Etapa 2 · Contracheque", "fichas " + (pi * porPag + 1) + (par.length > 1 ? " e " + (pi * porPag + 2) : "") + " de " + empregados.length)}
           {par.map(({ e, i, caso, c }) => (
             <div className="cf-ficha" key={e.id}>
               <h4>Ficha {i + 1} de {empregados.length} · Empregado(a): {e.nome}</h4>
@@ -128,8 +137,17 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
               </tbody></table>
             </div>
           ))}
-          <Rod esq={gab} dir={"Página " + (pi + 2)} />
+          <Rod esq={gab} dir={"Página " + prox()} />
         </div>
+        {comResp && aluno && par.map(({ e, i, emp, c }) => emp && c && (
+          <div className="cf-pg" key={"g" + e.id}>
+            {cab("Etapa 2 · Gabarito dos cálculos", "ficha " + (i + 1) + " de " + empregados.length)}
+            <h4>Gabarito · Ficha {i + 1} · Empregado(a): {e.nome}</h4>
+            <GabaritoEmpregado emp={emp} c={c} p={f.parametros} />
+            <Rod esq={rodGab} dir={"Página " + prox()} />
+          </div>
+        ))}
+        </Fragment>
       ))}
 
       <div className="cf-pg">
@@ -148,8 +166,17 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
         <table><thead><tr><th>Base</th><th className="n">INSS</th><th className="n">FGTS</th><th className="n">RAT</th><th className="n">Terceiros</th><th className="n">Total</th></tr></thead><tbody>
           {[["Salários", pv.encSalarios], ["Férias + 1/3", pv.encFerias], ["13º salário", pv.enc13]].map(([n, e]) => <tr key={n}><td>{n}</td>{linhaBr(n + "i", e.inss)}{linhaBr(n + "f", e.fgts)}{linhaBr(n + "r", e.rat)}{linhaBr(n + "t", e.terceiros)}{linhaBr(n + "T", e.total)}</tr>)}
         </tbody></table>
-        <Rod esq={gab} dir={"Página " + (pares.length + 2)} />
+        <Rod esq={gab} dir={"Página " + prox()} />
       </div>
+
+      {comResp && aluno && (
+        <div className="cf-pg">
+          {cab("Etapa 3 · Gabarito dos cálculos", "folha do mês, provisões e lançamentos")}
+          <h3>Gabarito · Etapa 3</h3>
+          <GabaritoEtapa3 f={f} lanc={lanc} nomeConta={(cod) => nomeConta(cod, contas)} />
+          <Rod esq={rodGab} dir={"Página " + prox()} />
+        </div>
+      )}
 
       {[0, 1, 2].map((g) => (
         <div className="cf-pg" key={g}>
@@ -167,7 +194,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
               </tbody></table>
             </div>
           ))}
-          <Rod esq={comResp ? "VERSÃO DO PROFESSOR · gabarito" : "Contas indicadas; preencha os valores nas colunas de débito e crédito"} dir={"Página " + (pares.length + 3 + g)} />
+          <Rod esq={comResp ? "VERSÃO DO PROFESSOR · gabarito" : "Contas indicadas; preencha os valores nas colunas de débito e crédito"} dir={"Página " + prox()} />
         </div>
       ))}
 
@@ -181,7 +208,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
           {lanc.map((l, i) => <tr key={l.key}><td>Etapa 3 · lançamento {i + 1}: {l.titulo}</td><td /><td /><td /></tr>)}
         </tbody></table>
         <p style={{ marginTop: 14 }}>Visto do professor: ______________________ &nbsp; Data: ____/____/______</p>
-        <Rod esq="Guarde este caderno: ele ajuda na conferência e na revisão" dir={"Página " + (pares.length + 6)} />
+        <Rod esq="Guarde este caderno: ele ajuda na conferência e na revisão" dir={"Página " + prox()} />
       </div>
     </>
   );

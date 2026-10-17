@@ -55,7 +55,7 @@ const n0 = (v) => Number(v) || 0;
 export function textoDoCaso(nome, caso, competencia, obs) {
   const mes = nomeDoMes(competencia) || "o mês da folha";
   const L = [];
-  const ad = caso.adTipo === "AI" ? `adicional de insalubridade de ${caso.adPct}%` : caso.adTipo === "AP" ? "adicional de periculosidade de 30%" : "nenhum adicional";
+  const ad = caso.adTipo === "AI" ? `adicional de insalubridade de ${caso.adPct}% (sobre o salário mínimo)` : caso.adTipo === "AP" ? "adicional de periculosidade de 30%" : "nenhum adicional";
   L.push(`${nome} trabalha na empresa em ${mes}, com salário-base de R$ ${fmt(n0(String(caso.salario).replace(",", ".")))} e ${ad}.`);
   const he = [];
   if (n0(caso.he50)) he.push(`${caso.he50} h extras a 50%`);
