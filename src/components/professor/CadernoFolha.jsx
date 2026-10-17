@@ -28,6 +28,7 @@ const CSS = `
 .cf-rod{border-top:1px solid #999;margin-top:10px;padding-top:4px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
 .cf-ficha{break-inside:avoid;margin-bottom:12px}
 .cf-pg tr.gt td{font-weight:700;background:#f3f6f4}
+.cf-lin{display:flex;flex-direction:column;margin-top:6px}.cf-lin div{height:8.2mm;border-bottom:1px solid #999}
 .cf-capa{padding-top:22px}.cf-capa-t{font:700 13px 'IBM Plex Sans',sans-serif;letter-spacing:.14em;color:#1f5c4a;margin-top:70px}
 .cf-capa-h{font:700 38px Georgia,serif;margin:6px 0 8px}.cf-capa-s{font-size:14px;margin-bottom:46px}
 .cf-capa-c{display:flex;gap:10px;border-bottom:1px solid #777;padding:6px 0;margin:8px 0;font-size:14px}.cf-capa-c b{min-width:110px}
@@ -58,7 +59,7 @@ function Cab({ titulo, sub, aluno, turmaNome, comp, listaEm }) {
 const Rod = ({ esq, dir }) => <div className="cf-rod"><span>{esq}</span><span>{dir}</span></div>;
 
 // Páginas de UM aluno (aluno = null: caderno em branco)
-function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmasPI, comResp, listaEm, capaCab, professor }) {
+function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmasPI, comResp, listaEm, capaCab, professor, nLinhas }) {
   const f = useMemo(() => folhaEmUso(folha), [folha]);
   const comp = nomeDoMes(f.competencia) || f.competencia;
   const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
@@ -70,11 +71,19 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
     return { e, i, caso, c, emp };
   });
   // Versão do professor: uma ficha por página, seguida da folha de gabarito dos cálculos do mesmo empregado.
-  const porPag = comResp && aluno ? 1 : 2;
+  const porPag = comResp && !aluno ? 2 : 1;
   const pares = [];
   for (let i = 0; i < fichas.length; i += porPag) pares.push(fichas.slice(i, i + porPag));
   let pn = 1; // numeração sequencial das páginas (a capa não conta)
   const prox = () => ++pn;
+  const folhaCalc = (titulo, sub) => (
+    <div className="cf-pg">
+      {cab(titulo, sub)}
+      <h4>Folha de cálculos · {sub}</h4>
+      <div className="cf-lin">{Array.from({ length: nLinhas }).map((_, k) => <div key={k} />)}</div>
+      <Rod esq="Folha para os seus cálculos. Depois digite os resultados no sistema, que confere" dir={"Página " + prox()} />
+    </div>
+  );
   const rodGab = "Gabarito · versão do professor, não entregar aos alunos";
   const lanc = lancamentosDaFolha(f.provisoes);
   const enun = enunciadosLancamentos(folha);
@@ -139,6 +148,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
           ))}
           <Rod esq={gab} dir={"Página " + prox()} />
         </div>
+        {!comResp && par.map(({ e, i }) => <Fragment key={"c" + e.id}>{folhaCalc("Etapa 2 · Folha de cálculos", "ficha " + (i + 1) + " de " + empregados.length + " · Empregado(a): " + e.nome)}</Fragment>)}
         {comResp && aluno && par.map(({ e, i, emp, c }) => emp && c && (
           <div className="cf-pg" key={"g" + e.id}>
             {cab("Etapa 2 · Gabarito dos cálculos", "ficha " + (i + 1) + " de " + empregados.length)}
@@ -168,6 +178,8 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
         </tbody></table>
         <Rod esq={gab} dir={"Página " + prox()} />
       </div>
+
+      {!comResp && folhaCalc("Etapa 3 · Folha de cálculos", "folha do mês e provisões")}
 
       {comResp && aluno && (
         <div className="cf-pg">
@@ -263,7 +275,7 @@ export default function CadernoFolha({ turma, nomePadrao }) {
   if (!alunos || ca.config === undefined || ca.folha === undefined) return <div className="empty-state">Carregando…</div>;
   const capaCab = htmlCabecalho(escolhaCab);
   const cabVazio = escolhaCab === "escola" ? !lerEscola().logo && !lerEscola().linhas.trim() : escolhaCab === "escrito" ? !lerEscrito().linhas.trim() : false;
-  const comuns = { capaCab, professor: lerNomeProf(nomePadrao).trim(), empregados, cfg, folha: ca.folha, contas, turmasPI: turmasDoPI(turma), turmaNome: turmasDoPI(turma).map((x) => (x.sigla ? x.sigla + " " : "Turma ") + x.nome).join(" · "), comResp, listaEm };
+  const comuns = { capaCab, professor: lerNomeProf(nomePadrao).trim(), empregados, cfg, folha: ca.folha, contas, nLinhas: horiz ? 15 : 27, turmasPI: turmasDoPI(turma), turmaNome: turmasDoPI(turma).map((x) => (x.sigla ? x.sigla + " " : "Turma ") + x.nome).join(" · "), comResp, listaEm };
   const paginas = (a) => <PaginasAluno aluno={a} {...comuns} />;
 
   return (
