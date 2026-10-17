@@ -32,7 +32,7 @@ export const ETAPAS_MENU_ALUNO = [
     { key: "dre", label: "DRE" },
     { key: "bp", label: "Balanço patrimonial" },
   ] },
-  { id: "fp", n: 2, titulo: "Folha de pagamento", disc: "CA", itens: [{ key: "ca-tabelas", label: "Tabelas INSS e IRRF 2026" }, { key: "ca-ativ", label: "Atividade · Elaborar a folha" }] },
+  { id: "fp", n: 2, titulo: "Folha de pagamento", disc: "CA", itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }] },
   { id: "ca", n: 3, titulo: "Folha, provisões e contabilização", disc: "CA", itens: [
     { key: "ca-folha", label: "Folha do mês" },
     { key: "ca-prov", label: "Provisões e encargos" },
@@ -107,7 +107,7 @@ export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTest
       { key: "roteiro", label: "Roteiro do Aluno" },
       ...(incluirManuais ? [{ key: "manual-aluno", label: "Manual do Aluno" }] : []),
     ] },
-    { podc: O, itens: [{ key: "plano", label: "Plano de contas" }, { key: "guia-lanc", label: "Guia de lançamentos" }, { key: "consulta", label: "Consulta CFOP/NCM" }] },
+    { podc: O, itens: [{ key: "guia-proj", label: "Guia de lançamentos" }, { key: "tabelas-proj", label: "Tabelas" }] },
     { podc: D, itens: [], etapas: etapasMenu },
     { podc: C, itens: [
       { key: "dashboard", label: "Meu progresso" },
@@ -137,16 +137,17 @@ export const ABRIR_EM = {
   notas: ["notas-aval", "etapa1"],
   "aval-prof": ["notas-aval", "etapas"],
   "dashboard-ciclo": ["notas-aval", "dashboard"],
-  plano: ["consultas", "plano"],
-  consulta: ["consultas", "cfop"],
-  "guia-lanc": ["consultas", "guia"],
-  "tabelas-inss-irrf": ["consultas", "tabelas"],
+  plano: ["tabelas-projeto", "plano"],
+  consulta: ["tabelas-projeto", "cfop"],
+  "guia-lanc": ["guia-projeto", "etapa1"],
+  "tabelas-inss-irrf": ["tabelas-projeto", "inss"],
+  "ca-tabelas": ["tabelas-projeto", "inss"],
   guia: ["ajuda", "guia"],
   "manual-professor": ["ajuda", "manprof"],
   "manual-aluno": ["ajuda", "manaluno"],
   "manual-operacao": ["ajuda", "manop"],
 };
-export const TELAS_COM_ABAS = ["planejar", "etapa1", "alunos", "notas-aval", "consultas", "ajuda"];
+export const TELAS_COM_ABAS = ["planejar", "etapa1", "alunos", "notas-aval", "consultas", "guia-projeto", "tabelas-projeto", "ajuda"];
 // chaves antigas que pertencem a cada item novo (para o item ficar marcado e o botão Voltar dar o nome certo)
 const apelidos = (k) => Object.keys(ABRIR_EM).filter((x) => ABRIR_EM[x][0] === k);
 
@@ -190,7 +191,8 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "planos", label: "Planos semestrais (imprimir)" },
       { key: "descricoes", label: "Descrições para a escola" },
       { key: "roteiro", label: "Roteiro do Aluno" },
-      ab("consultas", "Consultas"),
+      ab("guia-projeto", "📒 Guia de lançamentos"),
+      ab("tabelas-projeto", "📊 Tabelas"),
       { key: "modelos", label: "Modelos de mensagens" },
       ab("ajuda", "Guias e manuais"),
       { key: "hoje", label: "🧭 Como o menu funciona" },

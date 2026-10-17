@@ -97,6 +97,8 @@ import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
 import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
+import { GuiaEtapa2, GuiaEtapa3, GuiaEtapa4, GuiaEtapas56 } from "../shared/GuiaPorEtapa.jsx";
+import { TabelaFolhaEncargos, TabelaRescisao } from "../shared/TabelasFolhaRescisao.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
@@ -172,8 +174,8 @@ const MENU_ALUNO_GRUPOS = [
     label: "apoio e consulta",
     itens: [
       { key: "roteiro", label: "Roteiro do Aluno" },
-      { key: "consulta", label: "Consulta CFOP/NCM" },
-      { key: "plano", label: "Plano de contas" },
+      { key: "guia-proj", label: "Guia de lançamentos" },
+      { key: "tabelas-proj", label: "Tabelas" },
       { key: "suporte", label: "Suporte" },
     ],
   },
@@ -239,7 +241,7 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
   }));
   if (mostrarCa) {
     const posAgb = grupos.findIndex((g) => g.label === "apoio e consulta");
-    const menuCa = mostrarAtivFolha ? { ...MENU_ALUNO_CA, itens: [{ key: "ca-tabelas", label: "Tabelas INSS e IRRF 2026" }, { key: "ca-ativ", label: "Atividade · Elaborar a folha" }].concat(MENU_ALUNO_CA.itens) } : MENU_ALUNO_CA;
+    const menuCa = mostrarAtivFolha ? { ...MENU_ALUNO_CA, itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }].concat(MENU_ALUNO_CA.itens) } : MENU_ALUNO_CA;
     grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, menuCa);
   }
   if (mostrarResc) {
@@ -951,6 +953,25 @@ export default function Shell({ usuario, perfil, onSair }) {
   const infoEtapaTela = etapaDaTelaAtual ? etapasAluno.find((e) => e.id === etapaDaTelaAtual) : null;
   // Itens do menu do professor que reúnem telas em abas (2026-10-13). Chave antiga → item novo + aba certa.
   const alvoAbas = ehProfessorOuAdmin && !emTeste ? (ABRIR_EM[screen] || (TELAS_COM_ABAS.includes(screen) ? [screen, null] : null)) : null;
+  // Guia de lançamentos e Tabelas do projeto inteiro (2026-10-17): uma aba por etapa / por assunto. Só leitura.
+  function guiaAbas(prof) {
+    return [
+      { key: "etapa1", label: "Etapa 1 · Compras e vendas", render: () => <GuiaLancamentos professor={prof} /> },
+      { key: "etapa2", label: "Etapa 2 · Contracheque", render: () => <GuiaEtapa2 /> },
+      { key: "etapa3", label: "Etapa 3 · Folha e provisões", render: () => <GuiaEtapa3 contas={esc.contas} /> },
+      { key: "etapa4", label: "Etapa 4 · Rescisão", render: () => <GuiaEtapa4 contas={esc.contas} /> },
+      { key: "etapa56", label: "Etapas 5 e 6 · Análise", render: () => <GuiaEtapas56 /> },
+    ];
+  }
+  function tabelasAbas(papel) {
+    return [
+      { key: "inss", label: "INSS e IRRF 2026", render: () => <TabelasInssIrrf /> },
+      { key: "folha", label: "Folha e encargos", render: () => <TabelaFolhaEncargos /> },
+      { key: "resc", label: "Rescisão", render: () => <TabelaRescisao /> },
+      { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={papel} /> },
+      { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
+    ];
+  }
   function telaComAbas(item, aba) {
     const cab = (eyebrow, titulo) => (<><div className="screen-eyebrow">{eyebrow}</div><h2 className="screen-title">{titulo}</h2></>);
     if (item === "planejar") {
@@ -989,6 +1010,16 @@ export default function Shell({ usuario, perfil, onSair }) {
           { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
           { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
         ]} />
+      );
+    }
+    if (item === "guia-projeto") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "etapa1"} abas={guiaAbas(true)} />
+      );
+    }
+    if (item === "tabelas-projeto") {
+      return (
+        <TelaComAbas key={screen} inicial={aba || "inss"} abas={tabelasAbas(perfil.papel)} />
       );
     }
     if (item === "consultas") {
@@ -1071,6 +1102,10 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <ConsultaFiscal />;
   } else if (papelEfetivo === "aluno" && screen === "suporte") {
     tela = <SuporteAluno turmaId={turmaId} matricula={matricula} nome={emTeste ? testeAtivo.nome : meuRegistro?.nome} documentos={documentos || []} />;
+  } else if (papelEfetivo === "aluno" && screen === "guia-proj") {
+    tela = <TelaComAbas key={screen} inicial="etapa1" abas={guiaAbas(false)} />;
+  } else if (papelEfetivo === "aluno" && screen === "tabelas-proj") {
+    tela = <TelaComAbas key={screen} inicial="inss" abas={tabelasAbas(papelEfetivo)} />;
   } else if (papelEfetivo === "aluno" && screen === "guia-lanc") {
     tela = <GuiaLancamentos />;
   } else if (papelEfetivo === "aluno" && screen === "plano") {

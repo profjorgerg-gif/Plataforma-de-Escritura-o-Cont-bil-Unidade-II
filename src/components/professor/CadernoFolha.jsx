@@ -35,7 +35,7 @@ const CSS = `
   body>*:not(#imp-caderno-folha){display:none!important}
   #imp-caderno-folha{display:block!important;background:#fff}
   #imp-caderno-folha .cf-pg{border:0;margin:0;padding:0;max-width:none;break-after:page}
-  #imp-caderno-folha .cf-pg:last-child{break-after:auto}
+  #imp-caderno-folha>div:last-of-type .cf-pg:last-child{break-after:auto}
 }
 @page{size:A4;margin:12mm}
 `;
