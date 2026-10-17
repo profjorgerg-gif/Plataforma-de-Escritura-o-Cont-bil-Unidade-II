@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { calcularRazao, calcularBalancete, calcularDRE, calcularBP, saldoConta, fmt } from "../../lib/contabil.js";
 import { DrillModal } from "../shared/UI.jsx";
 import LivroRazao from "../aluno/LivroRazao.jsx";
@@ -130,20 +131,129 @@ function analisar(lancs, contas, totalNotas) {
   };
 }
 
-function Visor({ x, aba, lancs, contas, onDrill }) {
-  const mont = useMemo(() => {
-    if (x.sd) return null;
-    const razao = calcularRazao(lancs, contas);
-    const dre = calcularDRE(razao);
-    return { razao, dre, bp: calcularBP(razao, dre.resultadoExercicio) };
-  }, [x.sd, lancs, contas]);
-  if (aba === 0) return <DiarioConsulta lancs={lancs} contas={contas} />;
+// Razão completo (todas as contas movimentadas, uma após a outra, com o saldo corrente). Só consulta/impressão.
+function RazaoCompleto({ razao }) {
+  const contas = Object.values(razao).filter((b) => b.movimentos.length > 0);
+  return (
+    <>
+      <div className="screen-eyebrow">09 · livro razão · completo</div>
+      <h2 className="screen-title">Livro Razão — todas as contas ({contas.length})</h2>
+      {contas.map((b) => {
+        let saldo = 0;
+        const dev = b.conta.natureza === "devedora";
+        return (
+          <div className="panel imp-conta" key={b.conta.codigo} style={{ marginBottom: 12 }}>
+            <div className="panel-head"><h3 className="mono" style={{ margin: 0 }}>{b.conta.codigo} — {b.conta.nome}</h3></div>
+            <div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>
+              <table>
+                <thead><tr><th>Data</th><th>Documento</th><th>Histórico</th><th className="num">Débito</th><th className="num">Crédito</th><th className="num">Saldo</th></tr></thead>
+                <tbody>
+                  {b.movimentos.map((m, i) => {
+                    saldo += (m.tipo === "D" ? 1 : -1) * m.valor * (dev ? 1 : -1);
+                    return (
+                      <tr key={i}>
+                        <td className="mono">{m.data}</td><td className="mono">{m.documento}</td><td>{m.historico}</td>
+                        <td className="num mono">{m.tipo === "D" ? fmt(m.valor) : ""}</td><td className="num mono">{m.tipo === "C" ? fmt(m.valor) : ""}</td>
+                        <td className="num mono">{fmt(Math.abs(saldo))} {saldo >= 0 ? (dev ? "D" : "C") : (dev ? "C" : "D")}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div style={{ padding: "8px 18px", borderTop: "1px solid var(--line-strong)", display: "flex", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, flexWrap: "wrap", gap: 8 }}>
+                <span>Totais D: {fmt(b.totalD)} C: {fmt(b.totalC)}</span>
+                <span style={{ fontWeight: 600 }}>Saldo: {fmt(saldoConta(b))} ({dev ? "devedor" : "credor"})</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function montar(x, lancs, contas) {
+  if (x.sd) return null;
+  const razao = calcularRazao(lancs, contas);
+  const dre = calcularDRE(razao);
+  return { razao, dre, bp: calcularBP(razao, dre.resultadoExercicio) };
+}
+
+// Uma demonstração (índice 0 a 5). razaoCompleto = true mostra todas as contas; false mostra a tela do aluno (uma conta por vez).
+function Demonstrativo({ idx, mont, lancs, contas, razaoCompleto, onDrill }) {
+  if (idx === 0) return <DiarioConsulta lancs={lancs} contas={contas} />;
   if (!mont) return <div className="empty-state">Este aluno ainda não tem lançamentos aprovados: as telas 6 a 10 ficam vazias, como ficam para ele.</div>;
-  if (aba === 1) return <LivroRazao razao={mont.razao} />;
-  if (aba === 2) return <Balancete razao={mont.razao} />;
-  if (aba === 3) return <Detalhada dre={mont.dre} tipo="are" onDrill={onDrill} />;
-  if (aba === 4) return <Detalhada dre={mont.dre} tipo="dre" onDrill={onDrill} />;
+  if (idx === 1) return razaoCompleto ? <RazaoCompleto razao={mont.razao} /> : <LivroRazao razao={mont.razao} />;
+  if (idx === 2) return <Balancete razao={mont.razao} />;
+  if (idx === 3) return <Detalhada dre={mont.dre} tipo="are" onDrill={onDrill} />;
+  if (idx === 4) return <Detalhada dre={mont.dre} tipo="dre" onDrill={onDrill} />;
   return <BalancoPatrimonial bp={mont.bp} />;
+}
+
+function Visor({ x, aba, lancs, contas, onDrill, razaoCompleto, setRazaoCompleto }) {
+  const mont = useMemo(() => montar(x, lancs, contas), [x.sd, lancs, contas]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      {aba === 1 && !x.sd && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }} role="group" aria-label="Modo do Razão">
+          <button type="button" className={!razaoCompleto ? "btn" : "btn ghost"} aria-pressed={!razaoCompleto} onClick={() => setRazaoCompleto(false)}>Uma conta</button>
+          <button type="button" className={razaoCompleto ? "btn" : "btn ghost"} aria-pressed={razaoCompleto} onClick={() => setRazaoCompleto(true)}>Razão completo (todas as contas)</button>
+        </div>
+      )}
+      <Demonstrativo idx={aba} mont={mont} lancs={lancs} contas={contas} razaoCompleto={razaoCompleto} onDrill={onDrill} />
+    </>
+  );
+}
+
+// Impressão / PDF por aluno: monta uma folha só para o papel (escondida na tela) e abre a caixa de impressão do navegador.
+// "Salvar como PDF" é escolher esse destino na caixa. Cada demonstração começa em página nova; o Razão sai completo.
+const CSS_IMP = `
+#imp-demo{display:none}
+@media print{
+  body>*:not(#imp-demo){display:none!important}
+  #imp-demo{display:block!important;position:static!important;background:#fff;color:#111;font-size:11.5px;
+    --ink:#111;--ink-soft:#444;--ink-faint:#666;--surface:#fff;--paper:#fff;--paper-deep:#fff;--line:#bbb;--line-strong:#777;--green:#1f5c4a;--green-dark:#163f33;--green-pale:#fff;--red:#9b2c2c;--amber:#8a5a00}
+  #imp-demo .imp-pg{break-before:page;padding:0}
+  #imp-demo .imp-pg:first-child{break-before:auto}
+  #imp-demo .imp-cab{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:10px;font-size:11px}
+  #imp-demo .imp-rod{border-top:1px solid #777;margin-top:14px;padding-top:6px;display:flex;justify-content:space-between;gap:12px;font-size:10.5px}
+  #imp-demo .imp-conta,#imp-demo tr,#imp-demo .dre-row{break-inside:avoid}
+  #imp-demo .panel,#imp-demo .panel-body{border:1px solid #bbb;box-shadow:none;background:#fff}
+  #imp-demo table{width:100%;border-collapse:collapse}#imp-demo th,#imp-demo td{padding:3px 6px;border-bottom:1px solid #ddd}
+  #imp-demo .screen-eyebrow{display:none}
+  #imp-demo .screen-title{font-size:15px;margin:4px 0}
+  #imp-demo .screen-sub{display:none}
+}
+@page{size:A4;margin:12mm}
+`;
+function Impressao({ pedido, aluno, turmaNome, x, lancs, contas, onFim }) {
+  const mont = useMemo(() => montar(x, lancs, contas), [x.sd, lancs, contas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const agora = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const lista = pedido.idxs;
+  useEffect(() => {
+    const t0 = document.title;
+    document.title = "Demonstrativos - " + aluno.nome + " - " + new Date().toLocaleDateString("pt-BR").replace(/\//g, "-");
+    const fim = () => { document.title = t0; onFim(); };
+    window.addEventListener("afterprint", fim);
+    const h = setTimeout(() => window.print(), 400);
+    return () => { clearTimeout(h); window.removeEventListener("afterprint", fim); document.title = t0; };
+  }, [pedido.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return createPortal(
+    <div id="imp-demo">
+      <style>{CSS_IMP}</style>
+      {lista.map((i, k) => (
+        <div className="imp-pg" key={i}>
+          <div className="imp-cab">
+            <div><b>Projeto Interdisciplinar CI–CA–AGB · Etapa 1 · Escrituração</b><br />Turma: {turmaNome}<br /><b>{ABAS[i]}</b>{i === 1 ? " · completo" : ""}</div>
+            <div style={{ textAlign: "right" }}><b>{aluno.nome}</b><br />Matrícula {aluno.matricula}<br />Emitido em {agora}</div>
+          </div>
+          <Demonstrativo idx={i} mont={mont} lancs={lancs} contas={contas} razaoCompleto onDrill={() => {}} />
+          <div className="imp-rod"><span>Conferência do aluno: ____________ &nbsp; Visto do professor: ____________</span><span>Demonstrativo {k + 1} de {lista.length}</span></div>
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
 }
 
 export default function DemonstracoesAlunos({ turma }) {
@@ -155,6 +265,8 @@ export default function DemonstracoesAlunos({ turma }) {
   const [mat, setMat] = useState(null);
   const [aba, setAba] = useState(0);
   const [drill, setDrill] = useState(null);
+  const [razaoCompleto, setRazaoCompleto] = useState(false);
+  const [impressao, setImpressao] = useState(null);
   const totalNotas = (documentos && documentos.length) || 24;
 
   const linhas = useMemo(() => {
@@ -285,7 +397,12 @@ export default function DemonstracoesAlunos({ turma }) {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }} role="group" aria-label="Demonstração">
                   {ABAS.map((n, i) => <button key={n} type="button" className={aba === i ? "btn" : "btn ghost"} aria-pressed={aba === i} onClick={() => setAba(i)}>{n}</button>)}
                 </div>
-                <Visor x={x} aba={aba} lancs={porMatricula[x.aluno.matricula]} contas={contas} onDrill={setDrill} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 8px" }}>
+                  <button type="button" className="btn ghost" onClick={() => setImpressao({ idxs: [aba], n: Date.now() })} title="Abre a caixa de impressão: escolha a impressora ou Salvar como PDF">🖨 Imprimir / salvar PDF: só esta demonstração</button>
+                  <button type="button" className="btn ghost" onClick={() => setImpressao({ idxs: [0, 1, 2, 3, 4, 5], n: Date.now() })} title="As 6 demonstrações do aluno, cada uma em página nova">🖨 Imprimir / salvar PDF: todas as 6 do aluno</button>
+                </div>
+                <Visor x={x} aba={aba} lancs={porMatricula[x.aluno.matricula]} contas={contas} onDrill={setDrill} razaoCompleto={razaoCompleto} setRazaoCompleto={setRazaoCompleto} />
+                {impressao && <Impressao pedido={impressao} aluno={x.aluno} turmaNome={turma.nome} x={x} lancs={porMatricula[x.aluno.matricula]} contas={contas} onFim={() => setImpressao(null)} />}
               </>
             );
           })()}
