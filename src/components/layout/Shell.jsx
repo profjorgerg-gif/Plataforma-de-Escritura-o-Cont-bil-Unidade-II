@@ -1199,6 +1199,13 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DiretrizSemana />;
   } else if (ehProfessorOuAdmin && screen === "caderno-folha") {
     tela = <CadernoFolha turma={turmaSelecionada} nomePadrao={(perfil && perfil.nome) || usuario.displayName || ""} />;
+  } else if (ehProfessorOuAdmin && ["caderno-escrituracao", "caderno-rct", "caderno-agb", "caderno-ap"].includes(screen)) {
+    const nomes = { "caderno-escrituracao": "Caderno da Escrituração", "caderno-rct": "Caderno da RCT", "caderno-agb": "Caderno AGB", "caderno-ap": "Caderno AP" };
+    tela = (<>
+      <div className="screen-eyebrow">materiais · cadernos para imprimir</div>
+      <h2 className="screen-title">{nomes[screen]} (imprimir)</h2>
+      <div className="empty-state">Este caderno ainda está em elaboração. Ele será feito depois do Caderno da Folha, com capa e cabeçalho escolhido em "Cabeçalho dos cadernos".</div>
+    </>);
   } else if (ehProfessorOuAdmin && screen === "cabecalhos") {
     tela = <CabecalhosCadernos nomePadrao={(perfil && perfil.nome) || usuario.displayName || ""} />;
   } else if (ehProfessorOuAdmin && screen === "caderno") {

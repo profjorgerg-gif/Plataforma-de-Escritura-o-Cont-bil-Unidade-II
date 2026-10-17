@@ -185,8 +185,12 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "roteiro-folha", label: "Atividade da folha" },
     ] },
     { id: "g-materiais", label: "materiais e ajuda", recolhivel: true, itens: [
-      { key: "caderno", label: "Caderno do Aluno (imprimir)" },
+      { key: "caderno", label: "Caderno PI (imprimir)" },
+      { key: "caderno-escrituracao", label: "Caderno da Escrituração (imprimir)" },
       { key: "caderno-folha", label: "Caderno da Folha (imprimir)" },
+      { key: "caderno-rct", label: "Caderno da RCT (imprimir)" },
+      { key: "caderno-agb", label: "Caderno AGB (imprimir)" },
+      { key: "caderno-ap", label: "Caderno AP (imprimir)" },
       { key: "cabecalhos", label: "Cabeçalho dos cadernos" },
       { key: "planos", label: "Planos semestrais (imprimir)" },
       { key: "descricoes", label: "Descrições para a escola" },

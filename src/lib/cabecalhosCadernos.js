@@ -7,7 +7,7 @@ export const K_ESCRITO = "caderno.cabecalhoEscrito";
 export const K_NOME = "caderno.nomeProfessor";
 export const K_ESCOLHA = "caderno.cabEscolha.";
 export const CADERNOS_COM_CAPA = [
-  { id: "aluno", nome: "Caderno do Aluno" },
+  { id: "aluno", nome: "Caderno PI" },
   { id: "folha", nome: "Caderno da Folha" },
 ];
 export const ESCOLHAS = [["escola", "🏫 Da escola"], ["escrito", "✍ Escrito"], ["nenhum", "Sem cabeçalho"]];
