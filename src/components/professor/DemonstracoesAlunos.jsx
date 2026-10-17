@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { calcularRazao, calcularBalancete, calcularDRE, calcularBP, fmt } from "../../lib/contabil.js";
+import { calcularRazao, calcularBalancete, calcularDRE, calcularBP, saldoConta, fmt } from "../../lib/contabil.js";
+import { DrillModal } from "../shared/UI.jsx";
+import LivroRazao from "../aluno/LivroRazao.jsx";
+import Balancete from "../aluno/Balancete.jsx";
+import BalancoPatrimonial from "../aluno/BalancoPatrimonial.jsx";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
@@ -16,6 +20,92 @@ const COR = {
   sd: { background: "var(--surface-alt, rgba(128,128,128,.15))", color: "var(--ink-soft)" },
 };
 const Pilula = ({ s }) => <span style={{ ...COR[s], display: "inline-block", fontSize: 12.5, fontWeight: 600, padding: "2px 8px", whiteSpace: "nowrap" }}>{SIT[s][1] + SIT[s][2]}</span>;
+
+const ABAS = ["5 · Livro diário", "6 · Razão", "7 · Balancete", "8 · ARE", "9 · DRE", "10 · Balanço"];
+const FILTROS = {
+  receita: (c) => c.grupo === 4 && c.subgrupo === "Receita Bruta de Vendas",
+  outras: (c) => c.grupo === 4 && c.subgrupo === "Outras Receitas Operacionais",
+  finrec: (c) => c.grupo === 4 && c.subgrupo === "Receitas Financeiras",
+  deducoes: (c) => c.grupo === 4 && c.redutora,
+  cmv: (c) => c.codigo.startsWith("6.2"),
+  prod: (c) => c.codigo.startsWith("6.1"),
+  despop: (c) => c.grupo === 5 && c.subgrupo !== "Despesas Financeiras",
+  findesp: (c) => c.grupo === 5 && c.subgrupo === "Despesas Financeiras",
+};
+const SIT_LANC = { aprovado: "aprovado", enviado: "enviado", correcao: "devolvido", rascunho: "rascunho" };
+
+// ARE/DRE conta a conta (só para o professor): cada linha mostra as contas que a formam; clicar na conta abre os lançamentos.
+function Detalhada({ dre, tipo, onDrill }) {
+  const grupo = (titulo, chave, sinal) => {
+    const cs = dre.linhas.filter((l) => FILTROS[chave](l.conta));
+    if (!cs.length) return null;
+    return (
+      <div key={chave}>
+        <div className="bp-group-label">{titulo}</div>
+        {cs.map((c) => (
+          <div className="dre-row clickable" key={c.conta.codigo} onClick={() => onDrill({ title: c.conta.nome, legenda: "Lançamentos que formam este saldo.", linhas: c.movimentos })}>
+            <span>{c.conta.codigo} {c.conta.nome}</span><span className="val mono">{sinal === "-" ? "(" + fmt(saldoConta(c)) + ")" : fmt(saldoConta(c))}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  const total = (rot, v) => <div className="dre-row total" key={rot}><span>{rot}</span><span className="val">{fmt(v)}</span></div>;
+  const rec = dre.receitaBruta + dre.receitasFin + (dre.outrasReceitas || 0);
+  return (
+    <div className="panel"><div className="panel-body">
+      {tipo === "are" ? (
+        <>
+          {grupo("RECEITAS · vendas", "receita", "+")}{grupo("RECEITAS · outras operacionais", "outras", "+")}{grupo("RECEITAS · financeiras", "finrec", "+")}{total("Total das receitas", rec)}
+          {grupo("(–) DEDUÇÕES", "deducoes", "-")}{grupo("(–) CUSTOS · CMV", "cmv", "-")}{grupo("(–) CUSTOS · produção", "prod", "-")}
+          {grupo("(–) DESPESAS operacionais", "despop", "-")}{grupo("(–) DESPESAS financeiras", "findesp", "-")}
+          {total("= Resultado do Exercício", dre.resultadoExercicio)}
+        </>
+      ) : (
+        <>
+          {grupo("Receita Bruta de Vendas", "receita", "+")}{total("= Receita Bruta", dre.receitaBruta)}
+          {grupo("(–) Deduções da Receita", "deducoes", "-")}{total("= Receita Líquida", dre.receitaLiquida)}
+          {grupo("(–) CMV", "cmv", "-")}{grupo("(–) Custos de Produção", "prod", "-")}{total("= Resultado Bruto", dre.resultadoBruto)}
+          {grupo("(–) Despesas Operacionais", "despop", "-")}{grupo("(+) Outras Receitas Operacionais", "outras", "+")}
+          {grupo("(+) Receitas Financeiras", "finrec", "+")}{grupo("(–) Despesas Financeiras", "findesp", "-")}
+          {total("= Resultado do Exercício", dre.resultadoExercicio)}
+        </>
+      )}
+    </div></div>
+  );
+}
+
+// Livro diário do aluno, só consulta: todos os lançamentos com as partidas e a situação de cada um.
+function DiarioConsulta({ lancs, contas }) {
+  const nome = (cod) => { const c = contas.find((x) => x.codigo === cod); return cod + (c ? " " + c.nome : ""); };
+  const lista = [...(lancs || [])].sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+  if (!lista.length) return <div className="empty-state">Este aluno ainda não tem lançamentos.</div>;
+  return (
+    <div className="panel" style={{ overflowX: "auto" }}>
+      <table style={{ minWidth: 560 }}>
+        <thead><tr><th>Data</th><th>Histórico / partidas</th><th style={{ textAlign: "right" }}>Débito</th><th style={{ textAlign: "right" }}>Crédito</th><th>Situação</th></tr></thead>
+        <tbody>
+          {lista.map((l) => (
+            <FragLanc key={l.id} l={l} nome={nome} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+function FragLanc({ l, nome }) {
+  const ps = l.partidas || [];
+  return (
+    <>
+      <tr><td className="mono">{l.data || "—"}</td><td><b>{l.historico || "(sem histórico)"}</b></td><td /><td /><td>{SIT_LANC[l.status] || l.status || "—"}</td></tr>
+      {ps.map((p, i) => (
+        <tr key={i}><td /><td style={{ paddingLeft: p.tipo === "C" ? 36 : 18 }}>{nome(p.conta)}</td>
+          <td className="mono" style={{ textAlign: "right" }}>{p.tipo === "D" ? fmt(Number(p.valor) || 0) : ""}</td>
+          <td className="mono" style={{ textAlign: "right" }}>{p.tipo === "C" ? fmt(Number(p.valor) || 0) : ""}</td><td /></tr>
+      ))}
+    </>
+  );
+}
 
 function analisar(lancs, contas, totalNotas) {
   const cont = { aprovado: 0, enviado: 0, correcao: 0, rascunho: 0 };
@@ -40,6 +130,22 @@ function analisar(lancs, contas, totalNotas) {
   };
 }
 
+function Visor({ x, aba, lancs, contas, onDrill }) {
+  const mont = useMemo(() => {
+    if (x.sd) return null;
+    const razao = calcularRazao(lancs, contas);
+    const dre = calcularDRE(razao);
+    return { razao, dre, bp: calcularBP(razao, dre.resultadoExercicio) };
+  }, [x.sd, lancs, contas]);
+  if (aba === 0) return <DiarioConsulta lancs={lancs} contas={contas} />;
+  if (!mont) return <div className="empty-state">Este aluno ainda não tem lançamentos aprovados: as telas 6 a 10 ficam vazias, como ficam para ele.</div>;
+  if (aba === 1) return <LivroRazao razao={mont.razao} />;
+  if (aba === 2) return <Balancete razao={mont.razao} />;
+  if (aba === 3) return <Detalhada dre={mont.dre} tipo="are" onDrill={onDrill} />;
+  if (aba === 4) return <Detalhada dre={mont.dre} tipo="dre" onDrill={onDrill} />;
+  return <BalancoPatrimonial bp={mont.bp} />;
+}
+
 export default function DemonstracoesAlunos({ turma }) {
   const alunos = useAlunosReaisDaTurma(turma?.id);
   const { porMatricula } = useLancamentosDaTurma(turma?.id, alunos);
@@ -47,6 +153,8 @@ export default function DemonstracoesAlunos({ turma }) {
   const { contas } = usePlanoContas();
   const [filtro, setFiltro] = useState("todos");
   const [mat, setMat] = useState(null);
+  const [aba, setAba] = useState(0);
+  const [drill, setDrill] = useState(null);
   const totalNotas = (documentos && documentos.length) || 24;
 
   const linhas = useMemo(() => {
@@ -138,7 +246,7 @@ export default function DemonstracoesAlunos({ turma }) {
                 {lista.length === 0 && <tr><td colSpan={7} style={{ ...td, color: "var(--ink-soft)" }}>Nenhum aluno neste filtro.</td></tr>}
                 {lista.map((x) => (
                   <tr key={x.aluno.matricula} tabIndex={0} aria-selected={mat === x.aluno.matricula} style={{ cursor: "pointer", background: mat === x.aluno.matricula ? "var(--green-pale)" : undefined }}
-                    onClick={() => setMat(x.aluno.matricula)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMat(x.aluno.matricula); } }}>
+                    onClick={(e) => { setDrill(null); setMat(x.aluno.matricula); const td = e.target.closest("td"); if (td && td.cellIndex > 0) setAba(Math.min(5, td.cellIndex - 1)); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMat(x.aluno.matricula); } }}>
                     <td style={td}><b>{x.aluno.nome}</b></td>
                     <td style={td}>{barra(x)}<span className="mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>{x.ap} de {totalNotas}{x.correcao ? " · " + x.correcao + " devolvidos" : ""}</span></td>
                     <td style={{ ...td, ...num }}>{x.sd ? "—" : x.contas}</td>
@@ -173,11 +281,17 @@ export default function DemonstracoesAlunos({ turma }) {
                 </div>
                 <h3>O que olhar</h3>
                 <ul>{avisos(x).map((t) => <li key={t}>{t}</li>)}</ul>
+                <h3>Ver como o aluno vê</h3>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }} role="group" aria-label="Demonstração">
+                  {ABAS.map((n, i) => <button key={n} type="button" className={aba === i ? "btn" : "btn ghost"} aria-pressed={aba === i} onClick={() => setAba(i)}>{n}</button>)}
+                </div>
+                <Visor x={x} aba={aba} lancs={porMatricula[x.aluno.matricula]} contas={contas} onDrill={setDrill} />
               </>
             );
           })()}
         </div>
       </div>
+      <DrillModal item={drill} onClose={() => setDrill(null)} />
     </>
   );
 }
