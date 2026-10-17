@@ -130,6 +130,7 @@ export const ABRIR_EM = {
   cronograma: ["planejar", "cronograma"],
   painel: ["etapa1", "painel"],
   documentos: ["etapa1", "docs"],
+  demonstr: ["etapa1", "demonstr"],
   historico: ["alunos", "historico"],
   registro: ["alunos", "registro"],
   relatorio: ["alunos", "orientacao"],

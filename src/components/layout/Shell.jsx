@@ -92,6 +92,7 @@ import { useTelaLarga } from "../../hooks/useTelaLarga.js";
 import { mesaAlunoLiberada } from "../../lib/mesaAluno.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
+import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
@@ -964,6 +965,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         <TelaComAbas key={screen} inicial={aba || "painel"} abas={[
           { key: "painel", label: "Painel do professor", render: () => <Painel turma={turmaSelecionada} onAbrirHistorico={selecionarAlunoEVerHistorico} /> },
           { key: "docs", label: "Documentos fiscais", render: () => <DocumentosFiscaisProfessor turma={turmaSelecionada} /> },
+          { key: "demonstr", label: "Diário ao Balanço (5 a 10)", render: () => <DemonstracoesAlunos turma={turmaSelecionada} /> },
         ]} />
       );
     }
