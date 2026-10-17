@@ -64,6 +64,25 @@ service cloud.firestore {
       return souProfessorTestando(turmaId, matricula)
         || (souEsteAlunoNestaTurma(turmaId, matricula) && etapaAberta(turmaId, etapa));
     }
+    // 2026-10-17 — Etapa que vale para gravar um LANÇAMENTO. Os da folha (origem 'folha') seguem o prazo da etapa 3 ('ca'),
+    // os da rescisão (origem 'resc') o da etapa 4 ('resc'); os demais seguem o da etapa 1 ('f1').
+    // Folha e rescisão não têm nota de origem: com nota vinculada, vale o prazo da etapa 1.
+    function etapaDoLancamento(d) {
+      return (d.get('origem', '') == 'folha' && (d.get('documento', '') == '' || d.get('documento', '') == null)) ? 'ca'
+        : (d.get('origem', '') == 'resc' && (d.get('documento', '') == '' || d.get('documento', '') == null)) ? 'resc'
+        : 'f1';
+    }
+    // 2026-10-17 — O trabalho do aluno (alunos/{m}/ca/trabalho) guarda as etapas 2, 3 e 4. Cada seção segue o prazo da sua etapa:
+    // fp = etapa 2; folha, prov, lanc, efeitos, parecer = etapa 3; qualquer outra seção (rescisão) = etapa 4 ('resc').
+    function etapaAbertaTrabalhoCa(turmaId, chaves) {
+      return (!chaves.hasAny(['fp']) || etapaAberta(turmaId, 'fp'))
+        && (!chaves.hasAny(['folha', 'prov', 'lanc', 'efeitos', 'parecer']) || etapaAberta(turmaId, 'ca'))
+        && (chaves.hasOnly(['fp', 'folha', 'prov', 'lanc', 'efeitos', 'parecer', 'atualizadoEm', 'devolutiva', 'devolutivaEm']) || etapaAberta(turmaId, 'resc'));
+    }
+    function alunoPodeEscreverTrabalhoCa(turmaId, matricula, chaves) {
+      return souProfessorTestando(turmaId, matricula)
+        || (souEsteAlunoNestaTurma(turmaId, matricula) && etapaAbertaTrabalhoCa(turmaId, chaves));
+    }
 
     // ---------- users ----------
     // Criação: o próprio usuário cria seu documento no primeiro login (sem
@@ -190,18 +209,18 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if alunoPodeEscrever(turmaId, matricula, 'f1')
+          allow create: if alunoPodeEscrever(turmaId, matricula, etapaDoLancamento(request.resource.data))
             && request.resource.data.status in ['rascunho', 'enviado'];
           allow update: if
             // aluno (ou professor testando) só edita o próprio lançamento enquanto não foi aprovado
-            (alunoPodeEscrever(turmaId, matricula, 'f1')
+            (alunoPodeEscrever(turmaId, matricula, etapaDoLancamento(resource.data))
               && resource.data.status != 'aprovado'
               && request.resource.data.status in ['rascunho', 'enviado'])
             // professor só muda status, observação de correção e o histórico
             // de correções (registro acumulado de todas as devoluções)
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'obsCorrecao', 'historicoCorrecoes', 'podeExcluir', 'partidas', 'corrigidoPeloProfessor', 'corrigidoEm']));
-          allow delete: if alunoPodeEscrever(turmaId, matricula, 'f1')
+          allow delete: if alunoPodeEscrever(turmaId, matricula, etapaDoLancamento(resource.data))
             && (resource.data.status == 'rascunho'
                 // 2026-10-15 — lançamento devolvido que o professor marcou como excluível
                 || (resource.data.status == 'correcao' && resource.data.get('podeExcluir', false) == true));
@@ -233,9 +252,9 @@ service cloud.firestore {
           allow read: if signedIn() && (
             souAdmin() || souProfessorDaTurma(turmaId) || souEsteAlunoNestaTurma(turmaId, matricula)
           );
-          allow create: if alunoPodeEscrever(turmaId, matricula, 'resc') && docId == 'trabalho'
+          allow create: if alunoPodeEscreverTrabalhoCa(turmaId, matricula, request.resource.data.keys().toSet()) && docId == 'trabalho'
             && !request.resource.data.keys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']);
-          allow update: if (alunoPodeEscrever(turmaId, matricula, 'resc') && docId == 'trabalho'
+          allow update: if (alunoPodeEscreverTrabalhoCa(turmaId, matricula, request.resource.data.diff(resource.data).affectedKeys()) && docId == 'trabalho'
               && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']))
             || (souProfessorDaTurma(turmaId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['devolutiva', 'devolutivaEm', 'devolutivaResc', 'devolutivaRescEm']));
@@ -293,7 +312,7 @@ service cloud.firestore {
         match /lixeira/{id} {
           allow read, create, delete: if souAdmin() || souProfessorDaTurma(turmaId);
           // 2026-10-15 — o aluno só GRAVA a cópia do lançamento devolvido que vai excluir (não lê nem apaga)
-          allow create: if alunoPodeEscrever(turmaId, matricula, 'f1') && request.resource.data.tipo == 'lancamento';
+          allow create: if alunoPodeEscrever(turmaId, matricula, request.resource.data.tipo == 'lancamento' ? etapaDoLancamento(request.resource.data.get('dados', {})) : 'f1') && request.resource.data.tipo == 'lancamento';
           allow update: if false;
         }
 
