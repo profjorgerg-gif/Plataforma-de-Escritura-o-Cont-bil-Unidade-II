@@ -45,6 +45,7 @@ const CSS = `
 .mesa-task button{background:var(--surface,#fff);border:1px solid var(--line-strong,#C3B79E);padding:3px 10px;cursor:pointer;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;font:inherit;color:var(--ink,#1E2A38)}
 .mesa-task button.on{border-color:var(--green,#1F5C4A);box-shadow:inset 0 -3px 0 var(--green,#1F5C4A)}.mesa-task button.m{opacity:.6}
 .mesa-task .home{font-weight:600;background:var(--green-dark,#163F33);color:#fff;border-color:var(--green-dark,#163F33)}
+.mesa-task .sep{height:18px;border-left:1px solid var(--line-strong,#C3B79E);margin:0 2px;flex:none}
 .mesa-task .st{margin-left:auto;color:var(--ink-faint,#8B8477);white-space:nowrap;padding-right:6px;font-size:12px}
 @media(max-width:1500px){.mesa-info .nome{display:none}}
 @media(max-width:1500px){.mesa-brand{display:none}}
@@ -211,7 +212,13 @@ export default function MesaProfessor({ menu, mesa, renderTela, tituloDe, turmaN
         {janelas.filter((j) => j.chave !== homeChave && (!atalho || j.chave !== atalho.chave)).map((j) => (
           <button key={j.chave} className={(topo && topo.chave === j.chave ? "on" : "") + (j.min ? " m" : "")} onClick={() => (topo && topo.chave === j.chave ? mesa.minimizar(j.chave) : mesa.focar(j.chave))}>{tituloDe(j.chave, j.foco)}</button>
         ))}
-        <span className="st">{resumo}</span>
+        <span className="sep" />
+        <button className={mesa.auto ? "on" : ""} aria-pressed={!!mesa.auto} onClick={() => mesa.setAuto(!mesa.auto)} title="Arruma as janelas sozinho ao abrir, fechar ou minimizar (1 = tela toda, 2 = lado a lado, 3 = 1 + 2, 4 = grade)">{mesa.auto ? "☑" : "☐"} Organizar sozinho</button>
+        <button onClick={() => mesa.organizar("lado")}>▦ Lado a lado</button>
+        <button onClick={() => mesa.organizar("cascata")}>❐ Cascata</button>
+        <button onClick={() => mesa.minimizarTodas()}>Minimizar todas</button>
+        <button onClick={() => mesa.fecharTodas()}>Fechar todas</button>
+        <span className="st">{janelas.length} janela(s){resumo ? " · " + resumo : ""}</span>
       </div>
     </div>
   );

@@ -708,7 +708,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const homeMesa = mesaDeAluno ? "inicio" : "painel-turma";
   const telaLarga = useTelaLarga();
   const temaUi = useTema(); // claro/escuro (professor e aluno)
-  const mesa = useMesa({ home: homeMesa, avisarRepetida: mesaDeAluno });
+  const mesa = useMesa({ home: homeMesa, avisarRepetida: mesaDeAluno, chaveAuto: mesaDeAluno ? "mesa_auto_aluno" : "mesa_auto_prof" });
   const mesaAlunoOk = emTeste || (perfil.papel === "aluno" && mesaAlunoLiberada());
   const lerMesa = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
   const [modoMesaProf, setModoMesaProf] = useState(() => lerMesa("modoMesa"));
