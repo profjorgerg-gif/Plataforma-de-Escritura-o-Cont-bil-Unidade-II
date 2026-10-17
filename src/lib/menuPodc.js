@@ -32,7 +32,7 @@ export const ETAPAS_MENU_ALUNO = [
     { key: "dre", label: "DRE" },
     { key: "bp", label: "Balanço patrimonial" },
   ] },
-  { id: "fp", n: 2, titulo: "Folha de pagamento", disc: "CA", itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }] },
+  { id: "fp", n: 2, titulo: "Folha de pagamento", disc: "CA", itens: [{ key: "ca-tabelas", label: "Tabelas INSS e IRRF 2026" }, { key: "ca-ativ", label: "Atividade · Elaborar a folha" }] },
   { id: "ca", n: 3, titulo: "Folha, provisões e contabilização", disc: "CA", itens: [
     { key: "ca-folha", label: "Folha do mês" },
     { key: "ca-prov", label: "Provisões e encargos" },
@@ -140,6 +140,7 @@ export const ABRIR_EM = {
   plano: ["consultas", "plano"],
   consulta: ["consultas", "cfop"],
   "guia-lanc": ["consultas", "guia"],
+  "tabelas-inss-irrf": ["consultas", "tabelas"],
   guia: ["ajuda", "guia"],
   "manual-professor": ["ajuda", "manprof"],
   "manual-aluno": ["ajuda", "manaluno"],

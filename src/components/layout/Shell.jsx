@@ -95,6 +95,7 @@ import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
 import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
+import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
@@ -237,7 +238,7 @@ function gruposMenuAluno({ incluirManuais, badgeDiario, badgeSuporte, mostrarAgb
   }));
   if (mostrarCa) {
     const posAgb = grupos.findIndex((g) => g.label === "apoio e consulta");
-    const menuCa = mostrarAtivFolha ? { ...MENU_ALUNO_CA, itens: [{ key: "ca-ativ", label: "Atividade · Elaborar a folha" }].concat(MENU_ALUNO_CA.itens) } : MENU_ALUNO_CA;
+    const menuCa = mostrarAtivFolha ? { ...MENU_ALUNO_CA, itens: [{ key: "ca-tabelas", label: "Tabelas INSS e IRRF 2026" }, { key: "ca-ativ", label: "Atividade · Elaborar a folha" }].concat(MENU_ALUNO_CA.itens) } : MENU_ALUNO_CA;
     grupos.splice(posAgb < 0 ? grupos.length : posAgb, 0, menuCa);
   }
   if (mostrarResc) {
@@ -994,6 +995,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         <TelaComAbas key={screen} inicial={aba || "plano"} abas={[
           { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={perfil.papel} /> },
           { key: "guia", label: "Guia de lançamentos", render: () => <GuiaLancamentos professor /> },
+          { key: "tabelas", label: "Tabelas INSS e IRRF 2026", render: () => <TabelasInssIrrf /> },
           { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
         ]} />
       );
@@ -1103,6 +1105,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <CronogramaAluno etapas={etapasAluno} nome={emTeste ? testeAtivo.nome : (meuRegistro && meuRegistro.nome)} matricula={emTeste ? "" : perfil.matricula} turmaNome={minhaTurma && minhaTurma.nome} />;
   } else if (papelEfetivo === "aluno" && screen === "notas-etapas") {
     tela = <NotasEtapas avaliacoes={avalAluno} />;
+  } else if (papelEfetivo === "aluno" && screen === "ca-tabelas") {
+    tela = <TabelasInssIrrf />;
   } else if (papelEfetivo === "aluno" && screen === "ca-ativ") {
     tela = <FolhaAtividade trab={trabCa} ca={caAluno} matricula={matricula} />;
   } else if (papelEfetivo === "aluno" && !emTeste && ["ca-folha", "ca-prov", "ca-cont", "ca-efeitos", "ca-parecer"].includes(screen)

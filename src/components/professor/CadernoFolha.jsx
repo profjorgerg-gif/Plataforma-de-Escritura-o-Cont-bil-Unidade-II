@@ -88,6 +88,12 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
             <tr key={i}><td>{x ? brl(x.ate) : "—"}</td><td className="n">{x ? (x.aliq * 100).toFixed(1).replace(".", ",") + "%" : ""}</td>
               <td>{r.ate === Infinity ? "acima" : brl(r.ate)}</td><td className="n">{(r.aliq * 100).toFixed(1).replace(".", ",") + "%"}</td><td className="n">{brl(r.ded)}</td></tr>); })}
         </tbody></table>
+        <h4>INSS pela tabela com parcela a deduzir (cálculo rápido)</h4>
+        <table><thead><tr><th>Salário de contribuição (até R$)</th><th className="n">Alíquota</th><th className="n">Parcela a deduzir</th></tr></thead><tbody>
+          {(() => { let ac = 0; return T.inss.map((x, i) => { if (i > 0) ac += T.inss[i - 1].ate * (x.aliq - T.inss[i - 1].aliq); return (
+            <tr key={i}><td>{brl(x.ate)}</td><td className="n">{(x.aliq * 100).toFixed(1).replace(".", ",") + "%"}</td><td className="n">{brl(Math.round((ac + 1e-9) * 100) / 100)}</td></tr>); }); })()}
+        </tbody></table>
+        <p style={{ margin: "4px 0 0" }}>Fórmula rápida: INSS = salário × alíquota da faixa − parcela a deduzir (pode diferir em centavos do cálculo por faixa). IRRF = base × alíquota − parcela a deduzir. Redução (Lei 15.270/2025): até R$ {brl(T.reducao.limiteIsento)} zera o imposto; de R$ {brl(T.reducao.limiteIsento)} a R$ {brl(T.reducao.limiteFim)}: {brl(T.reducao.a)} − {String(T.reducao.b).replace(".", ",")} × rendimento tributável; acima, sem redução.</p>
         <p style={{ margin: "4px 0 0" }}>Dedução por dependente R$ {brl(T.deducaoDependente)} · desconto simplificado R$ {brl(T.descontoSimplificado)} · salário-família R$ {brl(T.salarioFamilia.cota)} por filho até 14 anos (remuneração até R$ {brl(T.salarioFamilia.limite)}) · vale-transporte {T.vtPercentual}% do salário-base · FGTS {T.fgtsPercentual}%.</p>
         <Rod esq={"Lista com " + empregados.length + " empregados"} dir="Página 1" />
       </div>
