@@ -4,10 +4,10 @@ import { CAMPOS_EMPREGADO } from "../../lib/folhaAtividade.js";
 
 // Etapa 2: o aluno PEDE o seu caso. O caso é calculado na hora (não é gravado) a partir da matrícula + empregado + mês,
 // então é sempre o mesmo. "Usar estes dados" só preenche campos VAZIOS; se já houver algo digitado, pergunta antes.
-export default function EnunciadoEmpregado({ matricula, emp, competencia, obs, get, set, automatico }) {
+export default function EnunciadoEmpregado({ matricula, emp, competencia, obs, get, set, automatico, opc }) {
   const [aberto, setAberto] = useState(false);
   const [msg, setMsg] = useState("");
-  const caso = useMemo(() => casoDoEmpregado(matricula || "", emp.id, competencia), [matricula, emp.id, competencia]);
+  const caso = useMemo(() => casoDoEmpregado(matricula || "", emp.id, competencia, opc), [matricula, emp.id, competencia, opc]);
   const texto = useMemo(() => textoDoCaso(emp.nome, caso, competencia, obs), [emp.nome, caso, competencia, obs]);
   function usar() {
     const preenchidos = CAMPOS_EMPREGADO.filter((c) => String(get(c) || "").trim() !== "");

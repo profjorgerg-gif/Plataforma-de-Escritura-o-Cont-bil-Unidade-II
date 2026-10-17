@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso } from "../../lib/folha.js";
-import { casoDoEmpregado, textoDoCaso } from "../../lib/enunciadosCA.js";
+import { casoDoEmpregado, textoDoCaso, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { detalheEmpregado, resumoAtividade } from "../../lib/folhaAtividade.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, useTrabalhosCaDaTurma } from "../../hooks/useCa.js";
@@ -23,7 +23,7 @@ export default function ConferenciaFolha({ turma }) {
   const ids = empregados.map((e) => e.id);
   const ordem = alunos.filter((a) => !a.contaTeste).concat(alunos.filter((a) => a.contaTeste));
   const fpDe = (a) => ((mapa[a.matricula] || {}).fp) || {};
-  const baseDe = (a) => (id) => casoDoEmpregado(a.matricula, id, competencia);
+  const baseDe = (a) => (id) => casoDoEmpregado(a.matricula, id, competencia, opcoesDoEmpregado(ca.config, id));
 
   if (empregados.length === 0) return (
     <>

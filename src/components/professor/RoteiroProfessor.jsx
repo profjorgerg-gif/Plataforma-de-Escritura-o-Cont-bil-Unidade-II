@@ -145,6 +145,61 @@ function Situacao({ turma, config }) {
   );
 }
 
+// 2026-10-17 — O professor escolhe, para cada empregado, o que entra nos proventos (adicional, horas extras) e se tem faltas.
+// Valores (salário, horas, dias), dependentes e vale-transporte continuam automáticos por aluno; INSS e IRRF o aluno calcula.
+// Grava em config.fpProventos[empId] (mesmo documento ca/config). "Automático" = como antes.
+const OPC_AD = [["auto", "Automático"], ["nenhum", "Nenhum"], ["AI10", "Insalubridade 10%"], ["AI20", "Insalubridade 20%"], ["AI40", "Insalubridade 40%"], ["AP", "Periculosidade 30%"]];
+const OPC_SN = [["auto", "Auto"], ["sim", "Sim"], ["nao", "Não"]];
+const CAMPOS_PROV = [["he50", "HE 50%"], ["he100", "HE 100%"], ["hen50", "HE not. 50%"], ["hen100", "HE not. 100%"], ["faltas", "Faltas injust."]];
+function ProventosPorEmpregado({ turma, empregados, cfg }) {
+  const [edit, setEdit] = useState({});
+  const [msg, setMsg] = useState("");
+  if (!empregados.length) return null;
+  const salvo = cfg.fpProventos || {};
+  const val = (id, k) => (edit[id] && edit[id][k]) || (salvo[id] && salvo[id][k]) || "auto";
+  const mudar = (id, k, v) => setEdit((e) => ({ ...e, [id]: { ...(e[id] || {}), [k]: v } }));
+  const todos = (k, v) => setEdit((e) => { const n = { ...e }; empregados.forEach((emp) => { n[emp.id] = { ...(n[emp.id] || {}), [k]: v }; }); return n; });
+  async function salvar() {
+    setMsg("salvando…");
+    try {
+      const mapa = {};
+      empregados.forEach((emp) => { mapa[emp.id] = { ad: val(emp.id, "ad"), he50: val(emp.id, "he50"), he100: val(emp.id, "he100"), hen50: val(emp.id, "hen50"), hen100: val(emp.id, "hen100"), faltas: val(emp.id, "faltas") }; });
+      await salvarConfigCa(turma.id, { fpProventos: mapa, atualizadoEm: new Date().toISOString() });
+      setEdit({});
+      setMsg("✓ escolhas salvas");
+    } catch (e) { setMsg("✗ " + (e.message || e.code)); }
+  }
+  const sel = { padding: "3px 5px", font: "inherit", fontSize: 13 };
+  return (
+    <div className="panel"><div className="panel-head"><h3>Proventos e faltas por empregado</h3></div><div className="panel-body">
+      <p style={{ marginTop: 0, fontSize: 13.5, color: "var(--ink-soft)" }}>Escolha, para cada empregado, o que entra nos proventos e se tem faltas injustificadas. O aluno calcula a remuneração, o INSS e o IRRF. Salário, quantidade de horas, dias de falta, dependentes e vale-transporte continuam automáticos por aluno. <b>Automático</b> = como antes.</p>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ minWidth: 720 }}>
+          <thead><tr><th>Empregado</th><th>Adicional</th>{CAMPOS_PROV.map(([k, t]) => <th key={k}>{t}</th>)}</tr></thead>
+          <tbody>
+            {empregados.map((emp) => (
+              <tr key={emp.id}>
+                <td><b>{emp.nome}</b></td>
+                <td><select style={sel} value={val(emp.id, "ad")} onChange={(e) => mudar(emp.id, "ad", e.target.value)} aria-label={"Adicional de " + emp.nome}>{OPC_AD.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></td>
+                {CAMPOS_PROV.map(([k, t]) => (
+                  <td key={k}><select style={sel} value={val(emp.id, k)} onChange={(e) => mudar(emp.id, k, e.target.value)} aria-label={t + " de " + emp.nome}>{OPC_SN.map(([v, tt]) => <option key={v} value={v}>{tt}</option>)}</select></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0 6px" }}>
+        <button type="button" className="btn ghost" onClick={() => { todos("he50", "sim"); todos("he100", "sim"); }}>HE 50% e 100% = Sim para todos</button>
+        <button type="button" className="btn ghost" onClick={() => CAMPOS_PROV.forEach(([k]) => todos(k, "auto"))}>Tudo em Automático</button>
+        <button type="button" className="btn green" onClick={salvar}>Salvar escolhas</button>
+        {msg && <span style={{ fontSize: 13, alignSelf: "center" }}>{msg}</span>}
+      </div>
+      <p style={{ fontSize: 13, color: "var(--amber, #8a5a00)", margin: 0 }}>Faça as escolhas antes de liberar a etapa 2. Quem já digitou um campo mantém o que digitou; só os campos ainda não digitados seguem a nova escolha. O enunciado, a conferência e o Caderno da Folha usam a mesma regra.</p>
+    </div></div>
+  );
+}
+
 function AtividadeFolha({ turma }) {
   const alunos = useAlunosDaTurma(turma.id);
   const ca = useCaTurma(turma.id);
@@ -182,6 +237,7 @@ function AtividadeFolha({ turma }) {
         <div style={{ marginBottom: 8 }}><b>{atuais.length}</b> empregados publicados.</div>
         <button className="btn green" onClick={publicar}>Publicar lista a partir dos alunos da turma</button>
       </div></div>
+      <ProventosPorEmpregado turma={turma} empregados={atuais} cfg={cfg} />
       <div className="panel"><div className="panel-head"><h3>Ajustes da atividade</h3></div><div className="panel-body">
         <div className="helper-note" style={{ marginBottom: 10 }}><b>Mínimo automático:</b> cada aluno faz um contracheque por empregado da lista ({atuais.length || "nº de alunos da turma"}). Os dados de cada empregado já vêm preenchidos para o aluno.</div>
         <div className="field"><label>Sugestão para os alunos (opcional)</label><textarea rows={3} value={sugestao} onChange={(e) => setSug(e.target.value)} placeholder="Ex.: faça o seu contracheque e mais dois colegas, com casos diferentes." /></div>

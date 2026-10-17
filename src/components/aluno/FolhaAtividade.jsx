@@ -4,7 +4,7 @@ import { calcularContracheque, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoE
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
 import { folhaEmUso } from "../../lib/folha.js";
-import { casoDoEmpregado } from "../../lib/enunciadosCA.js";
+import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 
 const SEC = "fp";
 export default function FolhaAtividade({ trab, ca, matricula }) {
@@ -14,7 +14,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
   const fp = (trab.dados || {}).fp || {};
   // Os dados de cada empregado vêm do enunciado (calculados na hora, sem gravar nada); o que o aluno alterar passa a valer.
   const competencia = folhaEmUso(ca.folha).competencia;
-  const baseDe = (id) => casoDoEmpregado(matricula || "", id, competencia);
+  const baseDe = (id) => casoDoEmpregado(matricula || "", id, competencia, opcoesDoEmpregado(ca.config, id));
   // O mínimo é automático: um contracheque por empregado da lista (= alunos da turma).
   const res = useMemo(() => resumoAtividade(fp, empregados.map((e) => e.id), empregados.length, baseDe), [fp, empregados.length, matricula, competencia]); // eslint-disable-line
   if (ca.config === undefined || trab.carregando) return <Carregando />;
@@ -63,7 +63,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
         </div>
       </div></div>
 
-      {ca.config.enunciadoAtivo !== false && <EnunciadoEmpregado matricula={matricula} emp={emp} competencia={competencia} obs={ca.config.enunciadoObs} get={get} set={set} automatico />}
+      {ca.config.enunciadoAtivo !== false && <EnunciadoEmpregado matricula={matricula} emp={emp} competencia={competencia} obs={ca.config.enunciadoObs} get={get} set={set} automatico opc={opcoesDoEmpregado(ca.config, emp.id)} />}
       <div className="panel">
         <div className="panel-head"><h3>Situação de {emp.nome}</h3></div>
         <div className="panel-body">

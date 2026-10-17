@@ -11,7 +11,11 @@ const pct = (v) => String(v).replace(".", ",");
 const listaE = (a) => (a.length > 1 ? a.slice(0, -1).join(", ") + " e " + a[a.length - 1] : a[0]);
 
 // Campos no mesmo formato que a atividade usa (todos texto): salario, adTipo, adPct, he50, he100, hen50, hen100, faltas, sem, dep, filhos, vt, vtCusto
-export function casoDoEmpregado(matricula, empId, competencia) {
+// 2026-10-17 — opc (opcional) = escolhas do professor para ESTE empregado (config.fpProventos[empId]):
+// { ad: "auto"|"nenhum"|"AI10"|"AI20"|"AI40"|"AP", he50, he100, hen50, hen100, faltas: "auto"|"sim"|"nao" }; "auto" ou campo ausente = automático (como antes).
+// Sem opc o resultado é idêntico ao de antes. Valores (salário, horas, dias), dependentes e vale-transporte continuam automáticos.
+export function opcoesDoEmpregado(cfg, empId) { return ((cfg && cfg.fpProventos) || {})[empId] || null; }
+export function casoDoEmpregado(matricula, empId, competencia, opc) {
   const r = rng(hash(String(matricula) + "|" + String(empId) + "|" + String(competencia || "")));
   const pick = (a) => a[Math.floor(r() * a.length)];
   const salario = 1800 + 50 * Math.floor(r() * 100); // 1.800 a 6.750
@@ -22,13 +26,29 @@ export function casoDoEmpregado(matricula, empId, competencia) {
   const dep = pick([0, 0, 1, 2, 3]);
   const filhos = dep > 0 ? Math.min(dep, pick([0, 1, 1, 2])) : 0;
   const vt = r() < 0.5;
-  return {
+  const caso = {
     salario: brNum(salario), adTipo, adPct: adPct === "" ? "" : String(adPct),
     he50: String(pick([0, 4, 8, 10, 12, 16])), he100: String(pick([0, 0, 2, 4, 8])),
     hen50: String(pick([0, 0, 2, 4, 6])), hen100: String(pick([0, 0, 0, 2, 4])),
     faltas: String(faltas), sem: "", dep: String(dep), filhos: String(filhos),
     vt: vt ? "1" : "", vtCusto: vt ? brNum(150 + 10 * Math.floor(r() * 18)) : "",
   };
+  if (!opc) return caso;
+  // escolhas do professor (sorteio separado, para não alterar os demais dados do caso)
+  const r2 = rng(hash("prov|" + String(matricula) + "|" + String(empId) + "|" + String(competencia || "")));
+  const pick2 = (a) => a[Math.floor(r2() * a.length)];
+  if (typeof opc.ad === "string" && opc.ad !== "auto") {
+    if (opc.ad === "nenhum" || opc.ad === "") { caso.adTipo = ""; caso.adPct = ""; }
+    else if (opc.ad === "AP") { caso.adTipo = "AP"; caso.adPct = ""; }
+    else if (opc.ad.startsWith("AI")) { caso.adTipo = "AI"; caso.adPct = opc.ad.slice(2); }
+  }
+  [["he50", [4, 8, 10, 12, 16]], ["he100", [2, 4, 8]], ["hen50", [2, 4, 6]], ["hen100", [2, 4]]].forEach(([k, lista]) => {
+    if (opc[k] === "nao") caso[k] = "0";
+    else if (opc[k] === "sim" && !(Number(caso[k]) > 0)) caso[k] = String(pick2(lista));
+  });
+  if (opc.faltas === "nao") caso.faltas = "0";
+  else if (opc.faltas === "sim" && !(Number(caso.faltas) > 0)) caso.faltas = String(pick2([1, 1, 2]));
+  return caso;
 }
 
 const n0 = (v) => Number(v) || 0;

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { salvarConfigCa } from "../../hooks/useCa.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { folhaEmUso, EMPREGADOS_MATERIAL } from "../../lib/folha.js";
-import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos } from "../../lib/enunciadosCA.js";
+import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 
 // Controle do professor sobre os enunciados das etapas 2 e 3. Só grava dois campos novos em turmas/{t}/ca/config
 // (enunciadoAtivo, enunciadoObs), que o professor já pode escrever. Os alunos só leem.
@@ -56,7 +56,7 @@ export default function EnunciadosCa({ turma, ca }) {
                 {empregados.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </select></div>
           </div>
-          {aluno && emp && <p>{textoDoCaso(emp.nome, casoDoEmpregado(aluno.matricula, emp.id, f.competencia), f.competencia, obsAtual)}</p>}
+          {aluno && emp && <p>{textoDoCaso(emp.nome, casoDoEmpregado(aluno.matricula, emp.id, f.competencia, opcoesDoEmpregado(cfg, emp.id)), f.competencia, obsAtual)}</p>}
           {!aluno && <div className="helper-note">Escolha um aluno para ver o enunciado dele.</div>}
         </div>
       </div>

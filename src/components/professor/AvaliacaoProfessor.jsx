@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ETAPAS, etapaPorId, notaDaEtapa, limitaNota, fmtNota, faixaDaNota, DESCONTO_ATRASO, entregaEmAtraso, aplicaDesconto } from "../../lib/avaliacao.js";
 import { resumoAtividade } from "../../lib/folhaAtividade.js";
-import { casoDoEmpregado } from "../../lib/enunciadosCA.js";
+import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
 import { sugestaoEtapa } from "../../lib/notasAuto.js";
 import { etapasEfetivas } from "../../lib/roteiro.js";
@@ -98,7 +98,7 @@ export default function AvaliacaoProfessor({ turma }) {
   function sugestoes(a) {
     if (etapaId === "fp") {
       const comp = folhaEmUso(ca.folha).competencia;
-      const r = resumoAtividade(((trabCa || {})[a.matricula] || {}).fp || {}, ids, ids.length, (id) => casoDoEmpregado(a.matricula, id, comp));
+      const r = resumoAtividade(((trabCa || {})[a.matricula] || {}).fp || {}, ids, ids.length, (id) => casoDoEmpregado(a.matricula, id, comp, opcoesDoEmpregado(ca.config, id)));
       return { calculos: r.notaCalculos, quantidade: r.notaQuantidade };
     }
     return sugestaoEtapa(etapaId, {

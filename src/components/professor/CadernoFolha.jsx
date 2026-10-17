@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, nomeDoMes, CONTAS_NOVAS } from "../../lib/folha.js";
-import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos } from "../../lib/enunciadosCA.js";
+import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { calcularContracheque, empregadoDeCampos, PASSOS_CONTRACHEQUE, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, salvarConfigCa } from "../../hooks/useCa.js";
@@ -56,7 +56,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
   const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
   const gab = comResp ? "VERSÃO DO PROFESSOR · gabarito" : "Calcule aqui e depois digite no sistema, que confere";
   const fichas = empregados.map((e, i) => {
-    const caso = aluno ? casoDoEmpregado(aluno.matricula, e.id, f.competencia) : null;
+    const caso = aluno ? casoDoEmpregado(aluno.matricula, e.id, f.competencia, opcoesDoEmpregado(cfg, e.id)) : null;
     const c = caso ? calcularContracheque(empregadoDeCampos((k) => caso[k])) : null;
     return { e, i, caso, c };
   });
