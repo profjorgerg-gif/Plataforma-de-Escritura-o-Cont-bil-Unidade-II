@@ -1271,7 +1271,7 @@ export default function Shell({ usuario, perfil, onSair }) {
         <FluxoEtapa key={chave} etapa={chave} onSuporte={() => setScreen("suporte")} />
         <FluxoEtapaPI key={"pi" + chave} tela={chave} onSuporte={() => setScreen("suporte")} />
         {!emTeste && etapaId && prazo.fechada && info && info.disponivel
-          ? <EtapaFechada key={"ef" + chave} prazo={prazo.prazo} titulo={info.titulo} onSuporte={() => setScreen("suporte")}>{t}</EtapaFechada>
+          ? <EtapaFechada key={"ef" + chave} prazo={prazo.prazo} titulo={info.titulo} livreFolha={chave === "diario"} onSuporte={() => setScreen("suporte")}>{t}</EtapaFechada>
           : t}
       </>
     );
@@ -1437,7 +1437,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           {papelEfetivo === "aluno" && <FluxoEtapa key={screen} etapa={screen} onSuporte={() => setScreen("suporte")} />}
           {papelEfetivo === "aluno" && <FluxoEtapaPI key={"pi" + screen} tela={screen} onSuporte={() => setScreen("suporte")} />}
           {papelEfetivo === "aluno" && !emTeste && etapaDaTelaAtual && prazoTela.fechada && infoEtapaTela && infoEtapaTela.disponivel
-            ? <EtapaFechada key={"ef" + screen} prazo={prazoTela.prazo} titulo={infoEtapaTela.titulo} onSuporte={() => setScreen("suporte")}>{tela}</EtapaFechada>
+            ? <EtapaFechada key={"ef" + screen} prazo={prazoTela.prazo} titulo={infoEtapaTela.titulo} livreFolha={screen === "diario"} onSuporte={() => setScreen("suporte")}>{tela}</EtapaFechada>
             : tela}
         </div>
       </div>

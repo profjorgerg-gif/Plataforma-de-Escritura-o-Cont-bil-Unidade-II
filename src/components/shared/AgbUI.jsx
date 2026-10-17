@@ -80,8 +80,10 @@ export function Abas({ abas, ativa, onChange }) {
 }
 
 // ---- "Meu cálculo": o aluno calcula, o sistema confere ----
-export function MeuCalculo({ valor, esperado, onChange, tolerancia = 0.15, largura = 84, desabilitado }) {
-  const r = valor ? confere(valor, esperado, tolerancia) : null;
+// alternativas (opcional): outros valores também aceitos (ex.: folha calculada com a HTI arredondada pelo aluno)
+export function MeuCalculo({ valor, esperado, onChange, tolerancia = 0.15, largura = 84, desabilitado, alternativas }) {
+  let r = valor ? confere(valor, esperado, tolerancia) : null;
+  if (valor && r === false && alternativas && alternativas.some((a) => confere(valor, a, tolerancia) === true)) r = true;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
       <input

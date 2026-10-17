@@ -22,7 +22,7 @@ export default function RescConferencia({ trab, resc, esc }) {
   const dados = ["anos", "avisoDias", "projDias", "avF", "av13"].every((k) => okNum(k, val[k]));
   const valores = Object.keys(val).every((k) => okNum(k, val[k])) && INCIDENCIAS.every((v) => ["inss", "fgts", "irrf"].every((t) => g("rinc", v.key + "_" + t) === v[t]));
   const lancs = lancamentosDaRescisao(r);
-  const levados = lancs.filter((l) => (esc.lancamentos || []).some((x) => x.historico === "Rescisão " + c.nome + " · " + l.titulo)).length;
+  const levados = lancs.filter((l) => (esc.lancamentos || []).some((x) => x.chave === "resc|" + c.nome + "|" + l.key || x.historico === "Rescisão " + c.nome + " · " + l.titulo)).length;
   const docOk = (gi) => DOCUMENTOS[gi].itens.every((_, i) => g("rdoc", "i_" + gi + "_" + i) === "1");
   const obrig = levados === lancs.length && docOk(2);
   const pg = g("rdoc", "pagamento");

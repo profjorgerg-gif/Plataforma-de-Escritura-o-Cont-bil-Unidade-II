@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { fmt } from "../../lib/contabil.js";
-import { calcularContracheque, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
+import { contrachequeConferido, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
 import { folhaEmUso } from "../../lib/folha.js";
@@ -13,10 +13,10 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
   const empregados = (ca.config && ca.config.empregados) || [];
   const fp = (trab.dados || {}).fp || {};
   // Os dados de cada empregado vêm do enunciado (calculados na hora, sem gravar nada); o que o aluno alterar passa a valer.
-  const competencia = folhaEmUso(ca.folha).competencia;
+  const { competencia, parametros } = folhaEmUso(ca.folha); // parâmetros da turma (carga horária, DSR, salário mínimo...)
   const baseDe = (id) => casoDoEmpregado(matricula || "", id, competencia, opcoesDoEmpregado(ca.config, id));
   // O mínimo é automático: um contracheque por empregado da lista (= alunos da turma).
-  const res = useMemo(() => resumoAtividade(fp, empregados.map((e) => e.id), empregados.length, baseDe), [fp, empregados.length, matricula, competencia]); // eslint-disable-line
+  const res = useMemo(() => resumoAtividade(fp, empregados.map((e) => e.id), empregados.length, baseDe, parametros), [fp, empregados.length, matricula, competencia, parametros]); // eslint-disable-line
   if (ca.config === undefined || trab.carregando) return <Carregando />;
   if (empregados.length === 0) return (
     <>
@@ -29,7 +29,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
   const caso = baseDe(emp.id);
   const get = (c) => valorDoCampo(fp, emp.id, c, caso);
   const set = (c, v) => campos.set(SEC, emp.id + "__" + c, v);
-  const c = calcularContracheque(empregadoDeCampos(get));
+  const c = contrachequeConferido(empregadoDeCampos(get), Object.fromEntries(PASSOS_CONTRACHEQUE.map((p) => [p.k, lerValor(get("m_" + p.k))])), undefined, parametros).c; // aceita também a HTI arredondada pelo aluno
   const usadoSalario = lerValor(get("salario"));
   const aberto = !!usadoSalario;
 
@@ -57,7 +57,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
         <div style={{ marginBottom: 8 }}><b>{res.concluidos}</b> de {res.minimo} contracheques conferidos · um por empregado ({empregados.length} na lista) {res.pronto ? <span className="tag-pill ok">pronto para análise do professor</span> : <span className="tag-pill warn">em andamento</span>}</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {empregados.map((e) => {
-            const s = situacaoEmpregado(fp, e.id, undefined, baseDe(e.id));
+            const s = situacaoEmpregado(fp, e.id, undefined, baseDe(e.id), parametros);
             return <button key={e.id} className={"btn" + (e.id === emp.id ? "" : " secondary")} style={{ padding: "4px 10px", fontSize: 12.5 }} onClick={() => setSel(e.id)}>{e.nome}{s.concluido ? " ✓" : s.iniciado ? " …" : ""}</button>;
           })}
         </div>

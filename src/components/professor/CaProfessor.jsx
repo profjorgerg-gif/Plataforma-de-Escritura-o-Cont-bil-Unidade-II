@@ -85,7 +85,7 @@ function EditorFolha({ turma, ca }) {
     setComp(f.competencia || "2026-04");
     setFixa(f.remuneracaoFixa ? String(f.remuneracaoFixa) : "");
     const p = { ...PARAMETROS_PADRAO, ...(f.parametros || {}) };
-    setPar({ inss: String(p.inss), fgts: String(p.fgts), rat: String(p.rat), terceiros: String(p.terceiros), cargaHoraria: String(p.cargaHoraria), diasUteisDSR: String(p.diasUteisDSR), diasDescansoDSR: String(p.diasDescansoDSR) });
+    setPar({ salarioMinimo: String(p.salarioMinimo), inss: String(p.inss), fgts: String(p.fgts), rat: String(p.rat), terceiros: String(p.terceiros), cargaHoraria: String(p.cargaHoraria), diasUteisDSR: String(p.diasUteisDSR), diasDescansoDSR: String(p.diasDescansoDSR) });
     setEmps((f.empregados && f.empregados.length ? f.empregados : EMPREGADOS_MATERIAL).map((e) => ({ ...e, adicional: { ...(e.adicional || {}) } })));
     setCarregou(true);
   }, [ca.folha, carregou]);
@@ -95,7 +95,7 @@ function EditorFolha({ turma, ca }) {
   const montar = () => ({
     competencia: comp,
     remuneracaoFixa: num(fixa) > 0 ? num(fixa) : null,
-    parametros: { inss: num(par.inss), fgts: num(par.fgts), rat: num(par.rat), terceiros: num(par.terceiros), cargaHoraria: num(par.cargaHoraria) || 220, diasUteisDSR: num(par.diasUteisDSR) || 24, diasDescansoDSR: num(par.diasDescansoDSR) || 6, adicionalNoturno: 0.2 },
+    parametros: { salarioMinimo: num(par.salarioMinimo) || PARAMETROS_PADRAO.salarioMinimo, inss: num(par.inss), fgts: num(par.fgts), rat: num(par.rat), terceiros: num(par.terceiros), cargaHoraria: num(par.cargaHoraria) || 220, diasUteisDSR: num(par.diasUteisDSR) || 24, diasDescansoDSR: num(par.diasDescansoDSR) || 6, adicionalNoturno: 0.2 },
     empregados: emps.map((e) => ({ nome: e.nome, salario: num(e.salario), he50: num(e.he50), he100: num(e.he100), hen50: num(e.hen50), hen100: num(e.hen100),
       adicional: e.adicional && e.adicional.tipo ? { tipo: e.adicional.tipo, pct: e.adicional.tipo === "AI" ? num(e.adicional.pct) : 30 } : { tipo: null } })),
   });
@@ -134,7 +134,7 @@ function EditorFolha({ turma, ca }) {
         <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Os alunos calculam e contabilizam a partir destes dados (a empresa é única, então a folha é igual para todos). Já vem preenchida com os 4 empregados do material.</p>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="field"><label>Competência (aaaa-mm)</label><input className="mono" value={comp} onChange={(e) => setComp(e.target.value)} style={{ width: 110 }} /></div>
-          {[["inss", "INSS %"], ["fgts", "FGTS %"], ["rat", "RAT %"], ["terceiros", "Terceiros %"], ["cargaHoraria", "Carga (h)"], ["diasUteisDSR", "Dias úteis DSR"], ["diasDescansoDSR", "Dias descanso"]].map(([k, r]) => (
+          {[["salarioMinimo", "Salário mínimo (R$)"], ["inss", "INSS %"], ["fgts", "FGTS %"], ["rat", "RAT %"], ["terceiros", "Terceiros %"], ["cargaHoraria", "Carga (h)"], ["diasUteisDSR", "Dias úteis DSR"], ["diasDescansoDSR", "Dias descanso"]].map(([k, r]) => (
             <div className="field" key={k}><label>{r}</label>{campo(80, par[k], (v) => setPar({ ...par, [k]: v }))}</div>
           ))}
         </div>

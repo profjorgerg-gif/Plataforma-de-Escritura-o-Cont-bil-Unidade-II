@@ -19,7 +19,7 @@ export default function ConferenciaFolha({ turma }) {
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (!alunos || !mapa || ca.config === undefined) return <div className="empty-state">Carregando…</div>;
   const empregados = (ca.config && ca.config.empregados) || [];
-  const competencia = folhaEmUso(ca.folha).competencia;
+  const { competencia, parametros } = folhaEmUso(ca.folha);
   const ids = empregados.map((e) => e.id);
   const ordem = alunos.filter((a) => !a.contaTeste).concat(alunos.filter((a) => a.contaTeste));
   const fpDe = (a) => ((mapa[a.matricula] || {}).fp) || {};
@@ -47,7 +47,7 @@ export default function ConferenciaFolha({ turma }) {
           <tbody>
             {ordem.map((a) => {
               const fp = fpDe(a);
-              const r = resumoAtividade(fp, ids, ids.length, baseDe(a));
+              const r = resumoAtividade(fp, ids, ids.length, baseDe(a), parametros);
               const resumo = String(fp.resumo || "").trim();
               return (
                 <tr key={a.matricula}>
@@ -68,7 +68,7 @@ export default function ConferenciaFolha({ turma }) {
   function detalhe() {
     const fp = fpDe(aluno);
     const base = baseDe(aluno);
-    const d = detalheEmpregado(fp, emp.id, undefined, base(emp.id));
+    const d = detalheEmpregado(fp, emp.id, undefined, base(emp.id), parametros);
     const resumo = String(fp.resumo || "").trim();
     return (
       <>
@@ -78,7 +78,7 @@ export default function ConferenciaFolha({ turma }) {
         <div className="panel"><div className="panel-head"><h3>{aluno.nome}</h3></div><div className="panel-body">
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {empregados.map((e) => {
-              const s = detalheEmpregado(fp, e.id, undefined, base(e.id));
+              const s = detalheEmpregado(fp, e.id, undefined, base(e.id), parametros);
               return <button key={e.id} className={"btn" + (e.id === emp.id ? "" : " secondary")} style={{ padding: "4px 10px", fontSize: 12.5 }} onClick={() => setEmpId(e.id)}>{e.nome}{s.concluido ? " ✓" : s.iniciado ? " …" : ""}</button>;
             })}
           </div>

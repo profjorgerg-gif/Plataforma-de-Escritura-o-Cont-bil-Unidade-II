@@ -11,7 +11,8 @@ export const PARAMETROS_PADRAO = {
 
 // Remuneração bruta de um empregado (Atividade 2 do material).
 // emp: { nome, salario, he50, he100, hen50, hen100, adicional: {tipo:"AI"|"AP"|null, pct} }
-export function calcularEmpregado(emp, p = PARAMETROS_PADRAO) {
+// casasHTI (opcional): arredonda a HTI a N casas, como um aluno que arredondou a hora integrada. Sem ele, a HTI não é arredondada (gabarito).
+export function calcularEmpregado(emp, p = PARAMETROS_PADRAO, casasHTI) {
   const salario = Number(emp.salario) || 0;
   const ad = emp.adicional || {};
   const pctAd = ad.tipo === "AP" ? 30 : ad.tipo === "AI" ? Number(ad.pct) || 0 : 0;
@@ -19,7 +20,8 @@ export function calcularEmpregado(emp, p = PARAMETROS_PADRAO) {
   const baseAd = ad.tipo === "AI" ? (Number(p.salarioMinimo) > 0 ? Number(p.salarioMinimo) : PARAMETROS_PADRAO.salarioMinimo) : salario;
   const adicional = r2((baseAd * pctAd) / 100);
   const baseIntegrada = salario + adicional; // salário integrado: base da hora trabalhada integrada (HTI)
-  const hti = baseIntegrada / p.cargaHoraria; // sem arredondar (como no gabarito)
+  let hti = baseIntegrada / p.cargaHoraria; // sem arredondar (como no gabarito)
+  if (casasHTI !== undefined && casasHTI !== null) { const f = 10 ** casasHTI; hti = Math.round((hti + 1e-12) * f) / f; }
   const he50 = r2(hti * 1.5 * (Number(emp.he50) || 0));
   const he100 = r2(hti * 2 * (Number(emp.he100) || 0));
   const hen50 = r2(hti * (1 + p.adicionalNoturno) * 1.5 * (Number(emp.hen50) || 0));
@@ -30,8 +32,9 @@ export function calcularEmpregado(emp, p = PARAMETROS_PADRAO) {
   return { nome: emp.nome, salario, adicional, baseIntegrada, hti, he50, he100, hen50, hen100, horasExtras, dsr, bruta };
 }
 
-export function calcularFolha(empregados, p = PARAMETROS_PADRAO) {
-  const linhas = empregados.map((e) => calcularEmpregado(e, p));
+export const CASAS_HTI_ALTERNATIVAS = [4, 3, 2]; // jeitos de arredondar a HTI que a conferência também aceita
+export function calcularFolha(empregados, p = PARAMETROS_PADRAO, casasHTI) {
+  const linhas = empregados.map((e) => calcularEmpregado(e, p, casasHTI));
   const total = r2(linhas.reduce((s, l) => s + l.bruta, 0));
   return { linhas, total };
 }
@@ -138,6 +141,13 @@ export function folhaEmUso(cfg) {
   const fixa = Number(f.remuneracaoFixa) > 0 ? Number(f.remuneracaoFixa) : null;
   const remuneracao = fixa !== null ? fixa : calc.total;
   return { parametros, empregados, competencia, calc, remuneracao, fixa, provisoes: calcularProvisoes(remuneracao, parametros) };
+}
+
+// Folha do mês calculada com a HTI arredondada a N casas (só para a conferência aceitar o jeito do aluno).
+export function folhaAlternativa(cfg, casasHTI) {
+  const f = folhaEmUso(cfg);
+  const calc = calcularFolha(f.empregados, f.parametros, casasHTI);
+  return { calc, inss: r2((calc.total * f.parametros.inss) / 100), fgts: r2((calc.total * f.parametros.fgts) / 100) };
 }
 
 // Dados didáticos do material (4 empregados) — ponto de partida que o professor pode alterar.

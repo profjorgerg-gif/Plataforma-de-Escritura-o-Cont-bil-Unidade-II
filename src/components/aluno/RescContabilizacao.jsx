@@ -40,7 +40,8 @@ export default function RescContabilizacao({ trab, resc, esc, onLevar }) {
         const ps = partidasDe(l.key);
         const res = conferirLancamento(ps, l.partidas);
         const historico = "Rescisão " + c.nome + " · " + l.titulo;
-        const existente = (esc.lancamentos || []).find((x) => x.historico === historico);
+        const chave = "resc|" + c.nome + "|" + l.key; // código interno: o aluno pode ajustar o histórico sem perder a ligação
+        const existente = (esc.lancamentos || []).find((x) => x.chave === chave || x.historico === historico);
         const data = l.key === "pgto" ? dataPgto : c.desligamento;
         return (
           <div className="panel" key={l.key}>
@@ -79,7 +80,7 @@ export default function RescContabilizacao({ trab, resc, esc, onLevar }) {
                 {res.dicas.map((d, i) => <span key={i} style={{ fontSize: 12.5, color: "var(--red)" }}>{d}</span>)}
                 {res.ok && !existente && (
                   <button className="btn green" onClick={() => onLevar({
-                    data, historico, origem: "folha",
+                    data, historico, origem: "resc", chave,
                     partidas: ps.filter((p) => p.conta && Number(p.valor) > 0).map((p) => ({ conta: p.conta, tipo: p.tipo, valor: p.valor })),
                   })}>Levar para o Livro diário</button>
                 )}

@@ -1,7 +1,7 @@
 // Sugestão automática de nota (0,0 a 10,0) por critério. Funções PURAS: o professor sempre pode alterar o número.
 // Cada função devolve { chaveDoCriterio: nota | null }. null = sem base para sugerir (o professor digita).
 // "Acerto" = o valor digitado pelo aluno confere com o gabarito do sistema (mesma tolerância das telas).
-import { folhaEmUso, lancamentosDaFolha, conferirLancamento, nomeDoMes } from "./folha.js";
+import { folhaEmUso, lancamentosDaFolha, conferirLancamento, nomeDoMes, folhaAlternativa, CASAS_HTI_ALTERNATIVAS } from "./folha.js";
 import { calcularRescisao, direitosDe, VERBAS_DIREITO, INCIDENCIAS, DOCUMENTOS, TOTAL_DOCUMENTOS, lancamentosDaRescisao, prazoPagamento, diasEntre } from "./rescisao.js";
 import { calcularRazao, calcularDRE, calcularBP } from "./contabil.js";
 import { balancoPorLinhas, dreParaLinhas, calcularIndicadores, capitalDeGiro, linhasBalanco, linhasDre, av, ah, lerNumero, confere } from "./agb.js";
@@ -29,17 +29,20 @@ export function sugestaoCa(trabCa, folhaCfg, lancamentos) {
   const enc = (e) => e; // legibilidade
   const itens = [];
   const r2 = (v) => Math.round(v * 100) / 100;
+  const alts = CASAS_HTI_ALTERNATIVAS.map((c) => folhaAlternativa(folhaCfg, c)); // HTI arredondada pelo aluno também vale
   f.calc.linhas.forEach((l, i) => {
-    [["adic", l.adicional], ["he", l.horasExtras], ["dsr", l.dsr], ["bruta", l.bruta]].forEach(([k, e]) => itens.push(["folha", "e" + i + "_" + k, e]));
+    [["adic", l.adicional, (a) => a.calc.linhas[i].adicional], ["he", l.horasExtras, (a) => a.calc.linhas[i].horasExtras], ["dsr", l.dsr, (a) => a.calc.linhas[i].dsr], ["bruta", l.bruta, (a) => a.calc.linhas[i].bruta]]
+      .forEach(([k, e, fa]) => itens.push(["folha", "e" + i + "_" + k, e, alts.map(fa)]));
   });
   const encF = { inss: r2(f.calc.total * p.inss / 100), fgts: r2(f.calc.total * p.fgts / 100) };
-  itens.push(["folha", "t_total", r2(f.calc.total)], ["folha", "t_inss", encF.inss], ["folha", "t_fgts", encF.fgts], ["folha", "t_custo", r2(f.calc.total + encF.inss + encF.fgts)]);
+  itens.push(["folha", "t_total", r2(f.calc.total), alts.map((a) => r2(a.calc.total))], ["folha", "t_inss", encF.inss, alts.map((a) => a.inss)], ["folha", "t_fgts", encF.fgts, alts.map((a) => a.fgts)],
+    ["folha", "t_custo", r2(f.calc.total + encF.inss + encF.fgts), alts.map((a) => r2(a.calc.total + a.inss + a.fgts))]);
   [["sal", pv.salarios], ["fer", pv.ferias], ["terco", pv.tercoFerias], ["ferT", pv.feriasTotal], ["dec", pv.decimo]].forEach(([k, e]) => itens.push(["prov", "p_" + k, e]));
   [["s", pv.encSalarios], ["f", pv.encFerias], ["d", pv.enc13]].forEach(([b, e]) => {
     [["fgts", e.fgts], ["inss", e.inss], ["rat", e.rat], ["terc", e.terceiros], ["tot", e.total]].forEach(([k, v]) => itens.push(["prov", "e" + b + "_" + k, v]));
   });
   [["emp", pv.obrigacoesEmpregados], ["enc", pv.encargosTotal], ["geral", pv.totalGeral]].forEach(([k, v]) => itens.push(["prov", "c_" + k, v]));
-  const acertos = itens.filter(([s, k, e]) => okNum(get(trabCa, s, k), e, 0.02)).length;
+  const acertos = itens.filter(([s, k, e, alt]) => okNum(get(trabCa, s, k), e, 0.02) || (alt || []).some((x) => okNum(get(trabCa, s, k), x, 0.02))).length;
 
   const esperados = lancamentosDaFolha(pv);
   const mes = nomeDoMes(f.competencia);
@@ -54,7 +57,8 @@ export function sugestaoCa(trabCa, folhaCfg, lancamentos) {
     }));
     if (conferirLancamento(ps, l.partidas).ok) conf++;
     const hist = "Folha " + mes + " · " + l.titulo;
-    if ((lancamentos || []).some((x) => x.historico === hist && x.status === "aprovado")) aprov++;
+    const chave = "folha|" + f.competencia + "|" + l.key;
+    if ((lancamentos || []).some((x) => (x.chave === chave || x.historico === hist) && x.status === "aprovado")) aprov++;
   });
   const efeitos = ["a", "b", "c", "d", "e"].filter((k) => txt(get(trabCa, "efeitos", k)) !== "").length;
   return { calculos: n10(acertos, itens.length), lancamentos: n10(conf + aprov, esperados.length * 2), efeitos: n10(efeitos, 5), parecer: null };
@@ -72,7 +76,7 @@ export function sugestaoResc(trabCa, casoCfg, lancamentos) {
   ok += VERBAS_DIREITO.filter((v) => get(trabCa, "rcaso", "d_" + v.key) === dir[v.key]).length;
   const incOk = INCIDENCIAS.reduce((s, v) => s + ["inss", "fgts", "irrf"].filter((t) => get(trabCa, "rinc", v.key + "_" + t) === v[t]).length, 0);
   const lancs = lancamentosDaRescisao(r);
-  const aprov = lancs.filter((l) => (lancamentos || []).some((x) => x.historico === "Rescisão " + c.nome + " · " + l.titulo && x.status === "aprovado")).length;
+  const aprov = lancs.filter((l) => (lancamentos || []).some((x) => (x.chave === "resc|" + c.nome + "|" + l.key || x.historico === "Rescisão " + c.nome + " · " + l.titulo) && x.status === "aprovado")).length;
   const marc = DOCUMENTOS.reduce((s, g, gi) => s + g.itens.filter((_, i) => get(trabCa, "rdoc", "i_" + gi + "_" + i) === "1").length, 0);
   const pg = get(trabCa, "rdoc", "pagamento");
   const noPrazo = pg ? diasEntre(prazoPagamento(c.desligamento), pg) <= 0 : false;

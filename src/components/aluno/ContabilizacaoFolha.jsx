@@ -44,7 +44,8 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
         const ps = partidasDe(l.key);
         const r = conferirLancamento(ps, l.partidas);
         const historico = "Folha " + mes + " · " + l.titulo;
-        const existente = (esc.lancamentos || []).find((x) => x.historico === historico);
+        const chave = "folha|" + f.competencia + "|" + l.key; // código interno: o aluno pode ajustar o histórico sem perder a ligação
+        const existente = (esc.lancamentos || []).find((x) => x.chave === chave || x.historico === historico);
         const levado = !!existente;
         return (
           <div className="panel" key={l.key}>
@@ -84,7 +85,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
                 {r.dicas.map((d, i) => <span key={i} style={{ fontSize: 12.5, color: "var(--red)" }}>{d}</span>)}
                 {r.ok && !levado && (
                   <button className="btn green" onClick={() => onLevar({
-                    data: ultimoDiaDoMes(f.competencia), historico, origem: "folha",
+                    data: ultimoDiaDoMes(f.competencia), historico, origem: "folha", chave,
                     partidas: ps.filter((p) => p.conta && Number(p.valor) > 0).map((p) => ({ conta: p.conta, tipo: p.tipo, valor: p.valor })),
                   })}>Levar para o Livro diário</button>
                 )}

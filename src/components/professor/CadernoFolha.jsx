@@ -43,6 +43,13 @@ const CSS = `
 @page{size:A4;margin:12mm}
 `;
 
+// tipo de adicional e horas extras do empregado da folha do mês (os mesmos dados que a tela mostra)
+function dadosDoCaso(e) {
+  if (!e) return "";
+  const a = e.adicional && e.adicional.tipo ? (e.adicional.tipo === "AP" ? "AP 30%" : "AI " + (e.adicional.pct || 0) + "%") : "sem adicional";
+  return a + " · HE50 " + (e.he50 || 0) + " h · HE100 " + (e.he100 || 0) + " h · HEN50 " + (e.hen50 || 0) + " h · HEN100 " + (e.hen100 || 0) + " h";
+}
+
 function nomeConta(cod, contas) {
   const c = (contas || []).find((x) => x.codigo === cod) || CONTAS_NOVAS.find((x) => x.codigo === cod);
   return cod + (c ? " " + c.nome : "");
@@ -66,7 +73,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
   const gab = comResp ? "VERSÃO DO PROFESSOR · gabarito" : "Calcule aqui e depois digite no sistema, que confere";
   const fichas = empregados.map((e, i) => {
     const caso = aluno ? casoDoEmpregado(aluno.matricula, e.id, f.competencia, opcoesDoEmpregado(cfg, e.id)) : null;
-    const c = caso ? calcularContracheque(empregadoDeCampos((k) => caso[k])) : null;
+    const c = caso ? calcularContracheque(empregadoDeCampos((k) => caso[k]), undefined, f.parametros) : null; // parâmetros da turma
     const emp = caso ? empregadoDeCampos((k) => caso[k]) : null;
     return { e, i, caso, c, emp };
   });
@@ -86,7 +93,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
   );
   const rodGab = "Gabarito · versão do professor, não entregar aos alunos";
   const lanc = lancamentosDaFolha(f.provisoes);
-  const enun = enunciadosLancamentos(folha);
+  const enun = enunciadosLancamentos(folha, cfg.enunciadoObs);
   const pv = f.provisoes;
   const nL = lanc.length;
   const linhaBr = (k, v) => <td className={comResp ? "gab" : "br"} key={k}>{comResp ? brl(v) : ""}</td>;
@@ -112,6 +119,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
           <li>Etapa 2: faça uma ficha por empregado da lista, na ordem. Calcule neste caderno e depois digite no sistema, que confere.</li>
           <li>Etapa 3: faça a folha do mês, as provisões e os 6 lançamentos. As contas já estão indicadas; preencha os valores.</li>
           <li>Dúvida nos lançamentos? Consulte o Guia de lançamentos no sistema. Os prazos estão em Meu roteiro.</li>
+          {cfg.fpSugestao && String(cfg.fpSugestao).trim() && <li>Sugestão do professor: {String(cfg.fpSugestao).trim()}</li>}
         </ol>
         <h4>Os 10 passos do contracheque</h4>
         <table><thead><tr><th>Passo</th><th>Como calcular</th></tr></thead><tbody>
@@ -140,7 +148,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
           {par.map(({ e, i, caso, c }) => (
             <div className="cf-ficha" key={e.id}>
               <h4>Ficha {i + 1} de {empregados.length} · Empregado(a): {e.nome}</h4>
-              <div className="cf-caso">{caso ? textoDoCaso(e.nome, caso, f.competencia, cfg.fpSugestao) : "Dados do caso: salário R$ ________ · adicional ________ · horas extras ________ · faltas ____ · dependentes ____ · vale-transporte ________"}</div>
+              <div className="cf-caso">{caso ? textoDoCaso(e.nome, caso, f.competencia, cfg.enunciadoObs) : "Dados do caso: salário R$ ________ · adicional ________ · horas extras ________ · faltas ____ · dependentes ____ · vale-transporte ________"}</div>
               <table><thead><tr><th style={{ width: "58%" }}>Passo</th><th className="n">Seu cálculo</th><th style={{ width: "9%" }}>Confere?</th></tr></thead><tbody>
                 {PASSOS_CONTRACHEQUE.map((p) => <tr key={p.k}><td>{p.nome}</td>{c ? linhaBr(p.k, p.v(c)) : <td className="br" />}<td /></tr>)}
               </tbody></table>
@@ -164,9 +172,9 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
         {cab("Etapa 3 · Folha do mês")}
         <h3>Folha do mês e provisões</h3>
         <p>Carga horária {f.parametros.cargaHoraria} h · adicional noturno {Math.round(f.parametros.adicionalNoturno * 100)}% · DSR com {f.parametros.diasUteisDSR} dias úteis e {f.parametros.diasDescansoDSR} de descanso · INSS {f.parametros.inss}% · FGTS {f.parametros.fgts}% · RAT {f.parametros.rat}% · terceiros {f.parametros.terceiros}%.</p>
-        <table><thead><tr><th>Empregado</th><th className="n">Salário</th><th className="n">Adicional</th><th className="n">Horas extras</th><th className="n">DSR</th><th className="n">Remuneração bruta</th></tr></thead><tbody>
-          {f.calc.linhas.map((l, i) => <tr key={i}><td>{l.nome}</td><td className="n">{brl(l.salario)}</td>{linhaBr("a", l.adicional)}{linhaBr("h", l.horasExtras)}{linhaBr("d", l.dsr)}{linhaBr("b", l.bruta)}</tr>)}
-          <tr><td colSpan={5}><b>Total da folha (remuneração)</b></td>{linhaBr("t", f.calc.total)}</tr>
+        <table><thead><tr><th>Empregado</th><th className="n">Salário</th><th>Dados do caso</th><th className="n">Adicional</th><th className="n">Horas extras</th><th className="n">DSR</th><th className="n">Remuneração bruta</th></tr></thead><tbody>
+          {f.calc.linhas.map((l, i) => <tr key={i}><td>{l.nome}</td><td className="n">{brl(l.salario)}</td><td>{dadosDoCaso(f.empregados[i])}</td>{linhaBr("a", l.adicional)}{linhaBr("h", l.horasExtras)}{linhaBr("d", l.dsr)}{linhaBr("b", l.bruta)}</tr>)}
+          <tr><td colSpan={6}><b>Total da folha (remuneração)</b></td>{linhaBr("t", f.calc.total)}</tr>
         </tbody></table>
         <h4>Provisões do mês (a partir da remuneração de R$ {brl(f.remuneracao)})</h4>
         <table><thead><tr><th>Item</th><th className="n">Valor</th></tr></thead><tbody>

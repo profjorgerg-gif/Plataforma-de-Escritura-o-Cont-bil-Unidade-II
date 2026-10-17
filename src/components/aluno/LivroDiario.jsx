@@ -10,6 +10,9 @@ import SeletorConta from "../shared/SeletorConta.jsx";
 // - rascunho: nunca foi enviado
 // - correcao: o professor devolveu para ajustes
 const EDITAVEIS = ["rascunho", "correcao"];
+// Lançamentos vindos da folha (etapa 3) e da rescisão (etapa 4): seguem o prazo da etapa deles, não o da etapa 1.
+const ORIGENS = ["folha", "resc"];
+const livreDoPrazo = (o) => (ORIGENS.includes(o) ? "1" : undefined); // marca que EtapaFechada deixa mexer
 
 // Aviso pedagógico (nunca bloqueia o envio): compara o lado escolhido (D/C)
 // com a natureza da conta (já cadastrada no Plano de Contas) para chamar
@@ -53,6 +56,7 @@ function ResumoLancamento({ historico, partidas, contas }) {
 function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamentoExistente, valoresIniciais }) {
   const editando = !!lancamentoExistente;
   const base = lancamentoExistente || valoresIniciais || {};
+  const origemLanc = ORIGENS.includes(base.origem) ? base.origem : null;
   const [data, setData] = useState(base.data || "");
   const [documento, setDocumento] = useState(base.documento || "");
   const [historico, setHistorico] = useState(base.historico || "");
@@ -91,6 +95,8 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
   async function salvar(status) {
     setSalvando(true);
     const dados = { data, documento, historico, partidas: partidas.filter((p) => p.conta && p.valor), status };
+    // folha/rescisão: guarda a origem e um código interno (a ligação com a tela de contabilização não depende do texto do histórico)
+    if (origemLanc) { dados.origem = origemLanc; dados.chave = base.chave || ""; }
     // Marca o instante do envio (envio inicial ou reenvio após correção) —
     // é o que a Fila de Correção usa para mostrar "enviado há X" e priorizar
     // quem está esperando análise há mais tempo.
@@ -101,12 +107,12 @@ function NovoLancamentoForm({ onSalvar, onCancelar, documentos, contas, lancamen
   }
 
   return (
-    <div className="panel">
+    <div className="panel" data-etapa-livre={livreDoPrazo(origemLanc)}>
       <div className="panel-head"><h3>{editando ? "Editar lançamento" : "Lançamento da classificação"}</h3></div>
       <div className="panel-body">
         {!editando && valoresIniciais && (
           <div className="helper-note" style={{ marginBottom: 14 }}>
-            {valoresIniciais.origem === "folha"
+            {ORIGENS.includes(valoresIniciais.origem)
               ? "Lançamento da folha de pagamento ou da rescisão, montado e conferido nas etapas 3 e 4. Revise a data e o histórico e envie ao professor."
               : "Lançamento pré-preenchido a partir da classificação contábil que você salvou. Confira a data e o histórico e complete o que faltar antes de enviar."}
           </div>
@@ -223,8 +229,8 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
       documento: rascunhoDeClassificacao.documento || "",
       historico: rascunhoDeClassificacao.historico || rascunhoDeClassificacao.fato || "",
       // Fase 2 (folha): o lançamento já vem montado, com várias partidas e a data da competência
-      ...(rascunhoDeClassificacao.origem === "folha" ? { origem: "folha", data: rascunhoDeClassificacao.data || "" } : {}),
-      partidas: rascunhoDeClassificacao.origem === "folha" && rascunhoDeClassificacao.partidas
+      ...(ORIGENS.includes(rascunhoDeClassificacao.origem) ? { origem: rascunhoDeClassificacao.origem, chave: rascunhoDeClassificacao.chave || "", data: rascunhoDeClassificacao.data || "" } : {}),
+      partidas: ORIGENS.includes(rascunhoDeClassificacao.origem) && rascunhoDeClassificacao.partidas
         ? rascunhoDeClassificacao.partidas.map((p) => ({ conta: p.conta, tipo: p.tipo, valor: p.valor }))
         : [
           { conta: rascunhoDeClassificacao.contaDebito || "", tipo: "D", valor: rascunhoDeClassificacao.valor ?? "" },
@@ -438,7 +444,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
         if (!(td > 0 && Math.abs(td - tc) < 0.005)) faltas.push("débito e crédito precisam ser iguais");
         if (!String(d.historico || "").trim()) faltas.push("falta o histórico");
         return (
-          <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 18 }}>
+          <div className="panel" data-etapa-livre={livreDoPrazo(d.origem)} style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 18 }}>
             <div className="panel-head"><h3 style={{ margin: 0 }}>Rascunho salvo</h3></div>
             <div className="panel-body">
               <p style={{ marginTop: 0 }}><b>Salvo como rascunho. Ainda NÃO foi enviado ao professor.</b></p>
@@ -479,7 +485,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
                 const temHistorico = l.historicoCorrecoes?.length > 0;
                 return (
                   <Fragment key={l.id}>
-                    <tr>
+                    <tr data-etapa-livre={livreDoPrazo(l.origem)}>
                       <td className="mono">{l.data}</td>
                       <td className="mono">{l.documento}</td>
                       <td>{l.historico}</td>

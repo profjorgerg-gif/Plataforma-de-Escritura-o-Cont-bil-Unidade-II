@@ -3,13 +3,15 @@ import { RE_ACAO_QUE_GRAVA } from "../../lib/fechamento.js";
 
 // Etapa encerrada (prazo vencido): o aluno só CONSULTA. Cobre a tela com uma faixa e impede digitar/salvar/enviar/excluir.
 // Não apaga nada. A trava forte (que vale até fora da tela) fica nas regras do Firestore.
-export default function EtapaFechada({ prazo, titulo, onSuporte, children }) {
+// livreFolha: no Livro diário, só os lançamentos da folha e da rescisão (marcados com data-etapa-livre) continuam abertos.
+export default function EtapaFechada({ prazo, titulo, onSuporte, children, livreFolha }) {
   const ref = useRef(null);
   const [aviso, setAviso] = useState("");
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const dizer = () => { setAviso("Etapa encerrada: esta tela está só para consulta."); setTimeout(() => setAviso(""), 3500); };
     const aoClicar = (e) => {
+      if (e.target.closest && e.target.closest("[data-etapa-livre]")) return;
       const b = e.target.closest && e.target.closest("button, input[type=checkbox], input[type=radio], input[type=file], input[type=submit], a[download]");
       if (!b) return;
       const txt = (b.textContent || b.value || b.title || "") + " " + (b.getAttribute("aria-label") || "");
@@ -19,9 +21,10 @@ export default function EtapaFechada({ prazo, titulo, onSuporte, children }) {
     };
     const aoDigitar = (e) => {
       const t = e.target;
+      if (t && t.closest && t.closest("[data-etapa-livre]")) return;
       if (t && (t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !["checkbox", "radio", "button"].includes(t.type)))) { e.preventDefault(); e.stopPropagation(); dizer(); }
     };
-    const aoEnviarForm = (e) => { e.preventDefault(); e.stopPropagation(); dizer(); };
+    const aoEnviarForm = (e) => { if (e.target.closest && e.target.closest("[data-etapa-livre]")) return; e.preventDefault(); e.stopPropagation(); dizer(); };
     el.addEventListener("click", aoClicar, true);
     el.addEventListener("beforeinput", aoDigitar, true);
     el.addEventListener("paste", aoDigitar, true);
@@ -40,7 +43,7 @@ export default function EtapaFechada({ prazo, titulo, onSuporte, children }) {
       <div className="panel" role="status" style={{ borderWidth: 2, borderColor: "var(--amber, #9c6b1f)", marginBottom: 14 }}>
         <div className="panel-body">
           <b style={{ fontSize: "1.05rem" }}>🔒 Etapa encerrada{dt ? " em " + dt : ""}{titulo ? " · " + titulo : ""}</b>
-          <div style={{ marginTop: 4 }}>O prazo desta etapa terminou. Você pode <b>consultar</b> o que fez, mas não digita, envia nem exclui mais nada. O professor está corrigindo e vai publicar o seu relatório e a sua nota. Nada do que você fez foi apagado.</div>
+          <div style={{ marginTop: 4 }}>O prazo desta etapa terminou. Você pode <b>consultar</b> o que fez, mas não digita, envia nem exclui mais nada. O professor está corrigindo e vai publicar o seu relatório e a sua nota. Nada do que você fez foi apagado.{livreFolha ? " Os lançamentos da folha e da rescisão continuam abertos até o prazo da etapa deles." : ""}</div>
           {onSuporte && <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={onSuporte}>Falar com o professor (Suporte)</button></div>}
           {aviso && <div className="helper-note" style={{ marginTop: 8 }} aria-live="polite">{aviso}</div>}
         </div>

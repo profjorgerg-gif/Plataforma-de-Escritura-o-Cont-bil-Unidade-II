@@ -38,7 +38,7 @@ export function TabelaFolhaEncargos() {
             <tr><td style={td}>Salário mínimo (base da insalubridade)</td><td style={num}>R$ {brl(P.salarioMinimo)}</td></tr>
             <tr><td style={td}>Adicional de insalubridade (AI)</td><td style={num}>10%, 20% ou 40% do salário mínimo</td></tr>
             <tr><td style={td}>Adicional de periculosidade (AP)</td><td style={num}>30% do salário-base</td></tr>
-            <tr><td style={td}>Hora trabalhada integrada (HTI)</td><td style={num}>(salário + adicional) ÷ {P.cargaHoraria}</td></tr>
+            <tr><td style={td}>Hora trabalhada integrada (HTI)</td><td style={num}>(salário + adicional) ÷ {P.cargaHoraria} · não arredonde: use 4 casas (ex.: 16,6459)</td></tr>
             <tr><td style={td}>Vale-transporte (desconto do empregado)</td><td style={num}>{T.vtPercentual}% do salário-base</td></tr>
             <tr><td style={td}>Falta injustificada (dia)</td><td style={num}>(SB + AF) ÷ 30</td></tr>
             <tr><td style={td}>DSR fixo perdido (por semana com falta)</td><td style={num}>(SB + AF) ÷ 30</td></tr>

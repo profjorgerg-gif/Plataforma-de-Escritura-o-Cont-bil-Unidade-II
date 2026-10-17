@@ -44,8 +44,8 @@ export function reducaoIRRF(rendTributavel, imposto, t = T) {
 }
 
 // emp: { salario, adicional:{tipo:"AI"|"AP"|null,pct}, he50, he100, hen50, hen100, faltas, dependentes, filhos14, vt:boolean, vtCusto }
-export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO) {
-  const e = calcularEmpregado(emp, p);
+export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO, casasHTI) {
+  const e = calcularEmpregado(emp, p, casasHTI);
   const faltas = Number(emp.faltas) || 0;
   // Falta injustificada: perde o dia e, em cada SEMANA com falta, a remuneração do repouso semanal (Lei 605/1949, art. 6º).
   // Duas faltas na mesma semana = 2 dias + 1 repouso. Em semanas diferentes = 2 dias + 2 repousos.
@@ -101,7 +101,7 @@ export function empregadoDeCampos(get) {
 }
 
 export const PASSOS_CONTRACHEQUE = [
-  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
+  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. Não arredonde a HTI: use 4 casas (ex.: 16,6459). Se arredondar para centavos, o sistema também confere, mas o resultado muda em centavos. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
   { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis) × repousos perdidos. Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },
@@ -123,10 +123,24 @@ export function valorDoCampo(fp, id, campo, base) {
 
 // Situação de um empregado: { iniciado, passos:[{k,ok,digitado}], acertos, concluido }
 // base (opcional) = dados do enunciado do empregado (casoDoEmpregado), usados enquanto o aluno não alterar o campo.
-export function situacaoEmpregado(fp, id, t = T, base = null) {
+// Escolhe o contracheque de referência: o do gabarito (HTI sem arredondar) ou o da HTI arredondada pelo aluno (4, 3 ou 2 casas),
+// o que mais combina com o que o aluno digitou (empata: vale o do gabarito). digitados = { k: número|null } de cada passo.
+export function contrachequeConferido(emp, digitados, t = T, p = PARAMETROS_PADRAO) {
+  const dig = digitados && typeof digitados === "object" ? digitados : {};
+  let melhor = null;
+  for (const casas of [undefined, 4, 3, 2]) {
+    const c = calcularContracheque(emp, t, p, casas);
+    const ac = PASSOS_CONTRACHEQUE.filter((ps) => dig[ps.k] !== null && dig[ps.k] !== undefined && Math.abs(dig[ps.k] - ps.v(c)) <= TOLERANCIA_PEDAGOGICA).length;
+    if (!melhor || ac > melhor.ac) melhor = { c, casas: casas === undefined ? null : casas, ac };
+  }
+  return melhor;
+}
+export const digitadosDe = (fp, id) => Object.fromEntries(PASSOS_CONTRACHEQUE.map((ps) => [ps.k, num(((fp || {})[id + "__m_" + ps.k]) ?? "")]));
+
+export function situacaoEmpregado(fp, id, t = T, base = null, p = PARAMETROS_PADRAO) {
   const get = (c) => valorDoCampo(fp, id, c, base);
   const salario = num(get("salario"));
-  const c = calcularContracheque(empregadoDeCampos(get), t);
+  const c = contrachequeConferido(empregadoDeCampos(get), digitadosDe(fp, id), t, p).c;
   const passos = PASSOS_CONTRACHEQUE.map((p) => {
     const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
     return { k: p.k, digitado: d !== null, ok: d !== null && Math.abs(d - p.v(c)) <= TOLERANCIA_PEDAGOGICA };
@@ -136,24 +150,24 @@ export function situacaoEmpregado(fp, id, t = T, base = null) {
 }
 
 // Conferência detalhada (tela do professor): dados usados, valor correto e valor digitado de cada linha.
-export function detalheEmpregado(fp, id, t = T, base = null) {
+export function detalheEmpregado(fp, id, t = T, base = null, p = PARAMETROS_PADRAO) {
   const get = (c) => valorDoCampo(fp, id, c, base);
-  const c = calcularContracheque(empregadoDeCampos(get), t);
+  const c = contrachequeConferido(empregadoDeCampos(get), digitadosDe(fp, id), t, p).c;
   const linhas = PASSOS_CONTRACHEQUE.map((p) => {
     const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
     const esperado = p.v(c);
     return { k: p.k, nome: p.nome, esperado, digitado: d, ok: d !== null && Math.abs(d - esperado) <= TOLERANCIA_PEDAGOGICA };
   });
   const dados = Object.fromEntries(CAMPOS_EMPREGADO.map((k) => [k, get(k)]));
-  return { dados, linhas, acertos: linhas.filter((l) => l.ok).length, ...situacaoEmpregado(fp, id, t, base) };
+  return { dados, linhas, acertos: linhas.filter((l) => l.ok).length, ...situacaoEmpregado(fp, id, t, base, p) };
 }
 
 // Resumo da atividade do aluno: contracheques concluídos, aproveitamento dos cálculos e notas automáticas (0 a 10).
 // O mínimo é automático: um contracheque por empregado da lista (= número de alunos da turma). baseDe(id) devolve o enunciado do empregado.
-export function resumoAtividade(fp, ids, minimo, baseDe) {
+export function resumoAtividade(fp, ids, minimo, baseDe, p = PARAMETROS_PADRAO) {
   let concluidos = 0, tentados = 0, acertos = 0, total = 0;
   ids.forEach((id) => {
-    const s = situacaoEmpregado(fp, id, T, baseDe ? baseDe(id) : null);
+    const s = situacaoEmpregado(fp, id, T, baseDe ? baseDe(id) : null, p);
     if (s.iniciado) { tentados++; acertos += s.acertos; total += s.passos.length; }
     if (s.concluido) concluidos++;
   });

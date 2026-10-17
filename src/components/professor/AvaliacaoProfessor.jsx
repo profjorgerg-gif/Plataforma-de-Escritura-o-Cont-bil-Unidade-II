@@ -97,8 +97,8 @@ export default function AvaliacaoProfessor({ turma }) {
 
   function sugestoes(a) {
     if (etapaId === "fp") {
-      const comp = folhaEmUso(ca.folha).competencia;
-      const r = resumoAtividade(((trabCa || {})[a.matricula] || {}).fp || {}, ids, ids.length, (id) => casoDoEmpregado(a.matricula, id, comp, opcoesDoEmpregado(ca.config, id)));
+      const { competencia: comp, parametros: parFolha } = folhaEmUso(ca.folha);
+      const r = resumoAtividade(((trabCa || {})[a.matricula] || {}).fp || {}, ids, ids.length, (id) => casoDoEmpregado(a.matricula, id, comp, opcoesDoEmpregado(ca.config, id)), parFolha);
       return { calculos: r.notaCalculos, quantidade: r.notaQuantidade };
     }
     return sugestaoEtapa(etapaId, {

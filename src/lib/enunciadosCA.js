@@ -64,7 +64,8 @@ export function textoDoCaso(nome, caso, competencia, obs) {
   if (n0(caso.hen100)) he.push(`${caso.hen100} h extras noturnas a 100%`);
   L.push(he.length ? `No mês fez ${listaE(he)}.` : "No mês não fez horas extras.");
   const f = n0(caso.faltas);
-  L.push(f ? `Teve ${f} falta${f > 1 ? "s" : ""} injustificada${f > 1 ? "s" : ""}.` : "Não teve faltas.");
+  // 2 ou mais faltas: o texto diz que foram em semanas diferentes (é o que o sistema considera quando o campo "semanas com falta" fica vazio)
+  L.push(f ? `Teve ${f} falta${f > 1 ? "s" : ""} injustificada${f > 1 ? "s" : ""}${f > 1 && String(caso.sem ?? "").trim() === "" ? ", em semanas diferentes" : ""}.` : "Não teve faltas.");
   const d = n0(caso.dep), fi = n0(caso.filhos);
   L.push(`Tem ${d} dependente${d === 1 ? "" : "s"} para o IRRF${d ? ` (${fi} filho${fi === 1 ? "" : "s"} até 14 anos)` : ""}.`);
   L.push(caso.vt ? `Optou pelo vale-transporte (custo mensal de R$ ${caso.vtCusto}).` : "Não optou pelo vale-transporte.");
