@@ -237,6 +237,23 @@ export function conferirAluno(enviados, todosDoAluno, catalogo) {
     }
     res[l.id] = conferirUm(l, porId(l.documento), dup);
   });
+  // 2026-10-17 — venda com ICMS / PIS-COFINS destacados na nota precisa dos lançamentos de dedução da receita (4.2.01 / 4.2.02).
+  // (CMV NÃO é cobrado nesta turma: sem controle de estoque. Nas próximas turmas entra a regra do CMV.)
+  const doAluno = todosDoAluno.filter(ocupa);
+  ord.forEach((l) => {
+    const r = res[l.id];
+    if (!r || r.estado === "no" || !l.documento) return;
+    const doc = porId(l.documento);
+    if (!doc || doc.direcao !== "saida" || !tiposDoLancamento(l).includes("venda")) return;
+    if (r.motivo && /duplicad/i.test(r.motivo)) return;
+    const g = gab(doc);
+    const mesmos = doAluno.filter((x) => x.documento === l.documento).flatMap((x) => tiposDoLancamento(x));
+    const falta = [];
+    if (g.icms > 0 && !mesmos.includes("icms")) falta.push("ICMS (D 4.2.01 / C 2.1.8.04)");
+    if ((g.pis > 0 || g.cofins > 0) && !mesmos.some((t) => t === "pisCofins" || t === "pis" || t === "cofins")) falta.push("PIS/COFINS (D 4.2.02 / C 2.1.8.05 e 2.1.8.06)");
+    if (!falta.length) return;
+    res[l.id] = comCaminho({ estado: "no", motivo: "venda sem a dedução dos impostos da nota: falta lançar " + falta.join(" e "), acao: "Lance, em lançamento separado desta mesma nota, a dedução da receita: " + falta.join("; ") + "." + GUIA });
+  });
   return res;
 }
 

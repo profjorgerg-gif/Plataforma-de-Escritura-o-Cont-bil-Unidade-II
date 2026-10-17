@@ -42,6 +42,7 @@ export default function GuiaLancamentos({ professor = false }) {
           <div style={{ border: "1px solid var(--line)", padding: "10px 12px", minWidth: 0 }}><b>Venda de mercadoria.</b> O imposto da nota é <b>a recolher</b> (passivo) e aparece também como <b>dedução</b> da receita. O cliente deve o valor total da nota.</div>
         </div>
         <p style={{ margin: "10px 0 0" }}><b>Nesta etapa, toda compra e toda venda é a prazo.</b> Na compra o crédito vai para Duplicatas a Pagar, e na venda o débito vai para Duplicatas a Receber. Nunca use Caixa ou Banco nesses lançamentos.</p>
+        <p style={{ margin: "6px 0 0" }}><b>Impostos da venda:</b> o ICMS e o PIS/COFINS destacados na nota de venda devem ser lançados, sempre, como dedução da receita (4.2.01 e 4.2.02), em lançamento separado da mesma nota. <b>CMV:</b> nesta turma não há controle de estoque, então não lance o CMV.</p>
       </Bloco>
 
       <Bloco titulo="Compras (nota de entrada)">
