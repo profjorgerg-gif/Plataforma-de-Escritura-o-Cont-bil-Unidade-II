@@ -3,6 +3,7 @@ import { collection, addDoc, doc, updateDoc, deleteDoc, getDocs, onSnapshot, ser
 import { db, auth } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
+import { BotaoGuiaLancamentos } from "../shared/GuiaLancamentos.jsx";
 
 // Status em que o próprio aluno ainda pode editar o lançamento:
 // - rascunho: nunca foi enviado
@@ -325,6 +326,7 @@ export default function LivroDiario({ turmaId, matricula, lancamentos, contas, d
       <div className="screen-eyebrow">08 · livro diário</div>
       <h2 className="screen-title">Livro Diário</h2>
       <p className="screen-sub">Registro cronológico dos fatos contábeis da sua empresa didática. Só é enviado para análise quando débitos e créditos coincidem.</p>
+      <div style={{ marginBottom: 12 }}><BotaoGuiaLancamentos /></div>
       {classificacoesPendentes.length > 0 && (
         <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 18 }}>
           <div className="panel-head" style={{ display: "flex", alignItems: "center", gap: 10 }}>

@@ -92,6 +92,7 @@ import { useTelaLarga } from "../../hooks/useTelaLarga.js";
 import { mesaAlunoLiberada } from "../../lib/mesaAluno.js";
 import AvaliacaoProfessor from "../professor/AvaliacaoProfessor.jsx";
 import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
+import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
 import ParecerFinal from "../aluno/ParecerFinal.jsx";
 import AgbProfessor from "../professor/AgbProfessor.jsx";
@@ -989,6 +990,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       return (
         <TelaComAbas key={screen} inicial={aba || "plano"} abas={[
           { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={perfil.papel} /> },
+          { key: "guia", label: "Guia de lançamentos", render: () => <GuiaLancamentos professor /> },
           { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
         ]} />
       );
@@ -1063,6 +1065,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <ConsultaFiscal />;
   } else if (papelEfetivo === "aluno" && screen === "suporte") {
     tela = <SuporteAluno turmaId={turmaId} matricula={matricula} nome={emTeste ? testeAtivo.nome : meuRegistro?.nome} documentos={documentos || []} />;
+  } else if (papelEfetivo === "aluno" && screen === "guia-lanc") {
+    tela = <GuiaLancamentos />;
   } else if (papelEfetivo === "aluno" && screen === "plano") {
     tela = <PlanoContas contas={esc.contas} papel={papelEfetivo} />;
   } else if (papelEfetivo === "aluno" && screen === "classificacao") {

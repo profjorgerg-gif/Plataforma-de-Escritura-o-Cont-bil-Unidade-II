@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BotaoGuiaLancamentos } from "../shared/GuiaLancamentos.jsx";
 import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
@@ -115,6 +116,7 @@ export default function ClassificacaoContabil({ turmaId, matricula, documentos, 
       <div className="screen-eyebrow">07 · classificação contábil</div>
       <h2 className="screen-title">Classificação do fato contábil</h2>
       <p className="screen-sub">Depois de analisar o documento, identifique o fato contábil e a classificação antes de lançar no Diário. O sistema disponibiliza o Plano de Contas, mas não indica a conta correta.</p>
+      <div style={{ marginBottom: 12 }}><BotaoGuiaLancamentos /></div>
       {!carregandoProgresso && documentosProntos.length === 0 && (
         <div className="helper-note">Nenhum documento disponível ainda para classificar. Complete a Digitação e a Análise fiscal (envie a análise, não só salve o rascunho) de pelo menos um documento em "Digitação e análise fiscal" antes de classificar.</div>
       )}

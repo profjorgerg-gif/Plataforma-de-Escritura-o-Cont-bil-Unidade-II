@@ -107,7 +107,7 @@ export function gruposMenuAlunoPodc({ etapas, incluirManuais, incluirRoteiroTest
       { key: "roteiro", label: "Roteiro do Aluno" },
       ...(incluirManuais ? [{ key: "manual-aluno", label: "Manual do Aluno" }] : []),
     ] },
-    { podc: O, itens: [{ key: "plano", label: "Plano de contas" }, { key: "consulta", label: "Consulta CFOP/NCM" }] },
+    { podc: O, itens: [{ key: "plano", label: "Plano de contas" }, { key: "guia-lanc", label: "Guia de lançamentos" }, { key: "consulta", label: "Consulta CFOP/NCM" }] },
     { podc: D, itens: [], etapas: etapasMenu },
     { podc: C, itens: [
       { key: "dashboard", label: "Meu progresso" },
@@ -138,6 +138,7 @@ export const ABRIR_EM = {
   "dashboard-ciclo": ["notas-aval", "dashboard"],
   plano: ["consultas", "plano"],
   consulta: ["consultas", "cfop"],
+  "guia-lanc": ["consultas", "guia"],
   guia: ["ajuda", "guia"],
   "manual-professor": ["ajuda", "manprof"],
   "manual-aluno": ["ajuda", "manaluno"],
