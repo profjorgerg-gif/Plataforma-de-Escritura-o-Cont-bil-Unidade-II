@@ -177,6 +177,7 @@ export default function CadernoFolha({ turma }) {
   const [modo, setModo] = useState("aluno"); // branco | aluno | todos
   const [mat, setMat] = useState("");
   const [comResp, setComResp] = useState(false);
+  const [horiz, setHoriz] = useState(false); // orientação da página: vertical (padrão) ou horizontal
   const [msg, setMsg] = useState("");
   const [pedido, setPedido] = useState(null);
 
@@ -219,7 +220,7 @@ export default function CadernoFolha({ turma }) {
 
   return (
     <>
-      <style>{CSS}</style>
+      <style>{CSS}{horiz ? ".cf-pg{max-width:1123px}" : ""}</style>
       <div className="screen-eyebrow">materiais · etapas 2 e 3</div>
       <h2 className="screen-title">Caderno da Folha (imprimir)</h2>
       <p className="screen-sub">Orientações, fichas dos empregados e lançamentos das etapas 2 e 3. Cada aluno recebe os casos dele. A lista de empregados são os nomes dos alunos da turma.</p>
@@ -235,6 +236,11 @@ export default function CadernoFolha({ turma }) {
           <span style={{ fontSize: 13 }}>Imprimir:</span>
           {[["branco", "Em branco (sem dados)"], ["aluno", "Um aluno"], ["todos", "Todos os alunos"]].map(([k, t]) => <button key={k} type="button" className={modo === k ? "btn" : "btn ghost"} aria-pressed={modo === k} onClick={() => setModo(k)}>{t}</button>)}
           {modo === "aluno" && <select value={aluno ? aluno.matricula : ""} onChange={(e) => setMat(e.target.value)} style={{ padding: "5px 8px" }}>{lista.map((a) => <option key={a.matricula} value={a.matricula}>{a.nome}</option>)}</select>}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} role="group" aria-label="Orientação da página">
+          <span style={{ fontSize: 13 }}>Página:</span>
+          <button type="button" className={!horiz ? "btn" : "btn ghost"} aria-pressed={!horiz} onClick={() => setHoriz(false)}>▯ Vertical</button>
+          <button type="button" className={horiz ? "btn" : "btn ghost"} aria-pressed={horiz} onClick={() => setHoriz(true)}>▭ Horizontal</button>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} role="group" aria-label="Versão">
           <span style={{ fontSize: 13 }}>Versão:</span>
@@ -253,7 +259,7 @@ export default function CadernoFolha({ turma }) {
       )}
 
       {pedido && createPortal(
-        <div id="imp-caderno-folha"><style>{CSS}</style>{pedido.alvos.map((a, i) => <div key={a ? a.matricula : "b" + i}>{paginas(a)}</div>)}</div>,
+        <div id="imp-caderno-folha"><style>{CSS}{horiz ? "@page{size:A4 landscape;margin:12mm}" : ""}</style>{pedido.alvos.map((a, i) => <div key={a ? a.matricula : "b" + i}>{paginas(a)}</div>)}</div>,
         document.body
       )}
     </>
