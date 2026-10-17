@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CADERNO_PAGINAS } from "../../lib/cadernoPaginas.js";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { htmlCabecalho, lerEscolha, gravarEscolha, lerEscola, lerEscrito } from "../../lib/cabecalhosCadernos.js";
+import EscolhaCabecalho from "./EscolhaCabecalho.jsx";
 
 // Caderno do Aluno para impressão. Só aparece no menu do professor/admin.
 // Conteúdo fixo; a capa sai com nome, turma e matrícula do aluno escolhido (lidos da turma, só leitura).
 const CHAVE_NOME = "caderno.nomeProfessor";
-const CHAVE_CAB = "caderno.cabecalhoEscola";
 const LARGURA = 794; // página A4 a 96 dpi
 const FONTE = "https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&display=swap";
 
@@ -15,18 +16,6 @@ function lerNome(padrao) {
 }
 function esc(t) {
   return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-function lerCab() {
-  try { const v = JSON.parse(window.localStorage.getItem(CHAVE_CAB) || "null"); if (v && typeof v === "object") return { ativo: !!v.ativo, linhas: String(v.linhas || ""), logo: String(v.logo || "") }; } catch (e) { /* sem armazenamento */ }
-  return { ativo: false, linhas: "", logo: "" };
-}
-function htmlCabecalho(c) {
-  const linhas = c.linhas.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 5);
-  if (!linhas.length && !c.logo) return "";
-  // Imagem na largura útil da página (proporcional, centralizada); texto centralizado abaixo dela.
-  const img = c.logo ? '<img src="' + esc(c.logo) + '" alt="" style="display:block;margin:0 auto;width:100%;max-height:118px;object-fit:contain">' : "";
-  const txt = linhas.map((l, i) => '<div style="' + (i === 0 ? "font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;" : "font-size:12.5px;") + 'line-height:1.35">' + esc(l) + "</div>").join("");
-  return '  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border-bottom:3px solid #1B1F1C;padding-bottom:12px">' + img + (txt ? '<div style="width:100%;text-align:center">' + txt + "</div>" : "") + "</div>\n";
 }
 function montar(pagina, d) {
   let h = pagina.html;
@@ -42,8 +31,7 @@ export default function CadernoAluno({ nomePadrao, turma }) {
   const [professor, setProfessor] = useState(() => lerNome(nomePadrao));
   const [modo, setModo] = useState("branco"); // branco | aluno | todos
   const [matricula, setMatricula] = useState("");
-  const [cab, setCab] = useState(lerCab);
-  const [erroLogo, setErroLogo] = useState("");
+  const [escolhaCab, setEscolhaCab] = useState(() => lerEscolha("aluno"));
   const [escala, setEscala] = useState(1);
   const [imprimindo, setImprimindo] = useState(false);
   const caixa = useRef(null);
@@ -86,37 +74,9 @@ export default function CadernoAluno({ nomePadrao, turma }) {
     try { window.localStorage.setItem(CHAVE_NOME, v); } catch (e) { /* ignora */ }
   }
 
-  function mudarCab(novo) {
-    const v = { ...cab, ...novo };
-    setCab(v);
-    try { window.localStorage.setItem(CHAVE_CAB, JSON.stringify(v)); } catch (e) { setErroLogo("Não foi possível guardar o cabeçalho neste navegador (a imagem pode ser grande demais). Ele vale só até recarregar a página."); }
-  }
-  function escolherLogo(ev) {
-    const arq = ev.target.files && ev.target.files[0];
-    ev.target.value = "";
-    if (!arq) return;
-    setErroLogo("");
-    const leitor = new FileReader();
-    leitor.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const f = Math.min(1, 1400 / img.width, 400 / img.height);
-        const c = document.createElement("canvas");
-        c.width = Math.max(1, Math.round(img.width * f)); c.height = Math.max(1, Math.round(img.height * f));
-        const g = c.getContext("2d");
-        g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, c.width, c.height);
-        g.drawImage(img, 0, 0, c.width, c.height);
-        let url = c.toDataURL("image/png");
-        if (url.length > 1500000) url = c.toDataURL("image/jpeg", 0.88);
-        mudarCab({ logo: url, ativo: true });
-      };
-      img.onerror = () => setErroLogo("Não consegui abrir essa imagem. Use PNG ou JPG.");
-      img.src = String(leitor.result);
-    };
-    leitor.onerror = () => setErroLogo("Não consegui ler o arquivo.");
-    leitor.readAsDataURL(arq);
-  }
-  const cabecalhoHtml = cab.ativo ? htmlCabecalho(cab) : "";
+  function mudarEscolhaCab(v) { setEscolhaCab(v); gravarEscolha("aluno", v); }
+  const cabecalhoHtml = htmlCabecalho(escolhaCab); // "" = capa usa a faixa padrão
+  const cabVazio = escolhaCab === "escola" ? !lerEscola().logo && !lerEscola().linhas.trim() : escolhaCab === "escrito" ? !lerEscrito().linhas.trim() : false;
 
   // Quem aparece na capa
   const alunoEscolhido = lista.find((a) => a.matricula === matricula) || null;
@@ -195,24 +155,8 @@ export default function CadernoAluno({ nomePadrao, turma }) {
           <button className="btn" disabled={bloqueia || imprimindo} onClick={imprimir}>🖨️ Imprimir / Salvar PDF</button>
         </div>
         <div style={{ marginTop: 10, border: "1px solid var(--line, #c9c4b4)", borderRadius: 6, padding: 10 }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 600 }}>
-            <input type="checkbox" checked={cab.ativo} onChange={(e) => mudarCab({ ativo: e.target.checked })} /> Cabeçalho da escola na capa (só na capa)
-          </label>
-          {cab.ativo && (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8, alignItems: "flex-start" }}>
-              <div style={{ flex: "2 1 300px" }}>
-                <label>Linhas do cabeçalho (uma por linha, até 5; a primeira sai em destaque)</label>
-                <textarea rows={4} value={cab.linhas} onChange={(e) => mudarCab({ linhas: e.target.value })} placeholder={"Ex.:\nGoverno do Estado\nSecretaria de Estado da Educação\nCEDUP Hermann Hering"} style={{ width: "100%" }} />
-              </div>
-              <div style={{ flex: "1 1 200px" }}>
-                <label>Imagem do cabeçalho: brasão, logotipo ou faixa completa (opcional, PNG ou JPG)</label>
-                <input type="file" accept="image/png,image/jpeg" onChange={escolherLogo} />
-                {cab.logo && <div style={{ marginTop: 6 }}><img src={cab.logo} alt="" style={{ maxHeight: 60, maxWidth: 120 }} /> <button className="btn secondary" onClick={() => mudarCab({ logo: "" })}>Tirar imagem</button></div>}
-              </div>
-            </div>
-          )}
-          {erroLogo && <div style={{ color: "var(--red, #b00020)", fontSize: 13, marginTop: 6 }}>{erroLogo}</div>}
-          <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>A imagem ocupa a largura da página, centralizada, e o texto fica centralizado abaixo dela. O cabeçalho fica guardado só neste navegador e substitui a faixa padrão do topo da capa. Se ficar em branco, a capa usa a faixa padrão.</div>
+          <EscolhaCabecalho value={escolhaCab} onChange={mudarEscolhaCab} vazio={cabVazio} />
+          <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>O cabeçalho sai só na capa e substitui a faixa padrão do topo. Se o escolhido estiver vazio, a capa usa a faixa padrão.</div>
         </div>
         {modo === "todos" && (
           <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>

@@ -186,6 +186,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
     { id: "g-materiais", label: "materiais e ajuda", recolhivel: true, itens: [
       { key: "caderno", label: "Caderno do Aluno (imprimir)" },
       { key: "caderno-folha", label: "Caderno da Folha (imprimir)" },
+      { key: "cabecalhos", label: "Cabeçalho dos cadernos" },
       { key: "planos", label: "Planos semestrais (imprimir)" },
       { key: "descricoes", label: "Descrições para a escola" },
       { key: "roteiro", label: "Roteiro do Aluno" },

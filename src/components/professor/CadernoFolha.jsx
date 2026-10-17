@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { htmlCabecalho, lerEscolha, gravarEscolha, lerNomeProf, lerEscola, lerEscrito } from "../../lib/cabecalhosCadernos.js";
+import EscolhaCabecalho from "./EscolhaCabecalho.jsx";
 import { createPortal } from "react-dom";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, nomeDoMes, CONTAS_NOVAS } from "../../lib/folha.js";
@@ -24,6 +26,10 @@ const CSS = `
 .cf-caso{border:1px solid #1d2630;padding:5px 8px;margin:5px 0;font-size:12px}
 .cf-rod{border-top:1px solid #999;margin-top:10px;padding-top:4px;font-size:10.5px;display:flex;justify-content:space-between;gap:10px}
 .cf-ficha{break-inside:avoid;margin-bottom:12px}
+.cf-capa{padding-top:22px}.cf-capa-t{font:700 13px 'IBM Plex Sans',sans-serif;letter-spacing:.14em;color:#1f5c4a;margin-top:70px}
+.cf-capa-h{font:700 38px Georgia,serif;margin:6px 0 8px}.cf-capa-s{font-size:14px;margin-bottom:46px}
+.cf-capa-c{display:flex;gap:10px;border-bottom:1px solid #777;padding:6px 0;margin:8px 0;font-size:14px}.cf-capa-c b{min-width:110px}
+.cf-capa-v{display:inline-block;border:2px solid #9c1c1c;color:#9c1c1c;padding:3px 10px;font-weight:700;margin-top:22px}
 #imp-caderno-folha{display:none}
 @media print{
   body>*:not(#imp-caderno-folha){display:none!important}
@@ -50,7 +56,7 @@ function Cab({ titulo, sub, aluno, turmaNome, comp, listaEm }) {
 const Rod = ({ esq, dir }) => <div className="cf-rod"><span>{esq}</span><span>{dir}</span></div>;
 
 // Páginas de UM aluno (aluno = null: caderno em branco)
-function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comResp, listaEm }) {
+function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comResp, listaEm, capaCab, professor }) {
   const f = useMemo(() => folhaEmUso(folha), [folha]);
   const comp = nomeDoMes(f.competencia) || f.competencia;
   const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
@@ -70,6 +76,18 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
 
   return (
     <>
+      <div className="cf-pg cf-capa">
+        {capaCab ? <div dangerouslySetInnerHTML={{ __html: capaCab }} /> : null}
+        <div className="cf-capa-t">PROJETO INTERDISCIPLINAR CI–CA–AGB</div>
+        <div className="cf-capa-h">Caderno da Folha</div>
+        <div className="cf-capa-s">Etapas 2 e 3 · Folha de pagamento, provisões e contabilização</div>
+        <div className="cf-capa-c"><b>Aluno(a)</b><span>{aluno ? aluno.nome : ""}</span></div>
+        <div className="cf-capa-c"><b>Matrícula</b><span>{aluno ? aluno.matricula : ""}</span></div>
+        <div className="cf-capa-c"><b>Turma</b><span>{turmaNome}</span></div>
+        <div className="cf-capa-c"><b>Professor</b><span>{professor}</span></div>
+        <div className="cf-capa-c"><b>Competência</b><span>{comp}</span></div>
+        {comResp && <div className="cf-capa-v">VERSÃO DO PROFESSOR · com respostas</div>}
+      </div>
       <div className="cf-pg">
         {cab("Como usar este caderno")}
         <h3>Como usar</h3>
@@ -169,7 +187,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
   );
 }
 
-export default function CadernoFolha({ turma }) {
+export default function CadernoFolha({ turma, nomePadrao }) {
   const tid = turma ? turma.id : null;
   const alunos = useAlunosReaisDaTurma(tid);
   const ca = useCaTurma(tid);
@@ -177,6 +195,7 @@ export default function CadernoFolha({ turma }) {
   const [modo, setModo] = useState("aluno"); // branco | aluno | todos
   const [mat, setMat] = useState("");
   const [comResp, setComResp] = useState(false);
+  const [escolhaCab, setEscolhaCab] = useState(() => lerEscolha("folha"));
   const [horiz, setHoriz] = useState(false); // orientação da página: vertical (padrão) ou horizontal
   const [msg, setMsg] = useState("");
   const [pedido, setPedido] = useState(null);
@@ -215,7 +234,9 @@ export default function CadernoFolha({ turma }) {
 
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (!alunos || ca.config === undefined || ca.folha === undefined) return <div className="empty-state">Carregando…</div>;
-  const comuns = { empregados, cfg, folha: ca.folha, contas, turmaNome: turma.nome || "", comResp, listaEm };
+  const capaCab = htmlCabecalho(escolhaCab);
+  const cabVazio = escolhaCab === "escola" ? !lerEscola().logo && !lerEscola().linhas.trim() : escolhaCab === "escrito" ? !lerEscrito().linhas.trim() : false;
+  const comuns = { capaCab, professor: lerNomeProf(nomePadrao).trim(), empregados, cfg, folha: ca.folha, contas, turmaNome: turma.nome || "", comResp, listaEm };
   const paginas = (a) => <PaginasAluno aluno={a} {...comuns} />;
 
   return (
@@ -237,6 +258,7 @@ export default function CadernoFolha({ turma }) {
           {[["branco", "Em branco (sem dados)"], ["aluno", "Um aluno"], ["todos", "Todos os alunos"]].map(([k, t]) => <button key={k} type="button" className={modo === k ? "btn" : "btn ghost"} aria-pressed={modo === k} onClick={() => setModo(k)}>{t}</button>)}
           {modo === "aluno" && <select value={aluno ? aluno.matricula : ""} onChange={(e) => setMat(e.target.value)} style={{ padding: "5px 8px" }}>{lista.map((a) => <option key={a.matricula} value={a.matricula}>{a.nome}</option>)}</select>}
         </div>
+        <div style={{ marginBottom: 8 }}><EscolhaCabecalho value={escolhaCab} onChange={(v) => { setEscolhaCab(v); gravarEscolha("folha", v); }} vazio={cabVazio} /></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} role="group" aria-label="Orientação da página">
           <span style={{ fontSize: 13 }}>Página:</span>
           <button type="button" className={!horiz ? "btn" : "btn ghost"} aria-pressed={!horiz} onClick={() => setHoriz(false)}>▯ Vertical</button>
