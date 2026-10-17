@@ -69,6 +69,7 @@ import FolhaAtividade from "../aluno/FolhaAtividade.jsx";
 import RoteiroProfessor from "../professor/RoteiroProfessor.jsx";
 import { CronogramaAluno, CronogramaProfessor } from "../shared/Cronograma.jsx";
 import CadernoAluno from "../professor/CadernoAluno.jsx";
+import CadernoFolha from "../professor/CadernoFolha.jsx";
 import DiretrizSemana from "../professor/DiretrizSemana.jsx";
 import PlanosSemestrais from "../professor/PlanosSemestrais.jsx";
 import DescricoesEscola from "../professor/DescricoesEscola.jsx";
@@ -1156,6 +1157,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <PlanosSemestrais turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "diretriz") {
     tela = <DiretrizSemana />;
+  } else if (ehProfessorOuAdmin && screen === "caderno-folha") {
+    tela = <CadernoFolha turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "caderno") {
     tela = <CadernoAluno nomePadrao={(perfil && perfil.nome) || usuario.displayName || ""} turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "aval-prof") {
