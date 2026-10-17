@@ -255,21 +255,26 @@ export default function CadernoFolha({ turma, nomePadrao }) {
         {empregados.length === 0 && <div className="empty-state">A lista de empregados ainda não foi publicada. Clique em "Atualizar lista a partir dos alunos".</div>}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} role="group" aria-label="O que imprimir">
           <span style={{ fontSize: 13 }}>Imprimir:</span>
-          {[["branco", "Em branco (sem dados)"], ["aluno", "Um aluno"], ["todos", "Todos os alunos"]].map(([k, t]) => <button key={k} type="button" className={modo === k ? "btn" : "btn ghost"} aria-pressed={modo === k} onClick={() => setModo(k)}>{t}</button>)}
+          {[["branco", "Em branco (sem dados)"], ["aluno", "Um aluno"], ["todos", "Todos os alunos"]].map(([k, t]) => <button key={k} type="button" className={modo === k ? "btn" : "btn secondary"} aria-pressed={modo === k} onClick={() => setModo(k)}>{t}</button>)}
           {modo === "aluno" && <select value={aluno ? aluno.matricula : ""} onChange={(e) => setMat(e.target.value)} style={{ padding: "5px 8px" }}>{lista.map((a) => <option key={a.matricula} value={a.matricula}>{a.nome}</option>)}</select>}
         </div>
         <div style={{ marginBottom: 8 }}><EscolhaCabecalho value={escolhaCab} onChange={(v) => { setEscolhaCab(v); gravarEscolha("folha", v); }} vazio={cabVazio} /></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} role="group" aria-label="Orientação da página">
           <span style={{ fontSize: 13 }}>Página:</span>
-          <button type="button" className={!horiz ? "btn" : "btn ghost"} aria-pressed={!horiz} onClick={() => setHoriz(false)}>▯ Vertical</button>
-          <button type="button" className={horiz ? "btn" : "btn ghost"} aria-pressed={horiz} onClick={() => setHoriz(true)}>▭ Horizontal</button>
+          <button type="button" className={!horiz ? "btn" : "btn secondary"} aria-pressed={!horiz} onClick={() => setHoriz(false)}>▯ Vertical</button>
+          <button type="button" className={horiz ? "btn" : "btn secondary"} aria-pressed={horiz} onClick={() => setHoriz(true)}>▭ Horizontal</button>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} role="group" aria-label="Versão">
           <span style={{ fontSize: 13 }}>Versão:</span>
-          <button type="button" className={!comResp ? "btn" : "btn ghost"} aria-pressed={!comResp} onClick={() => setComResp(false)}>Do aluno (sem respostas)</button>
-          <button type="button" className={comResp ? "btn" : "btn ghost"} aria-pressed={comResp} onClick={() => setComResp(true)}>Do professor (com respostas)</button>
+          <button type="button" className={!comResp ? "btn" : "btn secondary"} aria-pressed={!comResp} onClick={() => setComResp(false)}>Do aluno (sem respostas)</button>
+          <button type="button" className={comResp ? "btn" : "btn secondary"} aria-pressed={comResp} onClick={() => setComResp(true)}>Do professor (com respostas)</button>
           <button type="button" className="btn green" disabled={empregados.length === 0 || (modo !== "branco" && lista.length === 0)} onClick={imprimir}>🖨 Imprimir / salvar PDF</button>
         </div>
+        <p style={{ margin: "10px 0 0", padding: "6px 10px", background: "var(--green-pale, #e4eee9)", fontSize: 13.5 }} aria-live="polite">
+          <b>Será impresso:</b> {modo === "branco" ? "caderno em branco" : modo === "todos" ? "todos os alunos (" + lista.length + ")" : "caderno de " + (aluno ? aluno.nome : "—")}
+          {" · cabeçalho: " + (escolhaCab === "escola" ? "da escola" : escolhaCab === "escrito" ? "escrito" : "sem cabeçalho")}
+          {" · página " + (horiz ? "horizontal" : "vertical")}{" · versão " + (comResp ? "do professor (com respostas)" : "do aluno (sem respostas)")}
+        </p>
         {comResp && <p style={{ fontSize: 13, color: "var(--amber, #8a5a00)", margin: "8px 0 0" }}>A versão do professor traz o valor certo de cada linha. Não entregue esta versão aos alunos.</p>}
       </div></div>
 

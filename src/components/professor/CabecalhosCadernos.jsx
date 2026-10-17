@@ -48,7 +48,7 @@ export default function CabecalhosCadernos({ nomePadrao }) {
           <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>🏫 Cabeçalho da escola</h3>
           <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--ink-soft)" }}>Imagem (brasão, logotipo ou faixa completa, PNG ou JPG) e até 5 linhas de texto; a primeira sai em destaque.</p>
           <input type="file" accept="image/png,image/jpeg" onChange={escolherLogo} />
-          {escola.logo && <div style={{ marginTop: 6 }}><img src={escola.logo} alt="" style={{ maxHeight: 60, maxWidth: 160 }} /> <button type="button" className="btn ghost" onClick={() => mudarEscola({ logo: "" })}>Tirar imagem</button></div>}
+          {escola.logo && <div style={{ marginTop: 6 }}><img src={escola.logo} alt="" style={{ maxHeight: 60, maxWidth: 160 }} /> <button type="button" className="btn secondary" onClick={() => mudarEscola({ logo: "" })}>Tirar imagem</button></div>}
           <textarea rows={4} value={escola.linhas} onChange={(e) => mudarEscola({ linhas: e.target.value })} placeholder={"Ex.:\nGoverno do Estado\nSecretaria de Estado da Educação\nCEDUP Hermann Hering"} style={{ width: "100%", boxSizing: "border-box", marginTop: 8 }} />
         </div>
         <div style={box}>

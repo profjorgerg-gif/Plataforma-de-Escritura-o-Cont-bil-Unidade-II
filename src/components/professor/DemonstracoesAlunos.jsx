@@ -196,8 +196,8 @@ function Visor({ x, aba, lancs, contas, onDrill, razaoCompleto, setRazaoCompleto
     <>
       {aba === 1 && !x.sd && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }} role="group" aria-label="Modo do Razão">
-          <button type="button" className={!razaoCompleto ? "btn" : "btn ghost"} aria-pressed={!razaoCompleto} onClick={() => setRazaoCompleto(false)}>Uma conta</button>
-          <button type="button" className={razaoCompleto ? "btn" : "btn ghost"} aria-pressed={razaoCompleto} onClick={() => setRazaoCompleto(true)}>Razão completo (todas as contas)</button>
+          <button type="button" className={!razaoCompleto ? "btn" : "btn secondary"} aria-pressed={!razaoCompleto} onClick={() => setRazaoCompleto(false)}>Uma conta</button>
+          <button type="button" className={razaoCompleto ? "btn" : "btn secondary"} aria-pressed={razaoCompleto} onClick={() => setRazaoCompleto(true)}>Razão completo (todas as contas)</button>
         </div>
       )}
       <Demonstrativo idx={aba} mont={mont} lancs={lancs} contas={contas} razaoCompleto={razaoCompleto} onDrill={onDrill} />
@@ -337,7 +337,7 @@ export default function DemonstracoesAlunos({ turma }) {
         <div className="panel-body">
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }} role="group" aria-label="Filtrar alunos">
             {filtros.map(([k, t]) => (
-              <button key={k} type="button" className={filtro === k ? "btn" : "btn ghost"} aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{t}</button>
+              <button key={k} type="button" className={filtro === k ? "btn" : "btn secondary"} aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{t}</button>
             ))}
           </div>
           <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 8, display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -395,11 +395,11 @@ export default function DemonstracoesAlunos({ turma }) {
                 <ul>{avisos(x).map((t) => <li key={t}>{t}</li>)}</ul>
                 <h3>Ver como o aluno vê</h3>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }} role="group" aria-label="Demonstração">
-                  {ABAS.map((n, i) => <button key={n} type="button" className={aba === i ? "btn" : "btn ghost"} aria-pressed={aba === i} onClick={() => setAba(i)}>{n}</button>)}
+                  {ABAS.map((n, i) => <button key={n} type="button" className={aba === i ? "btn" : "btn secondary"} aria-pressed={aba === i} onClick={() => setAba(i)}>{n}</button>)}
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 8px" }}>
-                  <button type="button" className="btn ghost" onClick={() => setImpressao({ idxs: [aba], n: Date.now() })} title="Abre a caixa de impressão: escolha a impressora ou Salvar como PDF">🖨 Imprimir / salvar PDF: só esta demonstração</button>
-                  <button type="button" className="btn ghost" onClick={() => setImpressao({ idxs: [0, 1, 2, 3, 4, 5], n: Date.now() })} title="As 6 demonstrações do aluno, cada uma em página nova">🖨 Imprimir / salvar PDF: todas as 6 do aluno</button>
+                  <button type="button" className="btn secondary" onClick={() => setImpressao({ idxs: [aba], n: Date.now() })} title="Abre a caixa de impressão: escolha a impressora ou Salvar como PDF">🖨 Imprimir / salvar PDF: só esta demonstração</button>
+                  <button type="button" className="btn secondary" onClick={() => setImpressao({ idxs: [0, 1, 2, 3, 4, 5], n: Date.now() })} title="As 6 demonstrações do aluno, cada uma em página nova">🖨 Imprimir / salvar PDF: todas as 6 do aluno</button>
                 </div>
                 <Visor x={x} aba={aba} lancs={porMatricula[x.aluno.matricula]} contas={contas} onDrill={setDrill} razaoCompleto={razaoCompleto} setRazaoCompleto={setRazaoCompleto} />
                 {impressao && <Impressao pedido={impressao} aluno={x.aluno} turmaNome={turma.nome} x={x} lancs={porMatricula[x.aluno.matricula]} contas={contas} onFim={() => setImpressao(null)} />}

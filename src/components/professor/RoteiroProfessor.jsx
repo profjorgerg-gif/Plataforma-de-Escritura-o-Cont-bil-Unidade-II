@@ -190,8 +190,8 @@ function ProventosPorEmpregado({ turma, empregados, cfg }) {
         </table>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0 6px" }}>
-        <button type="button" className="btn ghost" onClick={() => { todos("he50", "sim"); todos("he100", "sim"); }}>HE 50% e 100% = Sim para todos</button>
-        <button type="button" className="btn ghost" onClick={() => CAMPOS_PROV.forEach(([k]) => todos(k, "auto"))}>Tudo em Automático</button>
+        <button type="button" className="btn secondary" onClick={() => { todos("he50", "sim"); todos("he100", "sim"); }}>HE 50% e 100% = Sim para todos</button>
+        <button type="button" className="btn secondary" onClick={() => CAMPOS_PROV.forEach(([k]) => todos(k, "auto"))}>Tudo em Automático</button>
         <button type="button" className="btn green" onClick={salvar}>Salvar escolhas</button>
         {msg && <span style={{ fontSize: 13, alignSelf: "center" }}>{msg}</span>}
       </div>
