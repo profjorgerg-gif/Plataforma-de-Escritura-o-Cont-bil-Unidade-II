@@ -51,7 +51,13 @@ export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO) {
   // Duas faltas na mesma semana = 2 dias + 1 repouso. Em semanas diferentes = 2 dias + 2 repousos.
   // emp.semanasComFalta (padrão = número de faltas, isto é, cada falta em uma semana) não pode passar de faltas.
   const semanas = Math.min(faltas, emp.semanasComFalta === undefined || emp.semanasComFalta === "" ? faltas : Number(emp.semanasComFalta) || 0);
-  const descFaltas = arred((e.salario / 30) * (faltas + semanas));
+  // Critério didático do projeto (3 partes): (1) dia de falta = [(SB + AF) ÷ 30] × faltas; (2) DSR fixo perdido = [(SB + AF) ÷ 30] × DSR perdidos;
+  // (3) reflexo na remuneração variável = (RV ÷ Du) × DSR perdidos. SB = salário-base, AF = adicional fixo, RV = horas extras, Du = dias úteis.
+  const diaFixo = (e.salario + e.adicional) / 30;
+  const descDias = arred(diaFixo * faltas);
+  const descDsrFixo = arred(diaFixo * semanas);
+  const descDsrVar = arred((e.horasExtras / p.diasUteisDSR) * semanas);
+  const descFaltas = arred(descDias + descDsrFixo + descDsrVar);
   const remuneracao = arred(e.bruta - descFaltas); // base de INSS e rendimento tributável
   const inss = calcularINSS(remuneracao, t);
   const dep = Number(emp.dependentes) || 0;
@@ -69,7 +75,7 @@ export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO) {
   const descontos = arred(descFaltas + inss + irrf + vt);
   const liquido = arred(proventos - descontos);
   const fgts = arred(remuneracao * t.fgtsPercentual / 100);
-  return { ...e, descFaltas, remuneracao, inss, deducaoLegal, usaSimplificado, deducao, baseIR, aliqIR: fx.aliq, parcelaIR: fx.ded, impostoTabela: fx.imposto, reducao, irrf, salFamilia, vt, proventos, descontos, liquido, fgts };
+  return { ...e, descFaltas, descDias, descDsrFixo, descDsrVar, semanasPerdidas: semanas, remuneracao, inss, deducaoLegal, usaSimplificado, deducao, baseIR, aliqIR: fx.aliq, parcelaIR: fx.ded, impostoTabela: fx.imposto, reducao, irrf, salFamilia, vt, proventos, descontos, liquido, fgts };
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +102,7 @@ export function empregadoDeCampos(get) {
 
 export const PASSOS_CONTRACHEQUE = [
   { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
-  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "Salário ÷ 30 × (faltas + semanas com falta). Duas faltas na mesma semana: 2 dias + 1 repouso.", v: (c) => c.descFaltas },
+  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis) × repousos perdidos. Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },
   { k: "irrf", nome: "(−) IRRF, já com a redução da Lei 15.270/2025", como: "Imposto pela tabela (após deduções) − redução. A redução usa o rendimento tributável SEM descontar o INSS.", v: (c) => c.irrf },

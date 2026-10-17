@@ -55,7 +55,14 @@ export function GabaritoEmpregado({ emp, c, p }) {
         <L forte t={`Remuneração bruta: ${brl(c.salario)} + ${brl(c.adicional)} + ${brl(c.horasExtras)} + ${brl(c.dsr)}`} v={brl(c.bruta)} />
       </Sec>
       <Sec titulo="2. Faltas injustificadas">
-        {faltas > 0 ? <L t={`${faltas} falta(s) + ${sem} repouso(s) perdido(s) = ${faltas + sem} dias × (${brl(c.salario)} ÷ 30)`} v={brl(c.descFaltas)} /> : <L t="Não teve faltas" v="0,00" />}
+        {faltas > 0 ? (
+          <>
+            <L t={`Dia(s) de falta: [(${brl(c.salario)} + ${brl(c.adicional)}) ÷ 30] × ${faltas}`} v={brl(c.descDias)} />
+            <L t={`DSR fixo perdido: [(${brl(c.salario)} + ${brl(c.adicional)}) ÷ 30] × ${sem}`} v={brl(c.descDsrFixo)} />
+            <L t={`Reflexo na remuneração variável: (${brl(c.horasExtras)} ÷ ${p.diasUteisDSR}) × ${sem}`} v={brl(c.descDsrVar)} />
+            <L forte t="Total das faltas" v={brl(c.descFaltas)} />
+          </>
+        ) : <L t="Não teve faltas" v="0,00" />}
         <L forte t={`Remuneração tributável: ${brl(c.bruta)} − ${brl(c.descFaltas)}`} v={brl(c.remuneracao)} />
       </Sec>
       <Sec titulo="3. INSS do empregado (por faixa; cada faixa truncada em 2 casas)">

@@ -119,7 +119,7 @@ export default function TabelasInssIrrf() {
         <Tabela cab={["Passo", "Fórmula"]}>
           {[
             ["1. Remuneração bruta", "salário + adicional + horas extras + DSR das horas extras"],
-            ["2. Faltas injustificadas", "salário ÷ 30 × (faltas + semanas com falta). Falta na semana também perde o repouso."],
+            ["2. Faltas injustificadas", "(a) [(salário + adicional) ÷ 30] × faltas + (b) [(salário + adicional) ÷ 30] × repousos perdidos + (c) (horas extras ÷ dias úteis) × repousos perdidos. Falta na semana também perde o repouso (critério didático do projeto)."],
             ["3. Remuneração tributável", "remuneração bruta − faltas (é a base do INSS)"],
             ["4. INSS do empregado", "Forma 1: Σ (parte da base em cada faixa × alíquota). Forma 2: base × alíquota − parcela a deduzir. Base limitada ao teto de " + brl(teto) + "."],
             ["5. Parte da faixa", "mín(base; limite da faixa) − limite da faixa anterior"],

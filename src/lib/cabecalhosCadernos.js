@@ -12,6 +12,13 @@ export const CADERNOS_COM_CAPA = [
 ];
 export const ESCOLHAS = [["escola", "🏫 Da escola"], ["escrito", "✍ Escrito"], ["nenhum", "Sem cabeçalho"]];
 
+// Turmas do PI: uma por disciplina (CI, CA e AGB), digitadas em Organização → Turmas. Sem nenhuma, usa o nome da turma.
+export function turmasDoPI(turma) {
+  const t = turma || {};
+  const ds = [["CI", t.turmaCI], ["CA", t.turmaCA], ["AGB", t.turmaAGB]].filter((x) => String(x[1] || "").trim()).map((x) => ({ sigla: x[0], nome: String(x[1]).trim() }));
+  return ds.length ? ds : [{ sigla: "", nome: String(t.nome || "") }];
+}
+
 export function esc(t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function ler(k) { try { return JSON.parse(window.localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function gravar(k, v) { try { window.localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); return true; } catch (e) { return false; } }

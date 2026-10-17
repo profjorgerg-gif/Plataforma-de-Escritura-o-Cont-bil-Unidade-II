@@ -40,6 +40,9 @@ export function TabelaFolhaEncargos() {
             <tr><td style={td}>Adicional de periculosidade (AP)</td><td style={num}>30% do salário-base</td></tr>
             <tr><td style={td}>Hora trabalhada integrada (HTI)</td><td style={num}>(salário + adicional) ÷ {P.cargaHoraria}</td></tr>
             <tr><td style={td}>Vale-transporte (desconto do empregado)</td><td style={num}>{T.vtPercentual}% do salário-base</td></tr>
+            <tr><td style={td}>Falta injustificada (dia)</td><td style={num}>(SB + AF) ÷ 30</td></tr>
+            <tr><td style={td}>DSR fixo perdido (por semana com falta)</td><td style={num}>(SB + AF) ÷ 30</td></tr>
+            <tr><td style={td}>Reflexo na remuneração variável</td><td style={num}>(RV ÷ {P.diasUteisDSR}) por DSR perdido</td></tr>
             <tr><td style={td}>Salário-família (por filho até 14 anos)</td><td style={num}>R$ {brl(T.salarioFamilia.cota)}</td></tr>
             <tr><td style={td}>Limite do salário-família</td><td style={num}>R$ {brl(T.salarioFamilia.limite)}</td></tr>
           </Tabela>

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { htmlCabecalho, lerEscolha, gravarEscolha, lerNomeProf, lerEscola, lerEscrito } from "../../lib/cabecalhosCadernos.js";
+import { htmlCabecalho, turmasDoPI, lerEscolha, gravarEscolha, lerNomeProf, lerEscola, lerEscrito } from "../../lib/cabecalhosCadernos.js";
 import EscolhaCabecalho from "./EscolhaCabecalho.jsx";
 import { GabaritoEmpregado, GabaritoEtapa3 } from "./GabaritoCalculos.jsx";
 import { createPortal } from "react-dom";
@@ -50,7 +50,7 @@ function nomeConta(cod, contas) {
 function Cab({ titulo, sub, aluno, turmaNome, comp, listaEm }) {
   return (
     <div className="cf-cab">
-      <div><b>Projeto Interdisciplinar CI–CA–AGB · Caderno da Folha</b><br />{titulo}{sub ? " · " + sub : ""}<br />Turma {turmaNome} · competência {comp}</div>
+      <div><b>Projeto Interdisciplinar CI–CA–AGB · Caderno da Folha</b><br />{titulo}{sub ? " · " + sub : ""}<br />{turmaNome} · competência {comp}</div>
       <div style={{ textAlign: "right" }}><b>{aluno ? aluno.nome : "Aluno: ____________________"}</b><br />Matrícula {aluno ? aluno.matricula : "____________"}<br />Lista de {listaEm}</div>
     </div>
   );
@@ -58,7 +58,7 @@ function Cab({ titulo, sub, aluno, turmaNome, comp, listaEm }) {
 const Rod = ({ esq, dir }) => <div className="cf-rod"><span>{esq}</span><span>{dir}</span></div>;
 
 // Páginas de UM aluno (aluno = null: caderno em branco)
-function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comResp, listaEm, capaCab, professor }) {
+function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmasPI, comResp, listaEm, capaCab, professor }) {
   const f = useMemo(() => folhaEmUso(folha), [folha]);
   const comp = nomeDoMes(f.competencia) || f.competencia;
   const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
@@ -91,7 +91,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, comRes
         <div className="cf-capa-s">Etapas 2 e 3 · Folha de pagamento, provisões e contabilização</div>
         <div className="cf-capa-c"><b>Aluno(a)</b><span>{aluno ? aluno.nome : ""}</span></div>
         <div className="cf-capa-c"><b>Matrícula</b><span>{aluno ? aluno.matricula : ""}</span></div>
-        <div className="cf-capa-c"><b>Turma</b><span>{turmaNome}</span></div>
+        {turmasPI.map((x) => <div className="cf-capa-c" key={x.sigla || "t"}><b>{x.sigla ? "Turma " + x.sigla : "Turma"}</b><span>{x.nome}</span></div>)}
         <div className="cf-capa-c"><b>Professor</b><span>{professor}</span></div>
         <div className="cf-capa-c"><b>Competência</b><span>{comp}</span></div>
         {comResp && <div className="cf-capa-v">VERSÃO DO PROFESSOR · com respostas</div>}
@@ -263,7 +263,7 @@ export default function CadernoFolha({ turma, nomePadrao }) {
   if (!alunos || ca.config === undefined || ca.folha === undefined) return <div className="empty-state">Carregando…</div>;
   const capaCab = htmlCabecalho(escolhaCab);
   const cabVazio = escolhaCab === "escola" ? !lerEscola().logo && !lerEscola().linhas.trim() : escolhaCab === "escrito" ? !lerEscrito().linhas.trim() : false;
-  const comuns = { capaCab, professor: lerNomeProf(nomePadrao).trim(), empregados, cfg, folha: ca.folha, contas, turmaNome: turma.nome || "", comResp, listaEm };
+  const comuns = { capaCab, professor: lerNomeProf(nomePadrao).trim(), empregados, cfg, folha: ca.folha, contas, turmasPI: turmasDoPI(turma), turmaNome: turmasDoPI(turma).map((x) => (x.sigla ? x.sigla + " " : "Turma ") + x.nome).join(" · "), comResp, listaEm };
   const paginas = (a) => <PaginasAluno aluno={a} {...comuns} />;
 
   return (
