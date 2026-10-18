@@ -725,10 +725,12 @@ export default function Shell({ usuario, perfil, onSair }) {
     if (v) mesa.abrir(homeMesa);
   }
   // Professor/admin: Mesa sempre disponível. Aluno: só se liberada (ou no modo de teste) e em computador (tela larga).
-  const mesaPossivel = mesaDeAluno ? (mesaAlunoOk && telaLarga) : true;
+  const mesaPossivel = mesaDeAluno ? (mesaAlunoOk && telaLarga) : telaLarga; // professor: Mesa só em tela larga (no celular vale o menu lateral, mesmo com a escolha guardada)
   const mesaLigada = () => modoMesa && mesaPossivel;
   // Ao entrar ou sair do modo de teste as janelas trocam de papel: fecha todas e abre a inicial do papel atual.
   useEffect(() => { mesa.limpar(); if (modoMesa && mesaPossivel) mesa.abrir(homeMesa); }, [emTeste]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Se a tela passar de estreita para larga com a Mesa escolhida e nenhuma janela aberta, abre a inicial.
+  useEffect(() => { if (modoMesa && mesaPossivel && mesa.janelas.length === 0) mesa.abrir(homeMesa); }, [mesaPossivel]); // eslint-disable-line react-hooks/exhaustive-deps
   function setScreen(nova) {
     if (mesaLigada()) { mesa.abrir(nova); return; }
     setFoco(null);
@@ -1294,7 +1296,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       />
     );
   }
-  if (ehProfessorOuAdmin && !emTeste && modoMesa) {
+  if (ehProfessorOuAdmin && !emTeste && modoMesa && mesaPossivel) {
     const tituloDe = (chave, f) => {
       const base = (nomeDaTela[chave] || chave).replace(/^[^\p{L}\p{N}]+/u, "");
       return base + (f && f.nome && chave === "fila" ? " · " + String(f.nome).split(" ")[0] : "");
@@ -1402,7 +1404,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           </div>
           <div className="role-switch">
             {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>Sair do modo de teste</button>}
-            {ehProfessorOuAdmin && !emTeste && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
+            {ehProfessorOuAdmin && !emTeste && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             {mesaDeAluno && mesaAlunoOk && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste, só no computador)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
               {gerandoBackup ? "Gerando backup…" : "Baixar backup"}
