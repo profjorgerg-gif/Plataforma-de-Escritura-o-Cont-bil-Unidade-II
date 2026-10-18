@@ -715,7 +715,8 @@ export default function Shell({ usuario, perfil, onSair }) {
   const temaUi = useTema(); // claro/escuro (professor e aluno)
   const mesa = useMesa({ home: homeMesa, avisarRepetida: mesaDeAluno, chaveAuto: mesaDeAluno ? "mesa_auto_aluno" : "mesa_auto_prof" });
   const mesaAlunoOk = emTeste || (perfil.papel === "aluno" && mesaAlunoLiberada());
-  const lerMesa = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
+  // Saída de emergência: abrir o endereço com ?mesa=0 desliga a Mesa guardada neste navegador (professor e aluno).
+  const lerMesa = (k) => { try { if (/[?&]mesa=0(&|$)/.test(window.location.search)) { localStorage.setItem(k, "0"); return false; } return localStorage.getItem(k) === "1"; } catch { return false; } };
   const [modoMesaProf, setModoMesaProf] = useState(() => lerMesa("modoMesa"));
   const [modoMesaAluno, setModoMesaAluno] = useState(() => lerMesa("modoMesaAluno"));
   const modoMesa = mesaDeAluno ? modoMesaAluno : modoMesaProf;
