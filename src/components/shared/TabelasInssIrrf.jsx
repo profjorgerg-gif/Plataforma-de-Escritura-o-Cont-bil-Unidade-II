@@ -85,7 +85,8 @@ export default function TabelasInssIrrf() {
         </Tabela>
         <Lista>
           <li>Fórmula: salário × alíquota da faixa − parcela a deduzir (uma conta só).</li>
-          <li>Mesmo resultado da Forma 1; pode diferir em centavos por arredondamento.</li>
+          <li>Mesmo resultado da Forma 1, com diferença de no máximo R$ 0,02 por arredondamento (a Forma 2 dá o mesmo valor ou até 2 centavos a mais).</li>
+          <li><b>Use um método só na folha inteira.</b> A Forma 1 (por faixa, truncando cada faixa) é a que segue o eSocial e a que o gabarito usa. A tolerância de R$ 0,02 é um critério pedagógico de arredondamento; não vale como diferença de recolhimento.</li>
           <li>Exemplo: {brl(rem)} × 12% − {brl(faixas[2].ded)} = {brl(inssB)} (a Forma 1 dá {brl(inss)}).</li>
         </Lista>
       </Bloco>

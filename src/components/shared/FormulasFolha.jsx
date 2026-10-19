@@ -60,7 +60,7 @@ export default function FormulasFolha() {
         ["Base", "menor valor entre a remuneração tributável e R$ " + brl(teto) + " (teto)"],
         ["Parcela da faixa", "truncar em 2 casas (parte da base na faixa × alíquota da faixa)"],
         ["INSS", "soma das parcelas das faixas alcançadas"],
-      ]} />
+      ]} nota="A tabela com parcela a deduzir (cálculo rápido) pode diferir em até R$ 0,02 deste cálculo. Use um método só na folha inteira; o gabarito usa o cálculo por faixa." />
 
       <Bloco titulo="5 · IRRF e redução (Lei 15.270/2025)" linhas={[
         ["Dedução escolhida", "maior entre R$ " + brl(T.descontoSimplificado) + " (simplificado) e INSS + dependentes × R$ " + brl(T.deducaoDependente)],
