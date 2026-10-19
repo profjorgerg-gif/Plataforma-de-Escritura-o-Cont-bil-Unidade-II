@@ -97,6 +97,7 @@ import ConferenciaFolha from "../professor/ConferenciaFolha.jsx";
 import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
+import FormulasFolha from "../shared/FormulasFolha.jsx";
 import { GuiaEtapa2, GuiaEtapa3, GuiaEtapa4, GuiaEtapas56 } from "../shared/GuiaPorEtapa.jsx";
 import { TabelaFolhaEncargos, TabelaRescisao } from "../shared/TabelasFolhaRescisao.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
@@ -971,6 +972,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       { key: "inss", label: "INSS e IRRF 2026", render: () => <TabelasInssIrrf /> },
       { key: "folha", label: "Folha e encargos", render: () => <TabelaFolhaEncargos /> },
       { key: "resc", label: "Rescisão", render: () => <TabelaRescisao /> },
+      { key: "formulas", label: "Fórmulas da folha", render: () => <FormulasFolha /> },
       { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={papel} /> },
       { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
     ];
