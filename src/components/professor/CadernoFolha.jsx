@@ -137,7 +137,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
             <tr key={i}><td>{brl(x.ate)}</td><td className="n">{(x.aliq * 100).toFixed(1).replace(".", ",") + "%"}</td><td className="n">{brl(Math.round((ac + 1e-9) * 100) / 100)}</td></tr>); }); })()}
         </tbody></table>
         <p style={{ margin: "4px 0 0" }}>Fórmula rápida: INSS = salário × alíquota da faixa − parcela a deduzir (pode diferir em centavos do cálculo por faixa). IRRF = base × alíquota − parcela a deduzir. Redução (Lei 15.270/2025): até R$ {brl(T.reducao.limiteIsento)} zera o imposto; de R$ {brl(T.reducao.limiteIsento)} a R$ {brl(T.reducao.limiteFim)}: {brl(T.reducao.a)} − {String(T.reducao.b).replace(".", ",")} × rendimento tributável; acima, sem redução.</p>
-        <p style={{ margin: "4px 0 0" }}>Dedução por dependente R$ {brl(T.deducaoDependente)} · desconto simplificado R$ {brl(T.descontoSimplificado)} · salário-família R$ {brl(T.salarioFamilia.cota)} por filho até 14 anos (remuneração até R$ {brl(T.salarioFamilia.limite)}) · vale-transporte {T.vtPercentual}% do salário-base · FGTS {T.fgtsPercentual}%.</p>
+        <p style={{ margin: "4px 0 0" }}>Dedução por dependente R$ {brl(T.deducaoDependente)} · desconto simplificado R$ {brl(T.descontoSimplificado)} · salário-família R$ {brl(T.salarioFamilia.cota)} por filho até 14 anos (remuneração bruta, antes das faltas, até R$ {brl(T.salarioFamilia.limite)}) · vale-transporte {T.vtPercentual}% do salário-base · FGTS {T.fgtsPercentual}%.</p>
         <Rod esq={"Lista com " + empregados.length + " empregados"} dir="Página 1" />
       </div>
 

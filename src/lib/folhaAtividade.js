@@ -47,6 +47,7 @@ export function reducaoIRRF(rendTributavel, imposto, t = T) {
 export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO, casasHTI) {
   const e = calcularEmpregado(emp, p, casasHTI);
   const faltas = Number(emp.faltas) || 0;
+  // Salário-família: o limite é comparado com a remuneração BRUTA (antes das faltas) — decisão do professor em 18/10/2026.
   // Falta injustificada: perde o dia e, em cada SEMANA com falta, a remuneração do repouso semanal (Lei 605/1949, art. 6º).
   // Duas faltas na mesma semana = 2 dias + 1 repouso. Em semanas diferentes = 2 dias + 2 repousos.
   // emp.semanasComFalta (padrão = número de faltas, isto é, cada falta em uma semana) não pode passar de faltas.
@@ -69,7 +70,7 @@ export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO, casasHTI
   const reducao = arred(reducaoIRRF(remuneracao, fx.imposto, t));
   const irrf = arred(fx.imposto - reducao);
   const filhos = Number(emp.filhos14) || 0;
-  const salFamilia = remuneracao <= t.salarioFamilia.limite ? arred(filhos * t.salarioFamilia.cota) : 0;
+  const salFamilia = e.bruta <= t.salarioFamilia.limite ? arred(filhos * t.salarioFamilia.cota) : 0;
   const vt = emp.vt ? Math.min(arred(e.salario * t.vtPercentual / 100), Number(emp.vtCusto) > 0 ? arred(emp.vtCusto) : Infinity) : 0;
   const proventos = arred(e.bruta + salFamilia);
   const descontos = arred(descFaltas + inss + irrf + vt);
@@ -106,7 +107,7 @@ export const PASSOS_CONTRACHEQUE = [
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },
   { k: "irrf", nome: "(−) IRRF, já com a redução da Lei 15.270/2025", como: "Imposto pela tabela (após deduções) − redução. A redução usa o rendimento tributável SEM descontar o INSS.", v: (c) => c.irrf },
-  { k: "sf", nome: "(+) Salário-família", como: "Cota por filho até 14 anos, se a remuneração for até o limite.", v: (c) => c.salFamilia },
+  { k: "sf", nome: "(+) Salário-família", como: "Cota por filho até 14 anos, se a remuneração bruta (antes das faltas) for até o limite.", v: (c) => c.salFamilia },
   { k: "vt", nome: "(−) Vale-transporte (6% do salário-base)", como: "Limitado ao custo do vale, se informado.", v: (c) => c.vt },
   { k: "prov", nome: "Total de proventos", como: "Remuneração bruta + salário-família.", v: (c) => c.proventos },
   { k: "desc", nome: "Total de descontos", como: "Faltas + INSS + IRRF + vale-transporte.", v: (c) => c.descontos },

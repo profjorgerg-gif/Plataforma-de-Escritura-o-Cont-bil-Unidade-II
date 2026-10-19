@@ -79,7 +79,7 @@ export function GabaritoEmpregado({ emp, c, p }) {
         <L forte t={`IRRF a descontar: ${brl(c.impostoTabela)} − ${brl(c.reducao)}`} v={brl(c.irrf)} />
       </Sec>
       <Sec titulo="5. Salário-família e vale-transporte">
-        <L t={Number(emp.filhos14) > 0 ? (c.salFamilia > 0 ? `Salário-família: ${emp.filhos14} filho(s) × ${brl(T.salarioFamilia.cota)}` : `Salário-família: remuneração acima de ${brl(T.salarioFamilia.limite)}, sem direito`) : "Salário-família: nenhum filho até 14 anos"} v={brl(c.salFamilia)} />
+        <L t={Number(emp.filhos14) > 0 ? (c.salFamilia > 0 ? `Salário-família: ${emp.filhos14} filho(s) × ${brl(T.salarioFamilia.cota)}` : `Salário-família: remuneração bruta acima de ${brl(T.salarioFamilia.limite)}, sem direito`) : "Salário-família: nenhum filho até 14 anos"} v={brl(c.salFamilia)} />
         <L t={emp.vt ? `Vale-transporte: ${T.vtPercentual}% × ${brl(c.salario)}${Number(emp.vtCusto) > 0 ? `, limitado ao custo do vale (${brl(emp.vtCusto)})` : ""}` : "Vale-transporte: o empregado não optou"} v={brl(c.vt)} />
       </Sec>
       <Sec titulo="6. Fechamento">

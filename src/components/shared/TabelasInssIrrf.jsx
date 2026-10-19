@@ -129,7 +129,7 @@ export default function TabelasInssIrrf() {
             ["9. Imposto da tabela", "base do IRRF × alíquota − parcela a deduzir (mínimo 0)"],
             ["10. Redução (Lei 15.270)", "até " + brl(r.limiteIsento) + ": zera o imposto · de " + brl(r.limiteIsento + 0.01) + " a " + brl(r.limiteFim) + ": " + brl(r.a) + " − " + String(r.b).replace(".", ",") + " × remuneração tributável · acima: 0"],
             ["11. IRRF a descontar", "imposto da tabela − redução (mínimo 0)"],
-            ["12. Salário-família", "nº de filhos até 14 anos × " + brl(T.salarioFamilia.cota) + ", se a remuneração tributável for até " + brl(T.salarioFamilia.limite)],
+            ["12. Salário-família", "nº de filhos até 14 anos × " + brl(T.salarioFamilia.cota) + ", se a remuneração bruta (antes das faltas) for até " + brl(T.salarioFamilia.limite)],
             ["13. Vale-transporte", T.vtPercentual + "% do salário-base (limitado ao custo do vale, se informado)"],
             ["14. Salário líquido", "(remuneração bruta + salário-família) − (faltas + INSS + IRRF + vale-transporte)"],
             ["15. FGTS (empresa)", T.fgtsPercentual + "% da remuneração tributável (não é desconto do empregado)"],
