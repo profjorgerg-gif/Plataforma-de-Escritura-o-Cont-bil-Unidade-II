@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
-import { QUANTIDADES_PADRAO, PERFIS, gerarPacote, resumoDoPacote, gerarXml, nomeArquivo, formatarCnpj } from "../../lib/orgaoFiscal.js";
+import { lerXml, lerEvento, ehEvento, camposDaNota, avaliar } from "../../lib/conferenciaNota.js";
+import { QUANTIDADES_PADRAO, PERFIS, gerarPacote, resumoDoPacote, gerarXml, gerarXmlEvento, nomeArquivo, formatarCnpj } from "../../lib/orgaoFiscal.js";
 
 // Laboratório 2027.1 (2026-10-20): protótipo SÓ do professor/admin. Não grava nada no banco e não aparece para alunos.
 // Preferências ficam apenas neste navegador (localStorage). Fase 1: gerador de notas (aba Professor) + caixa de entrada simulada (aba Aluno).
@@ -10,6 +11,7 @@ const brl = (v) => (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDig
 const dataBr = (s) => String(s || "").slice(0, 10).split("-").reverse().join("/");
 const ROT = { cancelada: "Cancelada", duplicada: "Duplicada", cfop: "CFOP incompatível", destinatario: "Destinatário errado", ncm: "NCM trocado", tributo: "Tributo errado", total: "Total divergente" };
 const DEC = { aprovar: "Aprovar", aprovar_com_ressalva: "Aprovar com ressalva", rejeitar: "Rejeitar" };
+const CFOP_ENTRADA = [["1102", "Compra para comercialização"], ["1101", "Compra para industrialização"], ["1403", "Compra com substituição tributária"], ["2102", "Compra interestadual para comercialização"]];
 const PROB = { padrao: undefined, menos: 8, mais: 2 };
 
 function lerPrefs() { try { return JSON.parse(localStorage.getItem(CHAVE) || "{}") || {}; } catch { return {}; } }
@@ -50,9 +52,25 @@ export default function Laboratorio2027({ turma }) {
   const [sel, setSel] = useState(null);
   const [verGab, setVerGab] = useState(false);
   const [lotes, setLotes] = useState(inicial.lotes || 99);
-  const [selAluno, setSelAluno] = useState(null);
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [ptab, setPtab] = useState("g");
+  const [caixa, setCaixa] = useState([]); // notas importadas pelo aluno de exemplo
+  const [marcas, setMarcas] = useState({}); // conferências por arquivo
+  const [aberta, setAberta] = useState(null);
+  const [msgImp, setMsgImp] = useState("");
+  const [carregado, setCarregado] = useState(false);
+  const entrada = useRef(null);
+  const chaveAluno = "lab2027.aluno." + matricula;
+  useEffect(() => {
+    setCarregado(false);
+    try { const x = JSON.parse(localStorage.getItem(chaveAluno) || "{}"); setCaixa(x.caixa || []); setMarcas(x.marcas || {}); } catch { setCaixa([]); setMarcas({}); }
+    setAberta(null); setMsgImp(""); setCarregado(true);
+  }, [chaveAluno]);
+  useEffect(() => {
+    if (!carregado) return;
+    try { localStorage.setItem(chaveAluno, JSON.stringify({ caixa, marcas })); } catch { /* sem armazenamento */ }
+  }, [caixa, marcas, carregado, chaveAluno]);
 
   function gerar() {
     setErro("");
@@ -63,7 +81,7 @@ export default function Laboratorio2027({ turma }) {
       if (PROB[prob]) o.nProblemas = Math.max(1, Math.round(q / PROB[prob]));
       const p = gerarPacote(String(matricula).trim() || "20271000001", "2027.1", o);
       setPacote({ ...p, resumo: resumoDoPacote(p.documentos), matricula: String(matricula).trim() || "20271000001" });
-      setSel(null); setSelAluno(null); setVerGab(false);
+      setSel(null); setVerGab(false);
       gravarPrefs({ qtd: q, perfil, prob, matricula, lotes });
     } catch (e) { setErro("Não foi possível gerar: " + (e?.message || e)); }
   }
@@ -73,7 +91,10 @@ export default function Laboratorio2027({ turma }) {
     setOcupado(true);
     try {
       const z = new JSZip();
-      pacote.documentos.forEach((d) => z.file(nomeArquivo(d.id.endsWith("-dup") ? { ...d, numero: d.numero + "_copia" } : d), gerarXml(d)));
+      pacote.documentos.filter((d) => d.lote <= lotes).forEach((d) => {
+        z.file(d.problema?.original ? "NFe_" + d.numero + " (1).xml" : nomeArquivo(d), gerarXml(d));
+        (d.eventos || []).forEach((ev) => z.file("Evento_" + d.numero + "_" + ev.tipo + ".xml", gerarXmlEvento(d, ev)));
+      });
       baixar("Notas_" + pacote.matricula + "_" + pacote.documentos.length + ".zip", await z.generateAsync({ type: "blob" }));
     } finally { setOcupado(false); }
   }
@@ -85,11 +106,81 @@ export default function Laboratorio2027({ turma }) {
 
   const docs = pacote?.documentos || [];
   const visiveis = docs.filter((d) => !filtro || (filtro === "prob" ? d.problema : d.direcao === filtro));
-  const liberadas = docs.filter((d) => d.lote <= lotes);
   const nLotes = pacote?.resumo.lotes || 0;
   const r = pacote?.resumo;
   const notaSel = sel != null ? docs.find((d) => d.id === sel) : null;
-  const notaAluno = selAluno != null ? docs.find((d) => d.id === selAluno) : null;
+
+
+  // ---- aluno de exemplo: importar e conferir ----
+  const ehCopiaNome = (a) => /\(\d+\)\.xml$/i.test(a);
+  function copiaDe(x, lista) {
+    const outros = lista.filter((y) => y !== x && y.nota.chave === x.nota.chave);
+    if (!outros.length) return null;
+    if (ehCopiaNome(x.arquivo)) return (outros.find((y) => !ehCopiaNome(y.arquivo)) || outros[0]).arquivo;
+    if (outros.every((y) => ehCopiaNome(y.arquivo))) return null;
+    return x.arquivo > outros[0].arquivo && !ehCopiaNome(outros[0].arquivo) ? outros[0].arquivo : null;
+  }
+  const empresaCnpj = (pacote && pacote.matricula === matricula && pacote.empresa.cnpj) || (() => {
+    const c = {}; caixa.filter((x) => x.nota.direcao === "entrada").forEach((x) => { c[x.nota.destinatario.cnpj] = (c[x.nota.destinatario.cnpj] || 0) + 1; });
+    return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || "";
+  })();
+  async function importar(files) {
+    setOcupado(true); setMsgImp("");
+    try {
+      const itens = [];
+      for (const f of files) {
+        if (/\.zip$/i.test(f.name)) { const z = await JSZip.loadAsync(f); for (const e of Object.values(z.files)) if (!e.dir && /\.xml$/i.test(e.name)) itens.push({ nome: e.name.split("/").pop(), texto: await e.async("string") }); }
+        else if (/\.xml$/i.test(f.name)) itens.push({ nome: f.name, texto: await f.text() });
+      }
+      const novas = [], eventos = [], erros = []; let repetidos = 0;
+      itens.forEach(({ nome, texto }) => {
+        try { if (ehEvento(texto)) eventos.push(lerEvento(texto)); else if (caixa.some((x) => x.arquivo === nome) || novas.some((x) => x.arquivo === nome)) repetidos++; else novas.push({ arquivo: nome, nota: lerXml(texto) }); }
+        catch (e) { erros.push(nome + " (" + (e?.message || "inválido") + ")"); }
+      });
+      const todas = [...caixa, ...novas].map((x) => { const ev = eventos.find((e) => e.chave === x.nota.chave); return ev ? { ...x, evento: ev } : x; })
+        .sort((a, b) => a.nota.numero.localeCompare(b.nota.numero, "pt", { numeric: true }) || a.arquivo.localeCompare(b.arquivo));
+      setCaixa(todas);
+      const rep = todas.filter((x) => copiaDe(x, todas)).length;
+      setMsgImp(itens.length + " arquivo(s) lidos · " + novas.length + " nota(s) nova(s)" + (eventos.length ? " · " + eventos.length + " evento(s)" : "") + (rep ? " · " + rep + " com chave repetida sinalizada" : "") + (repetidos ? " · " + repetidos + " já estavam na caixa" : "") + (erros.length ? " · não lidos: " + erros.join("; ") : ""));
+    } catch (e) { setMsgImp("Não foi possível ler o arquivo: " + (e?.message || e)); }
+    setOcupado(false);
+  }
+  function limparCaixa() { setCaixa([]); setMarcas({}); setAberta(null); setMsgImp(""); }
+  const entradaAberta = caixa.find((x) => x.arquivo === aberta) || null;
+  const camposAbertos = entradaAberta ? camposDaNota(entradaAberta.nota, { cnpjEmpresa: empresaCnpj, evento: entradaAberta.evento, copiaDe: copiaDe(entradaAberta, caixa) }) : [];
+  const mAberta = (entradaAberta && marcas[entradaAberta.arquivo]) || { f: {}, dec: "", cfopEntrada: "", done: false };
+  function atualizarAberta(p) { setMarcas((m) => ({ ...m, [aberta]: { ...(m[aberta] || { f: {}, dec: "", cfopEntrada: "" }), ...p, ...(p.done ? {} : { done: false }) } })); }
+  function marcar(k, v) { atualizarAberta({ f: { ...mAberta.f, [k]: v } }); }
+  const podeSalvar = !!entradaAberta && camposAbertos.every((c) => mAberta.f[c.key]) && !!mAberta.dec && (entradaAberta.nota.direcao !== "entrada" || mAberta.dec === "rejeitar" || !!mAberta.cfopEntrada);
+  function docDoGabarito(x) {
+    if (!pacote) return null;
+    const iguais = docs.filter((d) => d.chave === x.nota.chave);
+    return (copiaDe(x, caixa) ? iguais.find((d) => d.problema?.original) : iguais.find((d) => !d.problema?.original)) || null;
+  }
+  const linhasAcomp = caixa.map((x) => {
+    const d = docDoGabarito(x), m = marcas[x.arquivo];
+    const r = d && m?.done ? avaliar(d.gabarito, m.f, m.dec, m.cfopEntrada, x.nota.direcao) : null;
+    const campos = r ? (r.ok ? "certos" : [r.errados.length ? "não apontou: " + r.errados.join(", ") : "", r.falsos.length ? "marcou sem erro: " + r.falsos.join(", ") : "", !r.cfopOk ? "CFOP de entrada" : ""].filter(Boolean).join(" · ") || "decisão diferente") : "—";
+    return { arquivo: x.arquivo, tipo: d ? (d.problema ? ROT[d.problema.tipo] : "sem problema") : "sem gabarito", gabDec: d ? DEC[d.gabarito.decisao] : "—", alunoDec: m?.done ? DEC[m.dec] : "—", campos, res: r ? (r.ok ? "ok" : "rev") : "pend" };
+  });
+  const resumoAcomp = { conferidas: linhasAcomp.filter((l) => l.res !== "pend").length, acertos: linhasAcomp.filter((l) => l.res === "ok").length };
+  function simularAluno() {
+    if (!pacote) return;
+    const nova = [], mm = {};
+    pacote.documentos.forEach((d) => {
+      const arquivo = d.problema?.original ? "NFe_" + d.numero + " (1).xml" : nomeArquivo(d);
+      const ev = d.eventos && d.eventos[0] ? lerEvento(gerarXmlEvento(d, d.eventos[0])) : undefined;
+      nova.push({ arquivo, nota: lerXml(gerarXml(d)), ...(ev ? { evento: ev } : {}) });
+    });
+    nova.sort((a, b) => a.nota.numero.localeCompare(b.nota.numero, "pt", { numeric: true }) || a.arquivo.localeCompare(b.arquivo));
+    nova.forEach((x) => {
+      const d = docs.find((y) => y.chave === x.nota.chave && !!y.problema?.original === !!copiaDe(x, nova));
+      const campos = camposDaNota(x.nota, { cnpjEmpresa: pacote.empresa.cnpj, evento: x.evento, copiaDe: copiaDe(x, nova) });
+      const f = {}; campos.forEach((c) => { f[c.key] = d.gabarito.divergencias.includes(c.key) ? "div" : "ok"; });
+      mm[x.arquivo] = { f, dec: d.gabarito.decisao, cfopEntrada: d.direcao === "entrada" && d.gabarito.decisao !== "rejeitar" ? (d.gabarito.cfopEntrada || "1102") : "", done: true };
+    });
+    setCaixa(nova); setMarcas(mm); setMsgImp("Simulação: " + nova.length + " notas importadas e conferidas.");
+  }
 
   return (
     <div>
@@ -102,7 +193,8 @@ export default function Laboratorio2027({ turma }) {
 
       {modo === "p" && (
         <>
-          <Abas atual="g" onMudar={() => {}} itens={[{ k: "g", t: "1 · Gerador de notas" }, { k: "c", t: "2 · Caixa de entrada", fut: true }, { k: "f", t: "3 · Conferência fiscal", fut: true }, { k: "e", t: "4 · Eventos e painel", fut: true }]} />
+          <Abas atual={ptab} onMudar={setPtab} itens={[{ k: "g", t: "1 · Gerador de notas" }, { k: "a", t: "2 · Acompanhamento" }, { k: "e", t: "3 · Eventos e painel (em breve)", fut: true }]} />
+          {ptab === "g" && (<>
           <div style={box}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "flex-end" }}>
               <div>
@@ -214,41 +306,96 @@ export default function Laboratorio2027({ turma }) {
               )}
             </>
           )}
+          </>)}
+          {ptab === "a" && (
+            <>
+              <div style={box}>
+                <h3 style={{ margin: "0 0 4px" }}>Acompanhamento do aluno de exemplo · matrícula {matricula}</h3>
+                <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Compara o que o aluno importou e decidiu na aba Aluno com o gabarito do pacote gerado. {pacote ? "" : "Gere o pacote na aba 1 para ter o gabarito."}</p>
+                <div className="btn-row" style={{ marginTop: 0 }}>
+                  <button type="button" className="btn secondary" disabled={!pacote || ocupado} onClick={simularAluno}>Simular aluno que importou e conferiu tudo certo</button>
+                  <button type="button" className="btn secondary" onClick={limparCaixa}>Limpar caixa e conferências</button>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8, marginBottom: 12 }}>
+                {[["Importadas", caixa.length], ["Conferidas", resumoAcomp.conferidas], ["Acertos", resumoAcomp.acertos], ["Revisar", resumoAcomp.conferidas - resumoAcomp.acertos], ["Aproveitamento", resumoAcomp.conferidas ? Math.round((resumoAcomp.acertos / resumoAcomp.conferidas) * 100) + "%" : "—"], ["Do pacote, não importadas", pacote ? Math.max(0, docs.length - caixa.length) : "—"]].map(([a, b]) => (
+                  <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px", background: "var(--surface)" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--muted)" }}>{a}</span></div>))}
+              </div>
+              <div style={box}>
+                <h3 style={{ margin: "0 0 6px" }}>Conferência × gabarito</h3>
+                {caixa.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>O aluno ainda não importou notas.</p> : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead><tr><th style={th}>Arquivo</th><th style={th}>Tipo</th><th style={th}>Gabarito</th><th style={th}>Aluno decidiu</th><th style={th}>Campos</th><th style={th}>Resultado</th></tr></thead>
+                      <tbody>{linhasAcomp.map((l) => (
+                        <tr key={l.arquivo}><td style={td}>{l.arquivo}</td><td style={td}>{l.tipo}</td><td style={td}>{l.gabDec}</td><td style={td}>{l.alunoDec}</td><td style={td}>{l.campos}</td>
+                          <td style={td}>{l.res === "ok" ? "✔ acertou" : l.res === "rev" ? "✖ revisar" : "pendente"}</td></tr>))}</tbody>
+                    </table>
+                  </div>
+                )}
+                <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Acerto = decisão igual ao gabarito, campos errados apontados e nenhum campo certo marcado como divergente (e CFOP de entrada correto nas compras aprovadas).</p>
+              </div>
+            </>
+          )}
         </>
       )}
 
       {modo === "a" && (
         <>
           <div style={box}>
-            <h3 style={{ margin: "0 0 4px" }}>Visão do aluno (simulada)</h3>
-            <p style={{ color: "var(--muted)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1. Ele só vê as notas dos lotes que você liberou, sem gabarito e sem saber quais têm problema.</p>
+            <h3 style={{ margin: "0 0 4px" }}>Visão do aluno (simulada) · matrícula {matricula}</h3>
+            <p style={{ color: "var(--muted)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1: importa o ZIP recebido, confere cada nota campo a campo e decide. Não há gabarito aqui; a comparação fica na aba Professor › Acompanhamento.</p>
           </div>
-          {!pacote && <p style={{ color: "var(--muted)" }}>Gere um pacote na aba Professor para ver a caixa de entrada do aluno de exemplo.</p>}
-          {pacote && (
-            <>
-              <Abas atual="c" onMudar={() => {}} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "f", t: "Conferência fiscal (fase 3)", fut: true }, { k: "l", t: "Meus lançamentos", fut: true }]} />
-              <div style={box}>
-                <h3 style={{ margin: "0 0 4px" }}>Caixa de entrada · matrícula {pacote.matricula}</h3>
-                <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>{liberadas.length} nota(s) liberada(s). Para mudar, use "Lotes liberados ao aluno" na aba Professor.</p>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead><tr><th style={th}>Lote</th><th style={th}>Arquivo</th><th style={th}>Data</th><th style={th}>Emitente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Situação</th></tr></thead>
-                    <tbody>{liberadas.map((d) => (
-                      <tr key={d.id} onClick={() => setSelAluno(d.id)} style={{ cursor: "pointer", background: selAluno === d.id ? "var(--green-bg, #e3f0ea)" : undefined }}>
-                        <td style={td}>{d.lote}</td><td style={td}>{nomeArquivo(d)}</td><td style={td}>{dataBr(d.data)}</td><td style={td}>{d.emitente.nome}</td><td style={tdn}>{brl(d.valorTotal)}</td><td style={td}>Não importada</td>
-                      </tr>))}</tbody>
-                  </table>
-                </div>
-                <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Fase 2: o aluno importa o XML. Fase 3: confere campo a campo e aprova, aprova com ressalva ou rejeita.</p>
+          <Abas atual="c" onMudar={() => {}} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Classificação e lançamentos (próxima fase)", fut: true }]} />
+          <div style={box}>
+            <h3 style={{ margin: "0 0 6px" }}>1 · Importar</h3>
+            <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Escolha o ZIP baixado na aba Professor (ou arquivos XML soltos). Cada XML é lido e conferido na estrutura antes de entrar na caixa.</p>
+            <div className="btn-row" style={{ marginTop: 0 }}>
+              <input ref={entrada} type="file" accept=".zip,.xml" multiple style={{ display: "none" }} onChange={(e) => { importar(Array.from(e.target.files || [])); e.target.value = ""; }} />
+              <button type="button" className="btn green" disabled={ocupado} onClick={() => entrada.current && entrada.current.click()}>Importar ZIP ou XML…</button>
+              {caixa.length > 0 && <button type="button" className="btn secondary" onClick={limparCaixa}>Limpar caixa de entrada</button>}
+            </div>
+            {msgImp && <p style={{ fontSize: 13, margin: "8px 0 0" }}>{msgImp}</p>}
+          </div>
+          <div style={box}>
+            <h3 style={{ margin: "0 0 6px" }}>Caixa de entrada ({caixa.length})</h3>
+            {caixa.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Vazia. Importe o ZIP.</p> : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={th}>Arquivo</th><th style={th}>Emitente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Situação</th></tr></thead>
+                  <tbody>{caixa.map((x) => { const m = marcas[x.arquivo]; return (
+                    <tr key={x.arquivo} onClick={() => setAberta(x.arquivo)} style={{ cursor: "pointer", background: aberta === x.arquivo ? "var(--green-bg, #e3f0ea)" : undefined }}>
+                      <td style={td}>{x.arquivo}{copiaDe(x, caixa) ? " · repetida" : ""}</td><td style={td}>{x.nota.emitente.nome}</td><td style={tdn}>{brl(x.nota.total)}</td>
+                      <td style={td}>{m?.done ? "Conferida · " + DEC[m.dec] : "Não conferida"}</td></tr>); })}</tbody>
+                </table>
               </div>
-              {notaAluno && (
-                <div style={box}>
-                  <h3 style={{ margin: "0 0 6px" }}>Arquivo {nomeArquivo(notaAluno)}</h3>
-                  <pre style={{ margin: 0, fontSize: 11.5, overflow: "auto", maxHeight: 280, border: "1px solid var(--line)", padding: 8 }}>{gerarXml(notaAluno)}</pre>
-                  <div className="btn-row" style={{ marginTop: 6 }}><button type="button" className="btn secondary" disabled title="Chega na fase 2">Importar XML (fase 2)</button></div>
-                </div>
-              )}
-            </>
+            )}
+          </div>
+          {entradaAberta && (
+            <div style={box}>
+              <h3 style={{ margin: "0 0 4px" }}>2 · Conferência fiscal · NF-e {entradaAberta.nota.numero}</h3>
+              <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Compare cada campo com a referência e marque Conforme ou Divergente. A decisão só salva com todos os campos marcados.</p>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={th}>Campo</th><th style={th}>No arquivo</th><th style={th}>Referência</th><th style={th}>Sua marcação</th></tr></thead>
+                  <tbody>{camposAbertos.map((c) => (
+                    <tr key={c.key}><td style={td}>{c.label}</td><td style={{ ...td, wordBreak: "break-word" }}>{c.valor}</td><td style={td}>{c.ref}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>
+                        {[["ok", "Conforme"], ["div", "Divergente"]].map(([v, t]) => (
+                          <button key={v} type="button" className={"btn " + (mAberta.f[c.key] === v ? (v === "ok" ? "green" : "secondary") : "secondary")} style={{ padding: "3px 9px", marginRight: 4, fontSize: 12.5, ...(mAberta.f[c.key] === v && v === "div" ? { background: "var(--danger, #9c1c1c)", color: "#fff", borderColor: "var(--danger, #9c1c1c)" } : {}) }} onClick={() => marcar(c.key, v)}>{t}</button>))}
+                      </td></tr>))}</tbody>
+                </table>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end", marginTop: 10 }}>
+                <div><span style={lab}>Decisão</span><select value={mAberta.dec || ""} onChange={(e) => atualizarAberta({ dec: e.target.value })}><option value="">Escolha…</option>{Object.entries(DEC).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+                {entradaAberta.nota.direcao === "entrada" && mAberta.dec && mAberta.dec !== "rejeitar" && (
+                  <div><span style={lab}>CFOP de entrada a registrar</span><select value={mAberta.cfopEntrada || ""} onChange={(e) => atualizarAberta({ cfopEntrada: e.target.value })}><option value="">Escolha…</option>{CFOP_ENTRADA.map(([k, v]) => <option key={k} value={k}>{k} · {v}</option>)}</select></div>
+                )}
+                <button type="button" className="btn green" disabled={!podeSalvar} onClick={() => atualizarAberta({ done: true })}>Salvar conferência</button>
+                {mAberta.done && <span style={{ color: "var(--muted)", fontSize: 13 }}>Salva.</span>}
+              </div>
+              <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Na compra, o arquivo traz o CFOP do emitente (5102); o aluno informa o CFOP de entrada. Só nota aprovada segue para a classificação.</p>
+            </div>
           )}
         </>
       )}
