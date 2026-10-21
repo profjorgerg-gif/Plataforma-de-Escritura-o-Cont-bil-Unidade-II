@@ -26,7 +26,7 @@ const box = { border: "1px solid var(--line)", background: "var(--surface)", pad
 const th = { padding: "5px 8px", border: "1px solid var(--line)", textAlign: "left", fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em" };
 const td = { padding: "5px 8px", border: "1px solid var(--line)", fontSize: 13, verticalAlign: "top" };
 const tdn = { ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" };
-const lab = { display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)", marginBottom: 3 };
+const lab = { display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-soft)", marginBottom: 3 };
 
 function Abas({ itens, atual, onMudar, tamanho }) {
   return (
@@ -207,11 +207,11 @@ export default function Laboratorio2027({ turma }) {
 
   return (
     <div>
-      <div style={{ background: "var(--warn-bg, #fbf0d9)", border: "1px solid var(--warn, #8a5a00)", padding: "7px 12px", fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>
+      <div style={{ background: "var(--amber-pale)", color: "var(--amber)", border: "1px solid var(--amber)", padding: "7px 12px", fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>
         🧪 Protótipo 2027.1 · não afeta alunos · o que você testa fica só neste navegador
       </div>
       <h2 style={{ margin: "0 0 4px" }}>Laboratório 2027.1</h2>
-      <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 10px" }}>Só o professor entra aqui. A aba Professor gera e acompanha as notas; a aba Aluno mostra o que o aluno veria.</p>
+      <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: "0 0 10px" }}>Só o professor entra aqui. A aba Professor gera e acompanha as notas; a aba Aluno mostra o que o aluno veria.</p>
       <Abas tamanho="g" atual={modo} onMudar={setModo} itens={[{ k: "p", t: "Professor" }, { k: "a", t: "Aluno" }]} />
 
       {modo === "p" && (
@@ -252,21 +252,21 @@ export default function Laboratorio2027({ turma }) {
               </div>
               <button type="button" className="btn green" onClick={gerar}>Gerar pacote</button>
             </div>
-            {erro && <p style={{ color: "var(--danger, #9c1c1c)", margin: "8px 0 0" }}>{erro}</p>}
+            {erro && <p style={{ color: "var(--red)", margin: "8px 0 0" }}>{erro}</p>}
           </div>
 
-          {!pacote && <p style={{ color: "var(--muted)" }}>Escolha a quantidade e clique em "Gerar pacote". O mesmo aluno com as mesmas escolhas sempre recebe as mesmas notas.</p>}
+          {!pacote && <p style={{ color: "var(--ink-soft)" }}>Escolha a quantidade e clique em "Gerar pacote". O mesmo aluno com as mesmas escolhas sempre recebe as mesmas notas.</p>}
           {pacote && (
             <>
               <div style={box}>
                 <h3 style={{ margin: "0 0 4px" }}>Empresa do aluno de exemplo</h3>
-                <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 8px" }}>{pacote.empresa.perfilNome} · CNPJ {formatarCnpj(pacote.empresa.cnpj)} · empresa fictícia</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: "0 0 8px" }}>{pacote.empresa.perfilNome} · CNPJ {formatarCnpj(pacote.empresa.cnpj)} · empresa fictícia</p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8 }}>
                   {[["Notas", r.total], ["Entradas", r.entradas], ["Saídas", r.saidas], ["Com problema", r.problemas], ["Lotes de 6", r.lotes], ["Entradas válidas", "R$ " + brl(r.valorEntradas)], ["Saídas válidas", "R$ " + brl(r.valorSaidas)]].map(([a, b]) => (
-                    <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--muted)" }}>{a}</span></div>
+                    <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{a}</span></div>
                   ))}
                 </div>
-                <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "8px 0 0" }}>Duplicadas entram como arquivos repetidos extras, por isso o total pode passar da quantidade pedida.</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "8px 0 0" }}>Duplicadas entram como arquivos repetidos extras, por isso o total pode passar da quantidade pedida.</p>
               </div>
 
               <div style={box}>
@@ -283,16 +283,16 @@ export default function Laboratorio2027({ turma }) {
                     <thead><tr><th style={th}>Lote</th><th style={th}>Nº</th><th style={th}>Data</th><th style={th}>Tipo</th><th style={th}>CFOP</th><th style={th}>Emitente → destinatário</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Problema</th></tr></thead>
                     <tbody>
                       {visiveis.map((d) => (
-                        <tr key={d.id} onClick={() => { setSel(d.id); setVerGab(false); }} style={{ cursor: "pointer", background: sel === d.id ? "var(--green-bg, #e3f0ea)" : undefined }}>
+                        <tr key={d.id} onClick={() => { setSel(d.id); setVerGab(false); }} style={{ cursor: "pointer", background: sel === d.id ? "var(--green-pale)" : undefined }}>
                           <td style={td}>{d.lote}</td><td style={td}>{d.numero}</td><td style={td}>{dataBr(d.data)}</td><td style={td}>{d.direcao === "entrada" ? "Entrada" : "Saída"}</td><td style={td}>{d.cfop}</td>
                           <td style={td}>{d.emitente.nome} → {d.destinatario.nome}</td><td style={tdn}>{brl(d.valorTotal)}</td>
-                          <td style={td}>{d.problema ? <span style={{ border: "1px solid var(--danger, #9c1c1c)", color: "var(--danger, #9c1c1c)", padding: "0 7px", fontSize: 11.5 }}>{ROT[d.problema.tipo]}{d.problema.original ? " (cópia)" : ""}</span> : ""}</td>
+                          <td style={td}>{d.problema ? <span style={{ border: "1px solid var(--red)", color: "var(--red)", padding: "0 7px", fontSize: 11.5 }}>{ROT[d.problema.tipo]}{d.problema.original ? " (cópia)" : ""}</span> : ""}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Clique numa linha para ver o detalhe, o XML e o gabarito.</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "6px 0 0" }}>Clique numa linha para ver o detalhe, o XML e o gabarito.</p>
               </div>
 
               {notaSel && (
@@ -317,7 +317,7 @@ export default function Laboratorio2027({ turma }) {
                     </div>
                   </div>
                   {verGab && (
-                    <div style={{ background: "var(--danger-bg, #f8e5e3)", border: "1px solid var(--line)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}>
+                    <div style={{ background: "var(--red-pale)", color: "var(--red)", border: "1px solid var(--red)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}>
                       <b>Gabarito (só o professor vê)</b><br />
                       Decisão esperada: {DEC[notaSel.gabarito?.decisao] || "—"}<br />
                       {notaSel.gabarito?.divergencias?.length ? "Campos com divergência: " + notaSel.gabarito.divergencias.join(", ") : "Nenhuma divergência."}
@@ -334,7 +334,7 @@ export default function Laboratorio2027({ turma }) {
             <>
               <div style={box}>
                 <h3 style={{ margin: "0 0 4px" }}>Acompanhamento do aluno de exemplo · matrícula {matricula}</h3>
-                <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Compara o que o aluno importou e decidiu na aba Aluno com o gabarito do pacote gerado. {pacote ? "" : "Gere o pacote na aba 1 para ter o gabarito."}</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Compara o que o aluno importou e decidiu na aba Aluno com o gabarito do pacote gerado. {pacote ? "" : "Gere o pacote na aba 1 para ter o gabarito."}</p>
                 <div className="btn-row" style={{ marginTop: 0 }}>
                   <button type="button" className="btn secondary" disabled={!pacote || ocupado} onClick={simularAluno}>Simular aluno que importou e conferiu tudo certo</button>
                   <button type="button" className="btn secondary" onClick={limparCaixa}>Limpar caixa e conferências</button>
@@ -342,11 +342,11 @@ export default function Laboratorio2027({ turma }) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8, marginBottom: 12 }}>
                 {[["Importadas", caixa.length], ["Conferidas", resumoAcomp.conferidas], ["Acertos", resumoAcomp.acertos], ["Revisar", resumoAcomp.conferidas - resumoAcomp.acertos], ["Aproveitamento", resumoAcomp.conferidas ? Math.round((resumoAcomp.acertos / resumoAcomp.conferidas) * 100) + "%" : "—"], ["Lançamentos conferidos", linhasAcomp.filter((l) => l.lanc === "✔ enviado e conferido").length], ["Do pacote, não importadas", pacote ? Math.max(0, docs.length - caixa.length) : "—"]].map(([a, b]) => (
-                  <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px", background: "var(--surface)" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--muted)" }}>{a}</span></div>))}
+                  <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px", background: "var(--surface)" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{a}</span></div>))}
               </div>
               <div style={box}>
                 <h3 style={{ margin: "0 0 6px" }}>Conferência × gabarito</h3>
-                {caixa.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>O aluno ainda não importou notas.</p> : (
+                {caixa.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>O aluno ainda não importou notas.</p> : (
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                       <thead><tr><th style={th}>Arquivo</th><th style={th}>Tipo</th><th style={th}>Gabarito</th><th style={th}>Aluno decidiu</th><th style={th}>Campos</th><th style={th}>Resultado</th><th style={th}>Lançamento</th></tr></thead>
@@ -356,7 +356,7 @@ export default function Laboratorio2027({ turma }) {
                     </table>
                   </div>
                 )}
-                <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Acerto = decisão igual ao gabarito, campos errados apontados e nenhum campo certo marcado como divergente (e CFOP de entrada correto nas compras aprovadas).</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "6px 0 0" }}>Acerto = decisão igual ao gabarito, campos errados apontados e nenhum campo certo marcado como divergente (e CFOP de entrada correto nas compras aprovadas).</p>
               </div>
             </>
           )}
@@ -367,13 +367,13 @@ export default function Laboratorio2027({ turma }) {
         <>
           <div style={box}>
             <h3 style={{ margin: "0 0 4px" }}>Visão do aluno (simulada) · matrícula {matricula}</h3>
-            <p style={{ color: "var(--muted)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1: importa o ZIP recebido, confere cada nota campo a campo e decide. Não há gabarito aqui; a comparação fica na aba Professor › Acompanhamento.</p>
+            <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1: importa o ZIP recebido, confere cada nota campo a campo e decide. Não há gabarito aqui; a comparação fica na aba Professor › Acompanhamento.</p>
           </div>
           <Abas atual={atab} onMudar={setAtab} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Lançamentos" + (paraLancar.length ? " (" + paraLancar.length + ")" : "") }]} />
           {atab === "c" && (<>
           <div style={box}>
             <h3 style={{ margin: "0 0 6px" }}>1 · Importar</h3>
-            <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Escolha o ZIP baixado na aba Professor (ou arquivos XML soltos). Cada XML é lido e conferido na estrutura antes de entrar na caixa.</p>
+            <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Escolha o ZIP baixado na aba Professor (ou arquivos XML soltos). Cada XML é lido e conferido na estrutura antes de entrar na caixa.</p>
             <div className="btn-row" style={{ marginTop: 0 }}>
               <input ref={entrada} type="file" accept=".zip,.xml" multiple style={{ display: "none" }} onChange={(e) => { importar(Array.from(e.target.files || [])); e.target.value = ""; }} />
               <button type="button" className="btn green" disabled={ocupado} onClick={() => entrada.current && entrada.current.click()}>Importar ZIP ou XML…</button>
@@ -383,12 +383,12 @@ export default function Laboratorio2027({ turma }) {
           </div>
           <div style={box}>
             <h3 style={{ margin: "0 0 6px" }}>Caixa de entrada ({caixa.length})</h3>
-            {caixa.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Vazia. Importe o ZIP.</p> : (
+            {caixa.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>Vazia. Importe o ZIP.</p> : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr><th style={th}>Arquivo</th><th style={th}>Emitente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Situação</th></tr></thead>
                   <tbody>{caixa.map((x) => { const m = marcas[x.arquivo]; return (
-                    <tr key={x.arquivo} onClick={() => setAberta(x.arquivo)} style={{ cursor: "pointer", background: aberta === x.arquivo ? "var(--green-bg, #e3f0ea)" : undefined }}>
+                    <tr key={x.arquivo} onClick={() => setAberta(x.arquivo)} style={{ cursor: "pointer", background: aberta === x.arquivo ? "var(--green-pale)" : undefined }}>
                       <td style={td}>{x.arquivo}{copiaDe(x, caixa) ? " · repetida" : ""}</td><td style={td}>{x.nota.emitente.nome}</td><td style={tdn}>{brl(x.nota.total)}</td>
                       <td style={td}>{m?.done ? "Conferida · " + DEC[m.dec] : "Não conferida"}</td></tr>); })}</tbody>
                 </table>
@@ -398,7 +398,7 @@ export default function Laboratorio2027({ turma }) {
           {entradaAberta && (
             <div style={box}>
               <h3 style={{ margin: "0 0 4px" }}>2 · Conferência fiscal · NF-e {entradaAberta.nota.numero}</h3>
-              <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Compare cada campo com a referência e marque Conforme ou Divergente. A decisão só salva com todos os campos marcados.</p>
+              <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Compare cada campo com a referência e marque Conforme ou Divergente. A decisão só salva com todos os campos marcados.</p>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr><th style={th}>Campo</th><th style={th}>No arquivo</th><th style={th}>Referência</th><th style={th}>Sua marcação</th></tr></thead>
@@ -406,7 +406,7 @@ export default function Laboratorio2027({ turma }) {
                     <tr key={c.key}><td style={td}>{c.label}</td><td style={{ ...td, wordBreak: "break-word" }}>{c.valor}</td><td style={td}>{c.ref}</td>
                       <td style={{ ...td, whiteSpace: "nowrap" }}>
                         {[["ok", "Conforme"], ["div", "Divergente"]].map(([v, t]) => (
-                          <button key={v} type="button" className={"btn " + (mAberta.f[c.key] === v ? (v === "ok" ? "green" : "secondary") : "secondary")} style={{ padding: "3px 9px", marginRight: 4, fontSize: 12.5, ...(mAberta.f[c.key] === v && v === "div" ? { background: "var(--danger, #9c1c1c)", color: "#fff", borderColor: "var(--danger, #9c1c1c)" } : {}) }} onClick={() => marcar(c.key, v)}>{t}</button>))}
+                          <button key={v} type="button" className={"btn " + (mAberta.f[c.key] === v ? (v === "ok" ? "green" : "secondary") : "secondary")} style={{ padding: "3px 9px", marginRight: 4, fontSize: 12.5, ...(mAberta.f[c.key] === v && v === "div" ? { background: "var(--red)", color: "#fff", borderColor: "var(--red)" } : {}) }} onClick={() => marcar(c.key, v)}>{t}</button>))}
                       </td></tr>))}</tbody>
                 </table>
               </div>
@@ -416,22 +416,22 @@ export default function Laboratorio2027({ turma }) {
                   <div><span style={lab}>CFOP de entrada a registrar</span><select value={mAberta.cfopEntrada || ""} onChange={(e) => atualizarAberta({ cfopEntrada: e.target.value })}><option value="">Escolha…</option>{CFOP_ENTRADA.map(([k, v]) => <option key={k} value={k}>{k} · {v}</option>)}</select></div>
                 )}
                 <button type="button" className="btn green" disabled={!podeSalvar} onClick={() => atualizarAberta({ done: true })}>Salvar conferência</button>
-                {mAberta.done && <span style={{ color: "var(--muted)", fontSize: 13 }}>Salva.</span>}
+                {mAberta.done && <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>Salva.</span>}
               </div>
-              <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Na compra, o arquivo traz o CFOP do emitente (5102); o aluno informa o CFOP de entrada. Só nota aprovada segue para a classificação.</p>
+              <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "6px 0 0" }}>Na compra, o arquivo traz o CFOP do emitente (5102); o aluno informa o CFOP de entrada. Só nota aprovada segue para a classificação.</p>
             </div>
           )}
           </>)}
           {atab === "l" && (<>
             <div style={box}>
               <h3 style={{ margin: "0 0 4px" }}>3 · Notas aprovadas, prontas para lançar</h3>
-              <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Entram aqui só as notas conferidas e aprovadas (ou aprovadas com ressalva). Rejeitadas não geram lançamento. Compra e venda são a prazo; lance os valores destacados na nota.</p>
-              {paraLancar.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Nenhuma nota aprovada ainda. Confira e aprove notas na Caixa de entrada.</p> : (
+              <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Entram aqui só as notas conferidas e aprovadas (ou aprovadas com ressalva). Rejeitadas não geram lançamento. Compra e venda são a prazo; lance os valores destacados na nota.</p>
+              {paraLancar.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>Nenhuma nota aprovada ainda. Confira e aprove notas na Caixa de entrada.</p> : (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr><th style={th}>Nota</th><th style={th}>Tipo</th><th style={th}>Emitente / cliente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Lançamento</th></tr></thead>
                     <tbody>{paraLancar.map((x) => (
-                      <tr key={x.arquivo} onClick={() => abrirLanc(x.arquivo)} style={{ cursor: "pointer", background: abertaL === x.arquivo ? "var(--green-bg, #e3f0ea)" : undefined }}>
+                      <tr key={x.arquivo} onClick={() => abrirLanc(x.arquivo)} style={{ cursor: "pointer", background: abertaL === x.arquivo ? "var(--green-pale)" : undefined }}>
                         <td style={td}>{x.nota.numero}</td><td style={td}>{x.nota.direcao === "entrada" ? "Compra" : "Venda"}{marcas[x.arquivo].dec === "aprovar_com_ressalva" ? " · com ressalva" : ""}</td>
                         <td style={td}>{x.nota.direcao === "entrada" ? x.nota.emitente.nome : x.nota.destinatario.nome}</td><td style={tdn}>{brl(x.nota.total)}</td><td style={td}>{lancs[x.arquivo]?.ok ? "✔ enviado" : "a lançar"}</td></tr>))}</tbody>
                   </table>
@@ -441,7 +441,7 @@ export default function Laboratorio2027({ turma }) {
             {notaLanc && lancAberto && (
               <div style={box}>
                 <h3 style={{ margin: "0 0 4px" }}>Lançamento da NF-e {notaLanc.nota.numero} · {notaLanc.nota.direcao === "entrada" ? "compra" : "venda"}</h3>
-                <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>{notaLanc.nota.direcao === "entrada" ? "Mercadoria pelo valor sem os impostos recuperáveis; impostos a recuperar; dívida pelo total da nota." : "Receita pelo total da nota; ICMS e PIS/COFINS como dedução da receita, com o imposto a recolher, no mesmo lançamento."}{marcas[notaLanc.arquivo].dec === "aprovar_com_ressalva" ? " Nota aprovada com ressalva: lance o que está destacado no arquivo e comunique o emitente." : ""}</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>{notaLanc.nota.direcao === "entrada" ? "Mercadoria pelo valor sem os impostos recuperáveis; impostos a recuperar; dívida pelo total da nota." : "Receita pelo total da nota; ICMS e PIS/COFINS como dedução da receita, com o imposto a recolher, no mesmo lançamento."}{marcas[notaLanc.arquivo].dec === "aprovar_com_ressalva" ? " Nota aprovada com ressalva: lance o que está destacado no arquivo e comunique o emitente." : ""}</p>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr><th style={th}>Conta</th><th style={th}>D ou C</th><th style={{ ...th, textAlign: "right" }}>Valor</th><th style={th}></th></tr></thead>
@@ -459,13 +459,13 @@ export default function Laboratorio2027({ turma }) {
                   <span style={{ fontFamily: "var(--mono, monospace)", fontSize: 13 }}>Débitos {brl(lancAberto.linhas.filter((l) => l.tipo === "D").reduce((a, l) => a + numeroBr(l.valor), 0))} · Créditos {brl(lancAberto.linhas.filter((l) => l.tipo === "C").reduce((a, l) => a + numeroBr(l.valor), 0))}</span>
                   <button type="button" className="btn green" onClick={enviarLanc}>Conferir e enviar lançamento</button>
                 </div>
-                {msgL.length > 0 && <div style={{ background: "var(--danger-bg, #f8e5e3)", border: "1px solid var(--line)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>O sistema devolveu:</b>{msgL.map((m, i) => <div key={i}>{m}</div>)}</div>}
-                {okL && <div style={{ background: "var(--green-bg, #e3f0ea)", border: "1px solid var(--line)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>Lançamento enviado.</b> Contas, lados e valores conferem com a nota.</div>}
+                {msgL.length > 0 && <div style={{ background: "var(--red-pale)", color: "var(--red)", border: "1px solid var(--red)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>O sistema devolveu:</b>{msgL.map((m, i) => <div key={i}>{m}</div>)}</div>}
+                {okL && <div style={{ background: "var(--green-pale)", color: "var(--green)", border: "1px solid var(--green)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>Lançamento enviado.</b> Contas, lados e valores conferem com a nota.</div>}
               </div>
             )}
             <div style={box}>
               <h3 style={{ margin: "0 0 6px" }}>Razão da empresa (lançamentos enviados)</h3>
-              {razao.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Nenhum lançamento enviado.</p> : (
+              {razao.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>Nenhum lançamento enviado.</p> : (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr><th style={th}>Conta</th><th style={{ ...th, textAlign: "right" }}>Débitos</th><th style={{ ...th, textAlign: "right" }}>Créditos</th><th style={{ ...th, textAlign: "right" }}>Saldo</th></tr></thead>
@@ -473,7 +473,7 @@ export default function Laboratorio2027({ turma }) {
                   </table>
                 </div>
               )}
-              <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Na versão real, esses saldos alimentam o razão, a DRE e o balanço da empresa do aluno nas etapas seguintes.</p>
+              <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "6px 0 0" }}>Na versão real, esses saldos alimentam o razão, a DRE e o balanço da empresa do aluno nas etapas seguintes.</p>
             </div>
           </>)}
         </>
