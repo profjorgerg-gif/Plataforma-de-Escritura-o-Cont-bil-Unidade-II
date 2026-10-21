@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { lerXml, lerEvento, ehEvento, camposDaNota, avaliar } from "../../lib/conferenciaNota.js";
+import { CONTAS_LANCAMENTO, nomeConta, numeroBr, partidasEsperadas, conferirLancamento, saldosDoRazao } from "../../lib/lancamentoNota.js";
 import { QUANTIDADES_PADRAO, PERFIS, gerarPacote, resumoDoPacote, gerarXml, gerarXmlEvento, nomeArquivo, formatarCnpj } from "../../lib/orgaoFiscal.js";
 
 // Laboratório 2027.1 (2026-10-20): protótipo SÓ do professor/admin. Não grava nada no banco e não aparece para alunos.
@@ -57,6 +58,11 @@ export default function Laboratorio2027({ turma }) {
   const [ptab, setPtab] = useState("g");
   const [caixa, setCaixa] = useState([]); // notas importadas pelo aluno de exemplo
   const [marcas, setMarcas] = useState({}); // conferências por arquivo
+  const [lancs, setLancs] = useState({}); // lançamentos por arquivo: { linhas, ok }
+  const [atab, setAtab] = useState("c");
+  const [abertaL, setAbertaL] = useState(null);
+  const [msgL, setMsgL] = useState([]);
+  const [okL, setOkL] = useState(false);
   const [aberta, setAberta] = useState(null);
   const [msgImp, setMsgImp] = useState("");
   const [carregado, setCarregado] = useState(false);
@@ -64,13 +70,13 @@ export default function Laboratorio2027({ turma }) {
   const chaveAluno = "lab2027.aluno." + matricula;
   useEffect(() => {
     setCarregado(false);
-    try { const x = JSON.parse(localStorage.getItem(chaveAluno) || "{}"); setCaixa(x.caixa || []); setMarcas(x.marcas || {}); } catch { setCaixa([]); setMarcas({}); }
+    try { const x = JSON.parse(localStorage.getItem(chaveAluno) || "{}"); setCaixa(x.caixa || []); setMarcas(x.marcas || {}); setLancs(x.lancs || {}); } catch { setCaixa([]); setMarcas({}); setLancs({}); }
     setAberta(null); setMsgImp(""); setCarregado(true);
   }, [chaveAluno]);
   useEffect(() => {
     if (!carregado) return;
-    try { localStorage.setItem(chaveAluno, JSON.stringify({ caixa, marcas })); } catch { /* sem armazenamento */ }
-  }, [caixa, marcas, carregado, chaveAluno]);
+    try { localStorage.setItem(chaveAluno, JSON.stringify({ caixa, marcas, lancs })); } catch { /* sem armazenamento */ }
+  }, [caixa, marcas, lancs, carregado, chaveAluno]);
 
   function gerar() {
     setErro("");
@@ -145,7 +151,7 @@ export default function Laboratorio2027({ turma }) {
     } catch (e) { setMsgImp("Não foi possível ler o arquivo: " + (e?.message || e)); }
     setOcupado(false);
   }
-  function limparCaixa() { setCaixa([]); setMarcas({}); setAberta(null); setMsgImp(""); }
+  function limparCaixa() { setCaixa([]); setMarcas({}); setLancs({}); setAberta(null); setAbertaL(null); setMsgImp(""); }
   const entradaAberta = caixa.find((x) => x.arquivo === aberta) || null;
   const camposAbertos = entradaAberta ? camposDaNota(entradaAberta.nota, { cnpjEmpresa: empresaCnpj, evento: entradaAberta.evento, copiaDe: copiaDe(entradaAberta, caixa) }) : [];
   const mAberta = (entradaAberta && marcas[entradaAberta.arquivo]) || { f: {}, dec: "", cfopEntrada: "", done: false };
@@ -161,9 +167,24 @@ export default function Laboratorio2027({ turma }) {
     const d = docDoGabarito(x), m = marcas[x.arquivo];
     const r = d && m?.done ? avaliar(d.gabarito, m.f, m.dec, m.cfopEntrada, x.nota.direcao) : null;
     const campos = r ? (r.ok ? "certos" : [r.errados.length ? "não apontou: " + r.errados.join(", ") : "", r.falsos.length ? "marcou sem erro: " + r.falsos.join(", ") : "", !r.cfopOk ? "CFOP de entrada" : ""].filter(Boolean).join(" · ") || "decisão diferente") : "—";
-    return { arquivo: x.arquivo, tipo: d ? (d.problema ? ROT[d.problema.tipo] : "sem problema") : "sem gabarito", gabDec: d ? DEC[d.gabarito.decisao] : "—", alunoDec: m?.done ? DEC[m.dec] : "—", campos, res: r ? (r.ok ? "ok" : "rev") : "pend" };
+    return { arquivo: x.arquivo, tipo: d ? (d.problema ? ROT[d.problema.tipo] : "sem problema") : "sem gabarito", gabDec: d ? DEC[d.gabarito.decisao] : "—", alunoDec: m?.done ? DEC[m.dec] : "—", campos, res: r ? (r.ok ? "ok" : "rev") : "pend", lanc: !m?.done ? "—" : (d && !d.gabarito.contabilizar ? (lancs[x.arquivo]?.ok ? "✖ lançou nota que não devia" : "✔ não lançou") : (lancs[x.arquivo]?.ok ? "✔ enviado e conferido" : m.dec === "rejeitar" ? "✖ devia lançar" : "pendente")) };
   });
   const resumoAcomp = { conferidas: linhasAcomp.filter((l) => l.res !== "pend").length, acertos: linhasAcomp.filter((l) => l.res === "ok").length };
+  const paraLancar = caixa.filter((x) => marcas[x.arquivo]?.done && marcas[x.arquivo].dec !== "rejeitar");
+  const notaLanc = caixa.find((x) => x.arquivo === abertaL) || null;
+  const lancAberto = notaLanc ? lancs[notaLanc.arquivo] || { linhas: [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }], ok: false } : null;
+  const razao = saldosDoRazao(Object.keys(lancs).filter((a) => lancs[a].ok).map((a) => lancs[a]));
+  function abrirLanc(a) { setAbertaL(a); setMsgL([]); setOkL(false); }
+  function gravarLanc(p) { setLancs((m) => ({ ...m, [abertaL]: { ...lancAberto, ...p } })); }
+  function mudarLinha(i, p) {
+    const l = lancAberto.linhas;
+    gravarLanc({ ok: false, linhas: p === null ? [...l, { conta: "", tipo: "D", valor: "" }] : l.map((x, k) => (k === i ? { ...x, ...p } : x)) }); setOkL(false);
+  }
+  function tirarLinha(i) { gravarLanc({ ok: false, linhas: lancAberto.linhas.filter((_, k) => k !== i) }); setOkL(false); }
+  function enviarLanc() {
+    const m = conferirLancamento(notaLanc.nota, lancAberto.linhas);
+    setMsgL(m); setOkL(!m.length); gravarLanc({ ok: !m.length });
+  }
   function simularAluno() {
     if (!pacote) return;
     const nova = [], mm = {};
@@ -179,7 +200,9 @@ export default function Laboratorio2027({ turma }) {
       const f = {}; campos.forEach((c) => { f[c.key] = d.gabarito.divergencias.includes(c.key) ? "div" : "ok"; });
       mm[x.arquivo] = { f, dec: d.gabarito.decisao, cfopEntrada: d.direcao === "entrada" && d.gabarito.decisao !== "rejeitar" ? (d.gabarito.cfopEntrada || "1102") : "", done: true };
     });
-    setCaixa(nova); setMarcas(mm); setMsgImp("Simulação: " + nova.length + " notas importadas e conferidas.");
+    const ll = {};
+    nova.forEach((x) => { const m = mm[x.arquivo]; if (m.dec !== "rejeitar") ll[x.arquivo] = { ok: true, linhas: partidasEsperadas(x.nota).map(([conta, tipo, v]) => ({ conta, tipo, valor: v.toFixed(2).replace(".", ",") })) }; });
+    setCaixa(nova); setMarcas(mm); setLancs(ll); setMsgImp("Simulação: " + nova.length + " notas importadas, conferidas e lançadas.");
   }
 
   return (
@@ -318,7 +341,7 @@ export default function Laboratorio2027({ turma }) {
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8, marginBottom: 12 }}>
-                {[["Importadas", caixa.length], ["Conferidas", resumoAcomp.conferidas], ["Acertos", resumoAcomp.acertos], ["Revisar", resumoAcomp.conferidas - resumoAcomp.acertos], ["Aproveitamento", resumoAcomp.conferidas ? Math.round((resumoAcomp.acertos / resumoAcomp.conferidas) * 100) + "%" : "—"], ["Do pacote, não importadas", pacote ? Math.max(0, docs.length - caixa.length) : "—"]].map(([a, b]) => (
+                {[["Importadas", caixa.length], ["Conferidas", resumoAcomp.conferidas], ["Acertos", resumoAcomp.acertos], ["Revisar", resumoAcomp.conferidas - resumoAcomp.acertos], ["Aproveitamento", resumoAcomp.conferidas ? Math.round((resumoAcomp.acertos / resumoAcomp.conferidas) * 100) + "%" : "—"], ["Lançamentos conferidos", linhasAcomp.filter((l) => l.lanc === "✔ enviado e conferido").length], ["Do pacote, não importadas", pacote ? Math.max(0, docs.length - caixa.length) : "—"]].map(([a, b]) => (
                   <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px", background: "var(--surface)" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--muted)" }}>{a}</span></div>))}
               </div>
               <div style={box}>
@@ -326,10 +349,10 @@ export default function Laboratorio2027({ turma }) {
                 {caixa.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>O aluno ainda não importou notas.</p> : (
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead><tr><th style={th}>Arquivo</th><th style={th}>Tipo</th><th style={th}>Gabarito</th><th style={th}>Aluno decidiu</th><th style={th}>Campos</th><th style={th}>Resultado</th></tr></thead>
+                      <thead><tr><th style={th}>Arquivo</th><th style={th}>Tipo</th><th style={th}>Gabarito</th><th style={th}>Aluno decidiu</th><th style={th}>Campos</th><th style={th}>Resultado</th><th style={th}>Lançamento</th></tr></thead>
                       <tbody>{linhasAcomp.map((l) => (
                         <tr key={l.arquivo}><td style={td}>{l.arquivo}</td><td style={td}>{l.tipo}</td><td style={td}>{l.gabDec}</td><td style={td}>{l.alunoDec}</td><td style={td}>{l.campos}</td>
-                          <td style={td}>{l.res === "ok" ? "✔ acertou" : l.res === "rev" ? "✖ revisar" : "pendente"}</td></tr>))}</tbody>
+                          <td style={td}>{l.res === "ok" ? "✔ acertou" : l.res === "rev" ? "✖ revisar" : "pendente"}</td><td style={td}>{l.lanc}</td></tr>))}</tbody>
                     </table>
                   </div>
                 )}
@@ -346,7 +369,8 @@ export default function Laboratorio2027({ turma }) {
             <h3 style={{ margin: "0 0 4px" }}>Visão do aluno (simulada) · matrícula {matricula}</h3>
             <p style={{ color: "var(--muted)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1: importa o ZIP recebido, confere cada nota campo a campo e decide. Não há gabarito aqui; a comparação fica na aba Professor › Acompanhamento.</p>
           </div>
-          <Abas atual="c" onMudar={() => {}} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Classificação e lançamentos (próxima fase)", fut: true }]} />
+          <Abas atual={atab} onMudar={setAtab} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Lançamentos" + (paraLancar.length ? " (" + paraLancar.length + ")" : "") }]} />
+          {atab === "c" && (<>
           <div style={box}>
             <h3 style={{ margin: "0 0 6px" }}>1 · Importar</h3>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Escolha o ZIP baixado na aba Professor (ou arquivos XML soltos). Cada XML é lido e conferido na estrutura antes de entrar na caixa.</p>
@@ -397,6 +421,61 @@ export default function Laboratorio2027({ turma }) {
               <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Na compra, o arquivo traz o CFOP do emitente (5102); o aluno informa o CFOP de entrada. Só nota aprovada segue para a classificação.</p>
             </div>
           )}
+          </>)}
+          {atab === "l" && (<>
+            <div style={box}>
+              <h3 style={{ margin: "0 0 4px" }}>3 · Notas aprovadas, prontas para lançar</h3>
+              <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Entram aqui só as notas conferidas e aprovadas (ou aprovadas com ressalva). Rejeitadas não geram lançamento. Compra e venda são a prazo; lance os valores destacados na nota.</p>
+              {paraLancar.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Nenhuma nota aprovada ainda. Confira e aprove notas na Caixa de entrada.</p> : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr><th style={th}>Nota</th><th style={th}>Tipo</th><th style={th}>Emitente / cliente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Lançamento</th></tr></thead>
+                    <tbody>{paraLancar.map((x) => (
+                      <tr key={x.arquivo} onClick={() => abrirLanc(x.arquivo)} style={{ cursor: "pointer", background: abertaL === x.arquivo ? "var(--green-bg, #e3f0ea)" : undefined }}>
+                        <td style={td}>{x.nota.numero}</td><td style={td}>{x.nota.direcao === "entrada" ? "Compra" : "Venda"}{marcas[x.arquivo].dec === "aprovar_com_ressalva" ? " · com ressalva" : ""}</td>
+                        <td style={td}>{x.nota.direcao === "entrada" ? x.nota.emitente.nome : x.nota.destinatario.nome}</td><td style={tdn}>{brl(x.nota.total)}</td><td style={td}>{lancs[x.arquivo]?.ok ? "✔ enviado" : "a lançar"}</td></tr>))}</tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            {notaLanc && lancAberto && (
+              <div style={box}>
+                <h3 style={{ margin: "0 0 4px" }}>Lançamento da NF-e {notaLanc.nota.numero} · {notaLanc.nota.direcao === "entrada" ? "compra" : "venda"}</h3>
+                <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>{notaLanc.nota.direcao === "entrada" ? "Mercadoria pelo valor sem os impostos recuperáveis; impostos a recuperar; dívida pelo total da nota." : "Receita pelo total da nota; ICMS e PIS/COFINS como dedução da receita, com o imposto a recolher, no mesmo lançamento."}{marcas[notaLanc.arquivo].dec === "aprovar_com_ressalva" ? " Nota aprovada com ressalva: lance o que está destacado no arquivo e comunique o emitente." : ""}</p>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr><th style={th}>Conta</th><th style={th}>D ou C</th><th style={{ ...th, textAlign: "right" }}>Valor</th><th style={th}></th></tr></thead>
+                    <tbody>{lancAberto.linhas.map((l, i) => (
+                      <tr key={i}>
+                        <td style={td}><select value={l.conta} onChange={(e) => mudarLinha(i, { conta: e.target.value })}><option value="">Escolha a conta…</option>{CONTAS_LANCAMENTO.map((c) => <option key={c} value={c}>{c} {nomeConta(c)}</option>)}</select></td>
+                        <td style={td}><select value={l.tipo} onChange={(e) => mudarLinha(i, { tipo: e.target.value })}><option value="D">Débito</option><option value="C">Crédito</option></select></td>
+                        <td style={tdn}><input value={l.valor} onChange={(e) => mudarLinha(i, { valor: e.target.value })} placeholder="0,00" style={{ width: 110, textAlign: "right" }} /></td>
+                        <td style={td}><button type="button" className="btn secondary" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => tirarLinha(i)}>remover</button></td>
+                      </tr>))}</tbody>
+                  </table>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginTop: 8 }}>
+                  <button type="button" className="btn secondary" onClick={() => mudarLinha(-1, null)}>+ linha</button>
+                  <span style={{ fontFamily: "var(--mono, monospace)", fontSize: 13 }}>Débitos {brl(lancAberto.linhas.filter((l) => l.tipo === "D").reduce((a, l) => a + numeroBr(l.valor), 0))} · Créditos {brl(lancAberto.linhas.filter((l) => l.tipo === "C").reduce((a, l) => a + numeroBr(l.valor), 0))}</span>
+                  <button type="button" className="btn green" onClick={enviarLanc}>Conferir e enviar lançamento</button>
+                </div>
+                {msgL.length > 0 && <div style={{ background: "var(--danger-bg, #f8e5e3)", border: "1px solid var(--line)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>O sistema devolveu:</b>{msgL.map((m, i) => <div key={i}>{m}</div>)}</div>}
+                {okL && <div style={{ background: "var(--green-bg, #e3f0ea)", border: "1px solid var(--line)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>Lançamento enviado.</b> Contas, lados e valores conferem com a nota.</div>}
+              </div>
+            )}
+            <div style={box}>
+              <h3 style={{ margin: "0 0 6px" }}>Razão da empresa (lançamentos enviados)</h3>
+              {razao.length === 0 ? <p style={{ color: "var(--muted)", margin: 0 }}>Nenhum lançamento enviado.</p> : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr><th style={th}>Conta</th><th style={{ ...th, textAlign: "right" }}>Débitos</th><th style={{ ...th, textAlign: "right" }}>Créditos</th><th style={{ ...th, textAlign: "right" }}>Saldo</th></tr></thead>
+                    <tbody>{razao.map((r) => <tr key={r.conta}><td style={td}>{r.conta} {r.nome}</td><td style={tdn}>{brl(r.debitos)}</td><td style={tdn}>{brl(r.creditos)}</td><td style={tdn}>{brl(r.saldo)}</td></tr>)}</tbody>
+                  </table>
+                </div>
+              )}
+              <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "6px 0 0" }}>Na versão real, esses saldos alimentam o razão, a DRE e o balanço da empresa do aluno nas etapas seguintes.</p>
+            </div>
+          </>)}
         </>
       )}
     </div>
