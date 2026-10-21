@@ -206,6 +206,10 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "modoteste", label: "Modo de teste" },
       { key: "refazer", label: "Refazer nota do aluno", aviso: "⚠ mexe nos dados" },
     ] },
+    // Laboratório 2027.1 (2026-10-20): protótipo só do professor; não grava nada no banco e não aparece para alunos.
+    { id: "laboratorio", label: "🧪 laboratório 2027.1", recolhivel: true, itens: [
+      { key: "laboratorio", label: "Laboratório 2027.1 (Professor | Aluno)" },
+    ] },
   ];
 }
 

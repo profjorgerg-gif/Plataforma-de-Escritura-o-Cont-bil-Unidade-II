@@ -98,6 +98,7 @@ import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
 import FormulasFolha from "../shared/FormulasFolha.jsx";
+import Laboratorio2027 from "../professor/Laboratorio2027.jsx";
 import { GuiaEtapa2, GuiaEtapa3, GuiaEtapa4, GuiaEtapas56 } from "../shared/GuiaPorEtapa.jsx";
 import { TabelaFolhaEncargos, TabelaRescisao } from "../shared/TabelasFolhaRescisao.jsx";
 import { useRoteiroTurma, useRoteiroAluno, useAvaliacoesAluno } from "../../hooks/useRoteiro.js";
@@ -1200,6 +1201,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <DescricoesEscola turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "planos") {
     tela = <PlanosSemestrais turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && !emTeste && screen === "laboratorio") {
+    tela = <Laboratorio2027 turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "diretriz") {
     tela = <DiretrizSemana />;
   } else if (ehProfessorOuAdmin && screen === "caderno-folha") {
