@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { lerXml, lerEvento, ehEvento, camposDaNota, avaliar } from "../../lib/conferenciaNota.js";
-import { CONTAS_LANCAMENTO, nomeConta, numeroBr, partidasEsperadas, conferirLancamento, saldosDoRazao } from "../../lib/lancamentoNota.js";
-import { QUANTIDADES_PADRAO, PERFIS, gerarPacote, resumoDoPacote, gerarXml, gerarXmlEvento, nomeArquivo, formatarCnpj } from "../../lib/orgaoFiscal.js";
+import { CONTAS_LANCAMENTO, nomeConta, numeroBr, partidasEsperadas, conferirLancamento, partidasEstorno, saldosDoRazao } from "../../lib/lancamentoNota.js";
+import { QUANTIDADES_PADRAO, PERFIS, gerarPacote, resumoDoPacote, gerarXml, gerarXmlEvento, eventoDe, nomeArquivo, formatarCnpj } from "../../lib/orgaoFiscal.js";
 
 // Laboratório 2027.1 (2026-10-20): protótipo SÓ do professor/admin. Não grava nada no banco e não aparece para alunos.
 // Preferências ficam apenas neste navegador (localStorage). Fase 1: gerador de notas (aba Professor) + caixa de entrada simulada (aba Aluno).
@@ -63,11 +63,15 @@ export default function Laboratorio2027({ turma }) {
   const [abertaL, setAbertaL] = useState(null);
   const [msgL, setMsgL] = useState([]);
   const [okL, setOkL] = useState(false);
+  const [cancels, setCancels] = useState({}); // chaves das notas que o professor cancelou
   const [aberta, setAberta] = useState(null);
   const [msgImp, setMsgImp] = useState("");
   const [carregado, setCarregado] = useState(false);
   const entrada = useRef(null);
   const chaveAluno = "lab2027.aluno." + matricula;
+  const chaveCancel = "lab2027.cancel." + matricula;
+  useEffect(() => { try { setCancels(JSON.parse(localStorage.getItem(chaveCancel) || "{}") || {}); } catch { setCancels({}); } }, [chaveCancel]);
+  useEffect(() => { try { localStorage.setItem(chaveCancel, JSON.stringify(cancels)); } catch { /* sem armazenamento */ } }, [cancels, chaveCancel]);
   useEffect(() => {
     setCarregado(false);
     try { const x = JSON.parse(localStorage.getItem(chaveAluno) || "{}"); setCaixa(x.caixa || []); setMarcas(x.marcas || {}); setLancs(x.lancs || {}); } catch { setCaixa([]); setMarcas({}); setLancs({}); }
@@ -99,10 +103,16 @@ export default function Laboratorio2027({ turma }) {
       const z = new JSZip();
       pacote.documentos.filter((d) => d.lote <= lotes).forEach((d) => {
         z.file(d.problema?.original ? "NFe_" + d.numero + " (1).xml" : nomeArquivo(d), gerarXml(d));
-        (d.eventos || []).forEach((ev) => z.file("Evento_" + d.numero + "_" + ev.tipo + ".xml", gerarXmlEvento(d, ev)));
       });
       baixar("Notas_" + pacote.matricula + "_" + pacote.documentos.length + ".zip", await z.generateAsync({ type: "blob" }));
     } finally { setOcupado(false); }
+  }
+  async function zipEventos() {
+    const cs = docs.filter((d) => d.lote <= lotes && cancels[d.chave]);
+    if (!cs.length) return;
+    const z = new JSZip();
+    cs.forEach((d) => z.file("Evento_" + d.numero + "_cancelamento.xml", gerarXmlEvento(d, eventoDe(d))));
+    baixar("Eventos_" + pacote.matricula + ".zip", await z.generateAsync({ type: "blob" }));
   }
   function csv() {
     const l = [["lote", "numero", "data", "direcao", "cfop", "emitente", "destinatario", "total", "problema", "decisao_esperada"]];
@@ -163,16 +173,30 @@ export default function Laboratorio2027({ turma }) {
     const iguais = docs.filter((d) => d.chave === x.nota.chave);
     return (copiaDe(x, caixa) ? iguais.find((d) => d.problema?.original) : iguais.find((d) => !d.problema?.original)) || null;
   }
+  const gabEfetivo = (d, m) => (m?.comEvento ? { ...d.gabarito, decisao: "rejeitar", divergencias: ["cancelamento"], contabilizar: false } : d.gabarito);
+  function statusLanc(x, d, m) {
+    if (!m?.done) return "—";
+    const lan = !!lancs[x.arquivo]?.ok, est = !!lancs[x.arquivo + "#est"]?.ok;
+    if (m.comEvento || (d && !d.gabarito.contabilizar)) return lan ? "✖ lançou nota que não devia" : "✔ não lançou";
+    if (lan) { if (!(d && cancels[d.chave])) return "✔ enviado e conferido"; return !x.evento ? "lançado · evento não importado" : est ? "✔ lançado e estornado" : "✖ estorno pendente"; }
+    if (x.evento) return "✔ não lançou (cancelada)";
+    return m.dec === "rejeitar" ? "✖ devia lançar" : "pendente";
+  }
   const linhasAcomp = caixa.map((x) => {
     const d = docDoGabarito(x), m = marcas[x.arquivo];
-    const r = d && m?.done ? avaliar(d.gabarito, m.f, m.dec, m.cfopEntrada, x.nota.direcao) : null;
+    const g = d ? gabEfetivo(d, m) : null;
+    const r = d && m?.done ? avaliar(g, m.f, m.dec, m.cfopEntrada, x.nota.direcao) : null;
     const campos = r ? (r.ok ? "certos" : [r.errados.length ? "não apontou: " + r.errados.join(", ") : "", r.falsos.length ? "marcou sem erro: " + r.falsos.join(", ") : "", !r.cfopOk ? "CFOP de entrada" : ""].filter(Boolean).join(" · ") || "decisão diferente") : "—";
-    return { arquivo: x.arquivo, tipo: d ? (d.problema ? ROT[d.problema.tipo] : "sem problema") : "sem gabarito", gabDec: d ? DEC[d.gabarito.decisao] : "—", alunoDec: m?.done ? DEC[m.dec] : "—", campos, res: r ? (r.ok ? "ok" : "rev") : "pend", lanc: !m?.done ? "—" : (d && !d.gabarito.contabilizar ? (lancs[x.arquivo]?.ok ? "✖ lançou nota que não devia" : "✔ não lançou") : (lancs[x.arquivo]?.ok ? "✔ enviado e conferido" : m.dec === "rejeitar" ? "✖ devia lançar" : "pendente")) };
+    return { arquivo: x.arquivo, chave: x.nota.chave, tipo: d ? (d.problema ? ROT[d.problema.tipo] : "sem problema") : "sem gabarito", gabDec: g ? DEC[g.decisao] : "—", alunoDec: m?.done ? DEC[m.dec] : "—", campos, res: r ? (r.ok ? "ok" : "rev") : "pend", lanc: statusLanc(x, d, m) };
   });
   const resumoAcomp = { conferidas: linhasAcomp.filter((l) => l.res !== "pend").length, acertos: linhasAcomp.filter((l) => l.res === "ok").length };
-  const paraLancar = caixa.filter((x) => marcas[x.arquivo]?.done && marcas[x.arquivo].dec !== "rejeitar");
-  const notaLanc = caixa.find((x) => x.arquivo === abertaL) || null;
-  const lancAberto = notaLanc ? lancs[notaLanc.arquivo] || { linhas: [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }], ok: false } : null;
+  const paraLancar = caixa.filter((x) => marcas[x.arquivo]?.done && marcas[x.arquivo].dec !== "rejeitar" && !(x.evento && !lancs[x.arquivo]?.ok));
+  const paraEstorno = caixa.filter((x) => marcas[x.arquivo]?.done && x.evento && lancs[x.arquivo]?.ok);
+  const linhasLanc = [...paraLancar.map((x) => ({ key: x.arquivo, x, est: false })), ...paraEstorno.map((x) => ({ key: x.arquivo + "#est", x, est: true }))];
+  const pendEstorno = paraEstorno.filter((x) => !lancs[x.arquivo + "#est"]?.ok);
+  const ehEst = !!abertaL && abertaL.endsWith("#est");
+  const notaLanc = caixa.find((x) => x.arquivo === (abertaL || "").replace("#est", "")) || null;
+  const lancAberto = notaLanc ? lancs[abertaL] || { linhas: [{ conta: "", tipo: "D", valor: "" }, { conta: "", tipo: "C", valor: "" }], ok: false } : null;
   const razao = saldosDoRazao(Object.keys(lancs).filter((a) => lancs[a].ok).map((a) => lancs[a]));
   function abrirLanc(a) { setAbertaL(a); setMsgL([]); setOkL(false); }
   function gravarLanc(p) { setLancs((m) => ({ ...m, [abertaL]: { ...lancAberto, ...p } })); }
@@ -182,27 +206,31 @@ export default function Laboratorio2027({ turma }) {
   }
   function tirarLinha(i) { gravarLanc({ ok: false, linhas: lancAberto.linhas.filter((_, k) => k !== i) }); setOkL(false); }
   function enviarLanc() {
-    const m = conferirLancamento(notaLanc.nota, lancAberto.linhas);
+    const m = conferirLancamento(notaLanc.nota, lancAberto.linhas, { estorno: ehEst });
     setMsgL(m); setOkL(!m.length); gravarLanc({ ok: !m.length });
   }
   function simularAluno() {
     if (!pacote) return;
     const nova = [], mm = {};
-    pacote.documentos.forEach((d) => {
+    pacote.documentos.filter((d) => d.lote <= lotes).forEach((d) => {
       const arquivo = d.problema?.original ? "NFe_" + d.numero + " (1).xml" : nomeArquivo(d);
-      const ev = d.eventos && d.eventos[0] ? lerEvento(gerarXmlEvento(d, d.eventos[0])) : undefined;
+      const ev = cancels[d.chave] ? lerEvento(gerarXmlEvento(d, eventoDe(d))) : undefined;
       nova.push({ arquivo, nota: lerXml(gerarXml(d)), ...(ev ? { evento: ev } : {}) });
     });
     nova.sort((a, b) => a.nota.numero.localeCompare(b.nota.numero, "pt", { numeric: true }) || a.arquivo.localeCompare(b.arquivo));
+    const ll = {};
     nova.forEach((x) => {
       const d = docs.find((y) => y.chave === x.nota.chave && !!y.problema?.original === !!copiaDe(x, nova));
-      const campos = camposDaNota(x.nota, { cnpjEmpresa: pacote.empresa.cnpj, evento: x.evento, copiaDe: copiaDe(x, nova) });
+      const campos = camposDaNota(x.nota, { cnpjEmpresa: pacote.empresa.cnpj, copiaDe: copiaDe(x, nova) });
       const f = {}; campos.forEach((c) => { f[c.key] = d.gabarito.divergencias.includes(c.key) ? "div" : "ok"; });
-      mm[x.arquivo] = { f, dec: d.gabarito.decisao, cfopEntrada: d.direcao === "entrada" && d.gabarito.decisao !== "rejeitar" ? (d.gabarito.cfopEntrada || "1102") : "", done: true };
+      mm[x.arquivo] = { f, dec: d.gabarito.decisao, cfopEntrada: d.direcao === "entrada" && d.gabarito.decisao !== "rejeitar" ? (d.gabarito.cfopEntrada || "1102") : "", done: true, comEvento: false };
+      if (d.gabarito.decisao !== "rejeitar") {
+        const fmt = (p) => p.map(([conta, tipo, v]) => ({ conta, tipo, valor: v.toFixed(2).replace(".", ",") }));
+        ll[x.arquivo] = { ok: true, linhas: fmt(partidasEsperadas(x.nota)) };
+        if (x.evento) ll[x.arquivo + "#est"] = { ok: true, linhas: fmt(partidasEstorno(x.nota)) };
+      }
     });
-    const ll = {};
-    nova.forEach((x) => { const m = mm[x.arquivo]; if (m.dec !== "rejeitar") ll[x.arquivo] = { ok: true, linhas: partidasEsperadas(x.nota).map(([conta, tipo, v]) => ({ conta, tipo, valor: v.toFixed(2).replace(".", ",") })) }; });
-    setCaixa(nova); setMarcas(mm); setLancs(ll); setMsgImp("Simulação: " + nova.length + " notas importadas, conferidas e lançadas.");
+    setCaixa(nova); setMarcas(mm); setLancs(ll); setMsgImp("Simulação: " + nova.length + " notas importadas, conferidas e lançadas" + (Object.keys(ll).some((k) => k.endsWith("#est")) ? ", com estorno das canceladas." : "."));
   }
 
   return (
@@ -216,7 +244,7 @@ export default function Laboratorio2027({ turma }) {
 
       {modo === "p" && (
         <>
-          <Abas atual={ptab} onMudar={setPtab} itens={[{ k: "g", t: "1 · Gerador de notas" }, { k: "a", t: "2 · Acompanhamento" }, { k: "e", t: "3 · Eventos e painel (em breve)", fut: true }]} />
+          <Abas atual={ptab} onMudar={setPtab} itens={[{ k: "g", t: "1 · Gerador de notas" }, { k: "a", t: "2 · Acompanhamento" }, { k: "e", t: "3 · Painel e cancelamentos" }]} />
           {ptab === "g" && (<>
           <div style={box}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "flex-end" }}>
@@ -330,6 +358,50 @@ export default function Laboratorio2027({ turma }) {
             </>
           )}
           </>)}
+          {ptab === "e" && (
+            <>
+              <div style={box}>
+                <h3 style={{ margin: "0 0 4px" }}>1 · Liberação por lote</h3>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Cada lote tem até 6 notas. O ZIP do aluno leva só os lotes liberados. {pacote ? "" : "Gere o pacote na aba 1 para liberar lotes."}</p>
+                <div className="btn-row" style={{ marginTop: 0 }}>
+                  {pacote && Array.from({ length: nLotes }, (_, i) => i + 1).map((l) => {
+                    const lib = Math.min(lotes, nLotes);
+                    return l <= lib ? <button key={l} type="button" className="btn secondary" disabled>Lote {l} liberado</button>
+                      : <button key={l} type="button" className="btn green" disabled={l !== lib + 1} onClick={() => { setLotes(l); gravarPrefs({ ...lerPrefs(), lotes: l }); }}>Liberar lote {l}</button>;
+                  })}
+                  {pacote && <button type="button" className="btn secondary" disabled={ocupado} onClick={zipDoAluno}>Baixar ZIP das notas liberadas</button>}
+                </div>
+              </div>
+              {pacote && (
+                <div style={box}>
+                  <h3 style={{ margin: "0 0 4px" }}>2 · Notas liberadas e cancelamento</h3>
+                  <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Cancelar uma nota gera o evento de cancelamento (XML), como o emitente faria. Baixe o ZIP de eventos e entregue ao aluno, que importa na caixa de entrada. Se ele já lançou a nota, precisa estornar.</p>
+                  <div className="btn-row" style={{ marginTop: 0, marginBottom: 8 }}>
+                    <button type="button" className="btn secondary" disabled={!Object.keys(cancels).some((c) => docs.some((d) => d.chave === c && d.lote <= lotes))} onClick={zipEventos}>Baixar ZIP de eventos de cancelamento</button>
+                  </div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead><tr><th style={th}>Lote</th><th style={th}>Nº</th><th style={th}>Tipo</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Situação</th><th style={th}>Aluno de exemplo</th><th style={th}></th></tr></thead>
+                      <tbody>{docs.filter((d) => d.lote <= lotes && !d.problema?.original).map((d) => {
+                        const l = linhasAcomp.find((x) => x.chave === d.chave && !/\(\d+\)\.xml$/i.test(x.arquivo));
+                        return (
+                          <tr key={d.id}>
+                            <td style={td}>{d.lote}</td><td style={td}>{d.numero}</td><td style={td}>{d.direcao === "entrada" ? "Compra" : "Venda"}</td><td style={tdn}>{brl(d.valorTotal)}</td>
+                            <td style={td}>{cancels[d.chave] ? "cancelada" : d.problema?.tipo === "cancelada" ? "válida · cancelamento sugerido pelo gerador" : "válida"}</td>
+                            <td style={td}>{l ? l.lanc : "não importada"}</td>
+                            <td style={td}><button type="button" className="btn secondary" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => setCancels((c) => { const n = { ...c }; if (n[d.chave]) delete n[d.chave]; else n[d.chave] = true; return n; })}>{cancels[d.chave] ? "Retirar" : "Cancelar"}</button></td>
+                          </tr>);
+                      })}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8 }}>
+                {[["Lotes liberados", pacote ? Math.min(lotes, nLotes) + " de " + nLotes : "—"], ["Notas liberadas", pacote ? docs.filter((d) => d.lote <= lotes && !d.problema?.original).length : "—"], ["Canceladas", pacote ? docs.filter((d) => d.lote <= lotes && cancels[d.chave]).length : 0], ["Estornos conferidos", linhasAcomp.filter((l) => l.lanc === "✔ lançado e estornado").length], ["Estornos pendentes", linhasAcomp.filter((l) => l.lanc === "✖ estorno pendente").length]].map(([a, b]) => (
+                  <div key={a} style={{ border: "1px solid var(--line)", padding: "7px 10px", background: "var(--surface)" }}><b style={{ display: "block", fontSize: 19 }}>{b}</b><span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{a}</span></div>))}
+              </div>
+            </>
+          )}
           {ptab === "a" && (
             <>
               <div style={box}>
@@ -369,7 +441,7 @@ export default function Laboratorio2027({ turma }) {
             <h3 style={{ margin: "0 0 4px" }}>Visão do aluno (simulada) · matrícula {matricula}</h3>
             <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: 0 }}>É a tela que o aluno teria em 2027.1: importa o ZIP recebido, confere cada nota campo a campo e decide. Não há gabarito aqui; a comparação fica na aba Professor › Acompanhamento.</p>
           </div>
-          <Abas atual={atab} onMudar={setAtab} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Lançamentos" + (paraLancar.length ? " (" + paraLancar.length + ")" : "") }]} />
+          <Abas atual={atab} onMudar={setAtab} itens={[{ k: "c", t: "Caixa de entrada" }, { k: "l", t: "Lançamentos" + (linhasLanc.length ? " (" + linhasLanc.length + ")" : "") + (pendEstorno.length ? " ⚠" : "") }]} />
           {atab === "c" && (<>
           <div style={box}>
             <h3 style={{ margin: "0 0 6px" }}>1 · Importar</h3>
@@ -380,6 +452,7 @@ export default function Laboratorio2027({ turma }) {
               {caixa.length > 0 && <button type="button" className="btn secondary" onClick={limparCaixa}>Limpar caixa de entrada</button>}
             </div>
             {msgImp && <p style={{ fontSize: 13, margin: "8px 0 0" }}>{msgImp}</p>}
+            {pendEstorno.length > 0 && <div style={{ background: "var(--red-pale)", color: "var(--red)", border: "1px solid var(--red)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>Evento recebido:</b> cancelamento de {pendEstorno.map((x) => "NF-e " + x.nota.numero).join(", ")}. Você já lançou: faça o estorno na aba Lançamentos.</div>}
           </div>
           <div style={box}>
             <h3 style={{ margin: "0 0 6px" }}>Caixa de entrada ({caixa.length})</h3>
@@ -389,7 +462,7 @@ export default function Laboratorio2027({ turma }) {
                   <thead><tr><th style={th}>Arquivo</th><th style={th}>Emitente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Situação</th></tr></thead>
                   <tbody>{caixa.map((x) => { const m = marcas[x.arquivo]; return (
                     <tr key={x.arquivo} onClick={() => setAberta(x.arquivo)} style={{ cursor: "pointer", background: aberta === x.arquivo ? "var(--green-pale)" : undefined }}>
-                      <td style={td}>{x.arquivo}{copiaDe(x, caixa) ? " · repetida" : ""}</td><td style={td}>{x.nota.emitente.nome}</td><td style={tdn}>{brl(x.nota.total)}</td>
+                      <td style={td}>{x.arquivo}{copiaDe(x, caixa) ? " · repetida" : ""}{x.evento ? " · cancelada" : ""}</td><td style={td}>{x.nota.emitente.nome}</td><td style={tdn}>{brl(x.nota.total)}</td>
                       <td style={td}>{m?.done ? "Conferida · " + DEC[m.dec] : "Não conferida"}</td></tr>); })}</tbody>
                 </table>
               </div>
@@ -415,7 +488,7 @@ export default function Laboratorio2027({ turma }) {
                 {entradaAberta.nota.direcao === "entrada" && mAberta.dec && mAberta.dec !== "rejeitar" && (
                   <div><span style={lab}>CFOP de entrada a registrar</span><select value={mAberta.cfopEntrada || ""} onChange={(e) => atualizarAberta({ cfopEntrada: e.target.value })}><option value="">Escolha…</option>{CFOP_ENTRADA.map(([k, v]) => <option key={k} value={k}>{k} · {v}</option>)}</select></div>
                 )}
-                <button type="button" className="btn green" disabled={!podeSalvar} onClick={() => atualizarAberta({ done: true })}>Salvar conferência</button>
+                <button type="button" className="btn green" disabled={!podeSalvar} onClick={() => atualizarAberta({ done: true, comEvento: !!entradaAberta.evento })}>Salvar conferência</button>
                 {mAberta.done && <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>Salva.</span>}
               </div>
               <p style={{ color: "var(--ink-soft)", fontSize: 12.5, margin: "6px 0 0" }}>Na compra, o arquivo traz o CFOP do emitente (5102); o aluno informa o CFOP de entrada. Só nota aprovada segue para a classificação.</p>
@@ -426,22 +499,22 @@ export default function Laboratorio2027({ turma }) {
             <div style={box}>
               <h3 style={{ margin: "0 0 4px" }}>3 · Notas aprovadas, prontas para lançar</h3>
               <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>Entram aqui só as notas conferidas e aprovadas (ou aprovadas com ressalva). Rejeitadas não geram lançamento. Compra e venda são a prazo; lance os valores destacados na nota.</p>
-              {paraLancar.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>Nenhuma nota aprovada ainda. Confira e aprove notas na Caixa de entrada.</p> : (
+              {linhasLanc.length === 0 ? <p style={{ color: "var(--ink-soft)", margin: 0 }}>Nenhuma nota aprovada ainda. Confira e aprove notas na Caixa de entrada.</p> : (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr><th style={th}>Nota</th><th style={th}>Tipo</th><th style={th}>Emitente / cliente</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Lançamento</th></tr></thead>
-                    <tbody>{paraLancar.map((x) => (
-                      <tr key={x.arquivo} onClick={() => abrirLanc(x.arquivo)} style={{ cursor: "pointer", background: abertaL === x.arquivo ? "var(--green-pale)" : undefined }}>
-                        <td style={td}>{x.nota.numero}</td><td style={td}>{x.nota.direcao === "entrada" ? "Compra" : "Venda"}{marcas[x.arquivo].dec === "aprovar_com_ressalva" ? " · com ressalva" : ""}</td>
-                        <td style={td}>{x.nota.direcao === "entrada" ? x.nota.emitente.nome : x.nota.destinatario.nome}</td><td style={tdn}>{brl(x.nota.total)}</td><td style={td}>{lancs[x.arquivo]?.ok ? "✔ enviado" : "a lançar"}</td></tr>))}</tbody>
+                    <tbody>{linhasLanc.map(({ key, x, est }) => (
+                      <tr key={key} onClick={() => abrirLanc(key)} style={{ cursor: "pointer", background: abertaL === key ? "var(--green-pale)" : undefined }}>
+                        <td style={td}>{x.nota.numero}</td><td style={td}>{est ? "Estorno (nota cancelada)" : (x.nota.direcao === "entrada" ? "Compra" : "Venda") + (marcas[x.arquivo].dec === "aprovar_com_ressalva" ? " · com ressalva" : "")}</td>
+                        <td style={td}>{x.nota.direcao === "entrada" ? x.nota.emitente.nome : x.nota.destinatario.nome}</td><td style={tdn}>{brl(x.nota.total)}</td><td style={td}>{lancs[key]?.ok ? "✔ enviado" : est ? "estornar" : "a lançar"}</td></tr>))}</tbody>
                   </table>
                 </div>
               )}
             </div>
             {notaLanc && lancAberto && (
               <div style={box}>
-                <h3 style={{ margin: "0 0 4px" }}>Lançamento da NF-e {notaLanc.nota.numero} · {notaLanc.nota.direcao === "entrada" ? "compra" : "venda"}</h3>
-                <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>{notaLanc.nota.direcao === "entrada" ? "Mercadoria pelo valor sem os impostos recuperáveis; impostos a recuperar; dívida pelo total da nota." : "Receita pelo total da nota; ICMS e PIS/COFINS como dedução da receita, com o imposto a recolher, no mesmo lançamento."}{marcas[notaLanc.arquivo].dec === "aprovar_com_ressalva" ? " Nota aprovada com ressalva: lance o que está destacado no arquivo e comunique o emitente." : ""}</p>
+                <h3 style={{ margin: "0 0 4px" }}>{ehEst ? "Estorno" : "Lançamento"} da NF-e {notaLanc.nota.numero} · {notaLanc.nota.direcao === "entrada" ? "compra" : "venda"}</h3>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "0 0 8px" }}>{ehEst ? "O emitente cancelou esta nota depois do seu lançamento. Estorne: repita as mesmas contas e valores do lançamento original com débito e crédito trocados." : notaLanc.nota.direcao === "entrada" ? "Mercadoria pelo valor sem os impostos recuperáveis; impostos a recuperar; dívida pelo total da nota." : "Receita pelo total da nota; ICMS e PIS/COFINS como dedução da receita, com o imposto a recolher, no mesmo lançamento."}{!ehEst && marcas[notaLanc.arquivo].dec === "aprovar_com_ressalva" ? " Nota aprovada com ressalva: lance o que está destacado no arquivo e comunique o emitente." : ""}</p>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr><th style={th}>Conta</th><th style={th}>D ou C</th><th style={{ ...th, textAlign: "right" }}>Valor</th><th style={th}></th></tr></thead>
@@ -460,7 +533,7 @@ export default function Laboratorio2027({ turma }) {
                   <button type="button" className="btn green" onClick={enviarLanc}>Conferir e enviar lançamento</button>
                 </div>
                 {msgL.length > 0 && <div style={{ background: "var(--red-pale)", color: "var(--red)", border: "1px solid var(--red)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>O sistema devolveu:</b>{msgL.map((m, i) => <div key={i}>{m}</div>)}</div>}
-                {okL && <div style={{ background: "var(--green-pale)", color: "var(--green)", border: "1px solid var(--green)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>Lançamento enviado.</b> Contas, lados e valores conferem com a nota.</div>}
+                {okL && <div style={{ background: "var(--green-pale)", color: "var(--green)", border: "1px solid var(--green)", padding: "8px 10px", marginTop: 8, fontSize: 13.5 }}><b>{ehEst ? "Estorno enviado." : "Lançamento enviado."}</b> Contas, lados e valores conferem {ehEst ? "com o lançamento original." : "com a nota."}</div>}
               </div>
             )}
             <div style={box}>

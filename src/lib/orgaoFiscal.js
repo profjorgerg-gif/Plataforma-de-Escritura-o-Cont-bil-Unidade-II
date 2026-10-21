@@ -224,7 +224,7 @@ export function gerarPacote(matricula, semestre = "2027.1", opc = {}) {
     if (tipoP === "cancelada") {
       d.problema = { tipo: "cancelada" };
       d.eventos = [{ tipo: "cancelamento", em: somaDias(d.data, 2), protocolo: "142" + d.data.slice(2, 4) + pad(hash("ev|" + semente + "|" + idx) % 10000000000, 10), justificativa: "Cancelamento por erro na emissão do documento." }];
-      d.gabarito = gab("rejeitar", ["cancelamento"], false);
+      d.gabarito = gab("aprovar", [], true, "O cancelamento chega depois, por evento separado: estornar o lançamento.");
     } else if (tipoP === "cfop") {
       d.problema = { tipo: "cfop", cfopCorreto: REGRAS.cfopEmitente }; d.cfop = REGRAS.cfopIncompativel; d.itens = d.itens.map((it) => ({ ...it, cfop: REGRAS.cfopIncompativel }));
       d.gabarito = gab("aprovar_com_ressalva", ["natureza_cfop"], true, "CFOP de operação interestadual (6xxx) em operação interna: registrar pela natureza real da operação e comunicar o emitente.");
@@ -302,6 +302,11 @@ export function conferirNota(d) {
 // ---- arquivo XML da nota (estilo NF-e, simplificado) e do evento ---------------------------------------------------------
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const num = (v) => Number(v).toFixed(2);
+// evento de cancelamento de uma nota: o do gerador (nota "cancelada") ou um gerado na hora quando o professor cancela outra nota (2026-10-21)
+export function eventoDe(d) {
+  if (d.eventos && d.eventos[0]) return d.eventos[0];
+  return { tipo: "cancelamento", em: somaDias(d.data, 2), protocolo: "142" + String(d.data).slice(2, 4) + pad(hash("ev|" + d.chave) % 10000000000, 10), justificativa: "Cancelamento solicitado pelo emitente." };
+}
 export function nomeArquivo(d) { return "NFe_" + d.numero + ".xml"; }
 export function gerarXml(d) {
   const itens = d.itens.map((it, i) => `    <det nItem="${i + 1}"><prod><cProd>${esc(it.codigo)}</cProd><xProd>${esc(it.descricao)}</xProd><NCM>${esc(it.ncm)}</NCM><CFOP>${esc(it.cfop)}</CFOP><uCom>${esc(it.unidade)}</uCom><qCom>${it.qtd}</qCom><vUnCom>${num(it.valorUnit)}</vUnCom><vProd>${num(it.total)}</vProd></prod></det>`).join("\n");

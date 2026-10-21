@@ -16,7 +16,9 @@ export function partidasEsperadas(nota) {
 }
 
 // linhas = [{ conta, tipo, valor(texto) }]. Devolve lista de mensagens (vazia = conferido). Não revela os valores certos.
-export function conferirLancamento(nota, linhas) {
+export const partidasEstorno = (nota) => partidasEsperadas(nota).map(([c, t, v]) => [c, t === "D" ? "C" : "D", v]);
+
+export function conferirLancamento(nota, linhas, opc = {}) {
   const msg = [], ag = {};
   let deb = 0, cre = 0;
   (linhas || []).forEach((l) => {
@@ -28,13 +30,13 @@ export function conferirLancamento(nota, linhas) {
   if (Math.abs(deb - cre) > 0.009) msg.push("O total dos débitos é diferente do total dos créditos.");
   if ((linhas || []).some((l) => l.conta === "1.1.1.01" && numeroBr(l.valor))) msg.push("Compra e venda desta etapa são a prazo: não use Caixa.");
   const usados = new Set();
-  partidasEsperadas(nota).forEach(([c, t, v]) => {
+  (opc.estorno ? partidasEstorno(nota) : partidasEsperadas(nota)).forEach(([c, t, v]) => {
     const k = c + "|" + t; usados.add(k);
     const a = ag[k], lado = t === "D" ? "débito" : "crédito";
     if (a === undefined) msg.push("Falta " + nomeConta(c) + " no " + lado + ".");
     else if (Math.abs(a - v) > 0.02) msg.push("O valor de " + nomeConta(c) + " no " + lado + " não confere com a nota.");
   });
-  Object.keys(ag).forEach((k) => { if (!usados.has(k)) { const [c, t] = k.split("|"); msg.push("Linha a mais: " + nomeConta(c) + " no " + (t === "D" ? "débito" : "crédito") + " não é esperada neste lançamento."); } });
+  Object.keys(ag).forEach((k) => { if (!usados.has(k)) { const [c, t] = k.split("|"); msg.push((opc.estorno ? "Estorno com linha a mais: " : "Linha a mais: ") + nomeConta(c) + " no " + (t === "D" ? "débito" : "crédito") + (opc.estorno ? " não faz parte do lançamento original." : " não é esperada neste lançamento.")); } });
   return msg;
 }
 
