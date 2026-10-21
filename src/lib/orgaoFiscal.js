@@ -4,13 +4,17 @@
 // A nota gerada tem os mesmos campos do catálogo atual (documentosFiscais): numero, serie, direcao, natureza, cfop, data,
 // emitente, destinatario, itens, impostos, totais, valorTotal; e campos novos: chave, protocolo, autorizadoEm, lote, problema, eventos, gabarito.
 // Regras aprovadas pelo professor em 20/10/2026: ICMS 17% (SC); PIS 1,65% e COFINS 7,6% sobre (produtos − ICMS), cada valor arredondado
-// a centavos; empresa no regime não cumulativo (PIS/COFINS das compras são crédito); CFOP 1102 (compra) e 5102 (venda); sem ST, IPI, frete ou desconto.
+// a centavos; empresa no regime não cumulativo (PIS/COFINS das compras são crédito); sem ST, IPI, frete ou desconto.
+// 20/10 (23h30): o aluno CONFERE a nota e a aprova (ou rejeita). O CFOP e a natureza do arquivo são os do EMITENTE (como na nota real):
+// numa compra o arquivo traz 5102 e o aluno converte para o CFOP de entrada 1102 (gabarito.cfopEntrada).
+// gabarito = { decisao: "aprovar" | "aprovar_com_ressalva" | "rejeitar", contabilizar, divergencias: [campos errados], cfopEntrada?, operacao }
+// Campos conferíveis: "emitente", "destinatario", "chave", "natureza_cfop", "ncm:<codigo>", "icms", "pis", "cofins", "total", "cancelamento", "duplicidade".
 
 export const REGRAS = {
   uf: "SC", cUF: "42", icms: 0.17, pis: 0.0165, cofins: 0.076,
-  cfopEntrada: "1102", cfopSaida: "5102",
-  naturezaEntrada: "COMPRA PARA COMERCIALIZAÇÃO — INTERNA",
-  naturezaSaida: "VENDA DE MERCADORIA ADQUIRIDA DE TERCEIROS — INTERNA",
+  cfopEmitente: "5102", cfopEntrada: "1102", cfopIncompativel: "6102",
+  naturezaDoArquivo: "VENDA DE MERCADORIA ADQUIRIDA DE TERCEIROS — INTERNA", // natureza do emitente (nota de compra e de venda)
+  operacaoEntrada: "COMPRA PARA COMERCIALIZAÇÃO — INTERNA", operacaoSaida: "VENDA DE MERCADORIA ADQUIRIDA DE TERCEIROS — INTERNA",
 };
 
 // Seis produtos por perfil (NCM a validar pelo professor). min/max/passo = faixa do preço unitário de compra.
@@ -54,7 +58,9 @@ export const PERFIS = {
 const FORNECEDORES = ["Distribuidora Aurora Ltda", "Comercial Vale Verde Ltda", "Importadora Horizonte S.A.", "Atacado Ponte Nova Ltda", "Distribuidora Campo Alto Ltda", "Comercial Lagoa Azul Ltda", "Atacadista Pedra Branca Ltda", "Distribuidora Monte Claro Ltda"];
 const CLIENTES = ["Mercado Bom Preço Ltda", "Comércio Casa Nova Ltda", "Loja Central do Vale Ltda", "Empório Três Rios Ltda", "Comercial Praça Verde Ltda", "Rede Boa Compra Ltda", "Varejo Porto Seco Ltda", "Magazine Alto da Serra Ltda"];
 
-export const TIPOS_PROBLEMA = ["cancelada", "duplicada", "cfop", "destinatario"];
+// Quantidades de notas por aluno oferecidas ao professor (ele também pode digitar outra quantidade, de 2 a 500).
+export const QUANTIDADES_PADRAO = [24, 48, 96, 100, 130];
+export const TIPOS_PROBLEMA = ["cancelada", "duplicada", "cfop", "destinatario", "ncm", "tributo", "total"];
 
 // ---- utilidades ----------------------------------------------------------------------------------------------------------
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -111,9 +117,13 @@ function montarImpostos(t) {
 }
 
 // ---- gerador do pacote ---------------------------------------------------------------------------------------------------
-// opc: { nEntradas=12, nSaidas=12, nProblemas=4, inicio="2027-03-01", diasUteis=22, porLote=6, empresaNome, perfil }
+// opc: { quantidade=24 (total de notas; metade entradas e metade saídas), nEntradas, nSaidas (sobrepõem a quantidade), nProblemas (padrão: 1 a cada 4 notas),
+//        inicio="2027-03-01", diasUteis (padrão cresce com a quantidade), porLote=6, empresaNome, perfil }
 export function gerarPacote(matricula, semestre = "2027.1", opc = {}) {
-  const o = { nEntradas: 12, nSaidas: 12, nProblemas: 4, inicio: "2027-03-01", diasUteis: 22, porLote: 6, ...opc };
+  const q = Math.min(500, Math.max(2, Math.round(Number(opc.quantidade) || 24)));
+  const o = { nEntradas: Math.ceil(q / 2), nSaidas: q - Math.ceil(q / 2), inicio: "2027-03-01", porLote: 6, ...opc };
+  if (opc.nProblemas === undefined) o.nProblemas = Math.max(1, Math.min(o.nEntradas + o.nSaidas - 1, Math.round((o.nEntradas + o.nSaidas) / 4)));
+  if (opc.diasUteis === undefined) o.diasUteis = Math.max(22, Math.round((o.nEntradas + o.nSaidas) * 0.9));
   const semente = String(matricula) + "|" + String(semestre);
   const r = rng(hash("orgao|" + semente));
   const chavesPerfil = Object.keys(PERFIS);
@@ -161,7 +171,7 @@ export function gerarPacote(matricula, semestre = "2027.1", opc = {}) {
         unit = r2((custo[p.codigo] || p.min) * (1.25 + Math.floor(r() * 36) / 100));
         estoque[p.codigo] = disp - qtd;
       }
-      itens.push({ codigo: p.codigo, descricao: p.descricao, ncm: p.ncm, cst: "00", cfop: tipo === "entrada" ? REGRAS.cfopEntrada : REGRAS.cfopSaida, unidade: p.unidade, qtd, valorUnit: unit, total: r2(qtd * unit) });
+      itens.push({ codigo: p.codigo, descricao: p.descricao, ncm: p.ncm, cst: "00", cfop: REGRAS.cfopEmitente, unidade: p.unidade, qtd, valorUnit: unit, total: r2(qtd * unit) });
     }
     const t = calcularTributos(itens.reduce((s, it) => s + it.total, 0));
     let numero = numeroBase + i * inteiro(r, 3, 40); while (usados.has(numero)) numero++; usados.add(numero);
@@ -175,49 +185,84 @@ export function gerarPacote(matricula, semestre = "2027.1", opc = {}) {
       id: "og-" + String(semestre).replace(".", "") + "-" + String(matricula) + "-" + pad(i + 1, 2),
       origem: "orgao-fiscal", ordem: i + 1, lote: Math.floor(i / o.porLote) + 1,
       numero: String(numero), serie, tipo: "NF-e", direcao: tipo,
-      natureza: tipo === "entrada" ? REGRAS.naturezaEntrada : REGRAS.naturezaSaida,
-      cfop: tipo === "entrada" ? REGRAS.cfopEntrada : REGRAS.cfopSaida,
+      natureza: REGRAS.naturezaDoArquivo,
+      cfop: REGRAS.cfopEmitente,
       data, chave, protocolo: "142" + data.slice(2, 4) + pad(hash("prot|" + semente + "|" + i) % 10000000000, 10), autorizadoEm: data + "T" + hora,
       emitente: { nome: emitente.nome, cnpj: emitente.cnpj }, destinatario: { nome: destinatario.nome, cnpj: destinatario.cnpj },
       itens, impostos: montarImpostos(t),
       totais: { produtos: t.produtos, desconto: 0, frete: 0, seguro: 0, outras: 0, total: t.produtos },
       valorTotal: t.produtos, completo: true,
       problema: null, eventos: [],
-      gabarito: tipo === "entrada" ? { manifestacao: "confirmacao", contabilizar: true } : { manifestacao: null, contabilizar: true },
+      gabarito: tipo === "entrada"
+        ? { decisao: "aprovar", contabilizar: true, divergencias: [], cfopEntrada: REGRAS.cfopEntrada, operacao: REGRAS.operacaoEntrada }
+        : { decisao: "aprovar", contabilizar: true, divergencias: [], operacao: REGRAS.operacaoSaida },
     });
   }
 
   // notas com problema (quantidade configurável; tipos sorteados sem repetir enquanto houver tipo livre)
   const extras = [];
   const livres = docs.map((d, i) => i).filter((i) => i > 0);
+  const excluidos = new Set(); // entradas rejeitadas: não podem deixar uma venda posterior sem estoque
   const ordemTipos = [...TIPOS_PROBLEMA].sort(() => r() - 0.5);
   for (let k = 0; k < Math.min(o.nProblemas, livres.length); k++) {
-    const tipoP = ordemTipos[k % ordemTipos.length];
-    const candidatos = livres.filter((i) => tipoP === "destinatario" ? docs[i].direcao === "entrada" : true);
-    if (candidatos.length === 0) continue;
-    const idx = candidatos[Math.floor(r() * candidatos.length)];
+    // tenta o tipo da vez; se não houver nota adequada, tenta o seguinte
+    let tipoP, idx, rejeita = false;
+    for (let t = 0; t < ordemTipos.length && idx === undefined; t++) {
+      const cand = ordemTipos[(k + t) % ordemTipos.length];
+      const rej = ["cancelada", "destinatario", "total"].includes(cand);
+      const base = livres.filter((i) => (cand === "destinatario" ? docs[i].direcao === "entrada" : true));
+      // sorteia a ordem dos candidatos e usa o primeiro que não deixe uma venda posterior sem estoque
+      const ordem = [...base].sort(() => r() - 0.5);
+      const achado = ordem.find((i) => !rej || docs[i].direcao !== "entrada" || estoqueOk(docs, new Set([...excluidos, docs[i].id])));
+      if (achado !== undefined) { tipoP = cand; idx = achado; rejeita = rej; }
+    }
+    if (idx === undefined) continue;
     livres.splice(livres.indexOf(idx), 1);
     const d = docs[idx];
+    if (rejeita && d.direcao === "entrada") excluidos.add(d.id);
+    const gab = (decisao, divergencias, contabilizar, observacao) => ({ ...d.gabarito, decisao, contabilizar, divergencias, ...(observacao ? { observacao } : {}) });
     if (tipoP === "cancelada") {
       d.problema = { tipo: "cancelada" };
       d.eventos = [{ tipo: "cancelamento", em: somaDias(d.data, 2), protocolo: "142" + d.data.slice(2, 4) + pad(hash("ev|" + semente + "|" + idx) % 10000000000, 10), justificativa: "Cancelamento por erro na emissão do documento." }];
-      d.gabarito = { manifestacao: d.direcao === "entrada" ? "nao_realizada" : null, contabilizar: false };
+      d.gabarito = gab("rejeitar", ["cancelamento"], false);
     } else if (tipoP === "cfop") {
-      const errado = d.direcao === "entrada" ? REGRAS.cfopSaida : REGRAS.cfopEntrada;
-      const certo = d.cfop;
-      d.problema = { tipo: "cfop", cfopCorreto: certo }; d.cfop = errado; d.itens = d.itens.map((it) => ({ ...it, cfop: errado }));
-      d.gabarito = { manifestacao: d.direcao === "entrada" ? "ciencia" : null, contabilizar: true, observacao: "Registrar pela natureza real da operação e comunicar o emitente do CFOP incompatível." };
+      d.problema = { tipo: "cfop", cfopCorreto: REGRAS.cfopEmitente }; d.cfop = REGRAS.cfopIncompativel; d.itens = d.itens.map((it) => ({ ...it, cfop: REGRAS.cfopIncompativel }));
+      d.gabarito = gab("aprovar_com_ressalva", ["natureza_cfop"], true, "CFOP de operação interestadual (6xxx) em operação interna: registrar pela natureza real da operação e comunicar o emitente.");
     } else if (tipoP === "destinatario") {
       const outro = { nome: CLIENTES[(hash("dest|" + semente + idx)) % CLIENTES.length], cnpj: novoCnpj(rng(hash("destcnpj|" + semente + idx))) };
       d.problema = { tipo: "destinatario" }; d.destinatario = outro;
-      d.gabarito = { manifestacao: "desconhecimento", contabilizar: false };
+      d.gabarito = gab("rejeitar", ["destinatario"], false);
+    } else if (tipoP === "ncm") {
+      const k = Math.floor(r() * d.itens.length); const it = d.itens[k];
+      const outroProd = perfil.produtos.filter((p) => p.ncm !== it.ncm)[Math.floor(r() * (perfil.produtos.length - 1))];
+      d.problema = { tipo: "ncm", item: it.codigo, ncmCorreto: it.ncm }; it.ncm = outroProd.ncm;
+      d.gabarito = gab("aprovar_com_ressalva", ["ncm:" + it.codigo], true, "NCM do item não corresponde ao produto: registrar e comunicar o emitente.");
+    } else if (tipoP === "tributo") {
+      const variante = r() < 0.5 ? "icms12" : "pis_base"; const t0 = calcularTributos(d.totais.produtos);
+      if (variante === "icms12") { d.impostos.icms.valor = r2(t0.produtos * 0.12); d.impostos.icms.aliquota = 12; d.gabarito = gab("aprovar_com_ressalva", ["icms"], true, "ICMS destacado com alíquota diferente de 17%."); }
+      else { d.impostos.pis.valor = r2(t0.produtos * REGRAS.pis); d.impostos.cofins.valor = r2(t0.produtos * REGRAS.cofins); d.impostos.pis.base = t0.produtos; d.impostos.cofins.base = t0.produtos; d.gabarito = gab("aprovar_com_ressalva", ["pis", "cofins"], true, "PIS e COFINS calculados sobre a base com ICMS."); }
+      d.problema = { tipo: "tributo", variante };
+    } else if (tipoP === "total") {
+      const dif = r2(5 + Math.floor(r() * 46)); d.problema = { tipo: "total", diferenca: dif };
+      d.totais.total = r2(d.totais.produtos + dif); d.valorTotal = d.totais.total;
+      d.gabarito = gab("rejeitar", ["total"], false, "O total da nota não fecha com a soma dos itens.");
     } else if (tipoP === "duplicada") {
       d.problema = { tipo: "duplicada", repetida: true };
-      extras.push({ ...d, id: d.id + "-dup", ordem: docs.length + extras.length + 1, problema: { tipo: "duplicada", original: d.id }, eventos: [], gabarito: { manifestacao: null, contabilizar: false, observacao: "Documento já recebido: contabilizar uma vez só e justificar." } });
+      extras.push({ ...d, id: d.id + "-dup", ordem: docs.length + extras.length + 1, problema: { tipo: "duplicada", original: d.id }, eventos: [], gabarito: { ...d.gabarito, decisao: "rejeitar", contabilizar: false, divergencias: ["duplicidade"], observacao: "Documento já recebido: contabilizar uma vez só e justificar." } });
     }
   }
   const documentos = [...docs, ...extras];
   return { empresa, perfil: perfilKey, semestre, documentos, resumo: resumoDoPacote(documentos) };
+}
+
+// estoque nunca fica negativo (na ordem de emissão), desconsiderando as entradas rejeitadas
+function estoqueOk(documentos, excluidos) {
+  const est = {};
+  for (const d of documentos) { // já está na ordem de emissão
+    if (d.direcao === "entrada" && excluidos.has(d.id)) continue;
+    for (const it of d.itens) { est[it.codigo] = (est[it.codigo] || 0) + (d.direcao === "entrada" ? it.qtd : -it.qtd); if (est[it.codigo] < 0) return false; }
+  }
+  return true;
 }
 
 export function resumoDoPacote(documentos) {
@@ -233,14 +278,24 @@ export function resumoDoPacote(documentos) {
 // ---- autoconferência: devolve a lista de inconsistências de uma nota gerada (vazia = tudo certo) --------------------------
 export function conferirNota(d) {
   const e = [];
+  const tp = d.problema && d.problema.tipo;
   const soma = r2(d.itens.reduce((s, it) => s + it.total, 0));
-  if (Math.abs(soma - d.totais.produtos) > 0.001 || Math.abs(d.valorTotal - soma) > 0.001) e.push("total diferente da soma dos itens");
+  if (tp !== "total" && (Math.abs(soma - d.totais.produtos) > 0.001 || Math.abs(d.valorTotal - soma) > 0.001)) e.push("total diferente da soma dos itens");
+  if (tp === "total" && Math.abs(d.valorTotal - soma) < 0.001) e.push("nota de total divergente sem divergência");
   d.itens.forEach((it) => { if (Math.abs(r2(it.qtd * it.valorUnit) - it.total) > 0.001) e.push("total do item " + it.codigo); });
   const t = calcularTributos(soma);
-  if (Math.abs(t.icms - d.impostos.icms.valor) > 0.001) e.push("ICMS");
-  if (Math.abs(t.pis - d.impostos.pis.valor) > 0.001) e.push("PIS");
-  if (Math.abs(t.cofins - d.impostos.cofins.valor) > 0.001) e.push("COFINS");
+  const ok = (x, y) => Math.abs(x - y) <= 0.001;
+  if (tp !== "tributo") {
+    if (!ok(t.icms, d.impostos.icms.valor)) e.push("ICMS");
+    if (!ok(t.pis, d.impostos.pis.valor)) e.push("PIS");
+    if (!ok(t.cofins, d.impostos.cofins.valor)) e.push("COFINS");
+  } else {
+    const certo = ok(t.icms, d.impostos.icms.valor) && ok(t.pis, d.impostos.pis.valor) && ok(t.cofins, d.impostos.cofins.valor);
+    if (certo) e.push("nota de tributo errado sem divergência");
+  }
   if (!validarChave(d.chave)) e.push("chave de acesso inválida");
+  if (tp === "ncm") { const p = Object.values(PERFIS).flatMap((x) => x.produtos).find((x) => x.codigo === d.problema.item); const it = d.itens.find((x) => x.codigo === d.problema.item); if (!p || !it || p.ncm === it.ncm) e.push("NCM sem divergência"); }
+  else { d.itens.forEach((it) => { const p = Object.values(PERFIS).flatMap((x) => x.produtos).find((x) => x.codigo === it.codigo); if (!p || p.ncm !== it.ncm) e.push("NCM do item " + it.codigo); }); }
   return e;
 }
 
