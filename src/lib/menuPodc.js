@@ -165,6 +165,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
       { key: "inicio", label: "🏫 Sala de aula" },
       b("fila", "Fila de correção", badgeFila),
       b("suporte", "Suporte", badgeSuporte),
+      { key: "dashboard-ciclo", label: "📈 Dashboard do ciclo" },
     ] },
     { id: "g-planejar", label: "🗓 planejar", recolhivel: true, itens: [
       ab("planejar", "Etapas, prazos e liberação"),
