@@ -4,6 +4,7 @@ import { resumoAtividade } from "../../lib/folhaAtividade.js";
 import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
 import { sugestaoEtapa } from "../../lib/notasAuto.js";
+import { parecerEtapaCriterios } from "../../lib/parecerNota.js";
 import { etapasEfetivas } from "../../lib/roteiro.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, useTrabalhosCaDaTurma } from "../../hooks/useCa.js";
@@ -31,6 +32,7 @@ function Linha({ turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onS
   const desconto = descontar && !etapa.semAtraso ? DESCONTO_ATRASO : 0;
   const nota = aplicaDesconto(notaCrit, desconto);
   const f = faixaDaNota(nota);
+  const sugNota = notaDaEtapa(etapa, Object.fromEntries(etapa.criterios.map((c) => [c.key, sugestoes[c.key] ?? null])));
 
   async function salvar() {
     setMsg("salvando…");
@@ -63,11 +65,12 @@ function Linha({ turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onS
           </tbody>
         </table>
         <div style={{ marginTop: 8, fontSize: 13.5 }}>
-          Nota pelos critérios: <b>{fmtNota(notaCrit)}</b>
+          {sugNota !== null && <><span style={{ color: "var(--ink-faint)" }}>Nota sugerida pelo sistema: <b>{fmtNota(sugNota)}</b></span> · </>}Nota pelos critérios: <b>{fmtNota(notaCrit)}</b>
           {!etapa.semAtraso && <> · <label><input type="checkbox" checked={descontar} onChange={(e) => setDescontar(e.target.checked)} /> descontar {DESCONTO_ATRASO},0 pontos por entrega em atraso</label></>}
           {desconto > 0 && <> → nota da etapa <b>{fmtNota(nota)}</b></>}
         </div>
-        <div className="field" style={{ marginTop: 8 }}><label>Comentário geral</label><textarea rows={2} value={geral} onChange={(e) => setGeral(e.target.value)} /></div>
+        <div className="field" style={{ marginTop: 8 }}><label>Parecer técnico (o aluno vê junto com a nota liberada)</label><textarea rows={8} value={geral} onChange={(e) => setGeral(e.target.value)} placeholder="Clique em “Gerar parecer” e ajuste o texto." />
+          <div className="btn-row" style={{ marginTop: 6 }}><button className="btn secondary" type="button" onClick={() => setGeral(parecerEtapaCriterios({ etapa, valores, comentarios: coms, notaCrit, desconto, nota, atrasado: etapa.semAtraso ? undefined : atrasado }))}>Gerar parecer</button>{geral && <span style={{ alignSelf: "center", fontSize: 12.5, color: "var(--ink-faint)" }}>Gerar de novo substitui o texto acima.</span>}</div></div>
         <label style={{ fontSize: 13 }}><input type="checkbox" checked={lib} onChange={(e) => setLib(e.target.checked)} /> Mostrar esta nota e o retorno ao aluno</label>
         <div className="btn-row" style={{ marginTop: 8 }}><button className="btn green" onClick={salvar}>Salvar avaliação</button>{msg && <span style={{ alignSelf: "center", fontSize: 13 }}>{msg}</span>}</div>
       </div>

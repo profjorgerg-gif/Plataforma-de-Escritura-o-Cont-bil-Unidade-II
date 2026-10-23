@@ -27,7 +27,7 @@ export default function NotasEtapas({ avaliacoes }) {
               </table>
               {a.desconto > 0 && <div style={{ marginTop: 8, fontSize: 13.5 }}>Nota pelos critérios: <b>{fmtNota(a.notaCriterios)}</b> · desconto por entrega em atraso: <b>−{fmtNota(a.desconto)}</b> → nota da etapa <b>{fmtNota(a.nota)}</b>.</div>}
               {f && <div style={{ marginTop: 10, fontSize: 13.5 }}><b>O que fazer agora:</b> {f.orientacao}</div>}
-              {a.comentario && <div style={{ marginTop: 8, padding: "6px 10px", background: "var(--paper)", fontSize: 13.5 }}><b>Comentário do professor:</b> {a.comentario}</div>}
+              {a.comentario && <div style={{ marginTop: 8, padding: "8px 12px", background: "var(--paper)", fontSize: 13.5 }}><b>Parecer técnico do professor</b><div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{a.comentario}</div></div>}
             </div>
           </div>
         );

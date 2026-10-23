@@ -414,6 +414,7 @@ function MinhaNota({ registro, turma, documentos, progresso, lancamentos }) {
         </div>
         {dias > 0 && <div className="helper-note">Desconto de {fmt(desconto)} ponto(s) já aplicado na nota final, por {dias} dia(s) de atraso em relação ao prazo ({fmtData(prazo)}).</div>}
         <div className="helper-note">Completude e autonomia são calculadas automaticamente a partir do que você já fez no sistema; a qualidade técnica é a avaliação do seu professor sobre o raciocínio contábil.</div>
+        {registro.parecer && registro.parecer.trim() && <div style={{ marginTop: 10, padding: "8px 12px", background: "var(--paper)", fontSize: 13.5 }}><b>Parecer técnico do professor</b><div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{registro.parecer}</div></div>}
       </div>
     </div>
   );

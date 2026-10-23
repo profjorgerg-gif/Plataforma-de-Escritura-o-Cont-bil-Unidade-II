@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
@@ -11,6 +11,50 @@ import {
   prazoEfetivo, diasAtraso, fmtData, descontoEfetivo, fmt,
   completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica,
 } from "../../lib/contabil.js";
+import { parecerEtapa1 } from "../../lib/parecerNota.js";
+
+
+// Ficha do aluno: nota sugerida com a conta aberta + parecer técnico editável (2026-10-23).
+// O parecer fica no documento do aluno (campo "parecer") e o aluno o vê junto com a nota, quando ela é liberada.
+function FichaParecer({ aluno, d, onSalvar }) {
+  const [texto, setTexto] = useState(aluno.parecer ?? "");
+  const [msg, setMsg] = useState("");
+  const linhas = [
+    ["Completude", d.completudePct === null ? "—" : d.completudePct + "%", d.completudePct === null ? "—" : fmt(d.completudePct / 10), "45%", d.completudePct === null ? "—" : fmt((d.completudePct / 10) * 0.45)],
+    ["Qualidade técnica", d.qualidadeNota === null || d.qualidadeNota === undefined ? "sem nota" : "nota digitada", d.qualidadeNota === null || d.qualidadeNota === undefined ? "—" : fmt(Number(d.qualidadeNota)), "35%", d.qualidadeNota === null || d.qualidadeNota === undefined ? "—" : fmt(Number(d.qualidadeNota) * 0.35)],
+    ["Autonomia nas correções", d.autonomiaPct === null ? "—" : d.autonomiaPct + "%", fmt((d.autonomiaPct === null ? 100 : d.autonomiaPct) / 10), "20%", fmt(((d.autonomiaPct === null ? 100 : d.autonomiaPct) / 10) * 0.2)],
+  ];
+  async function gravar(t) { setMsg("salvando…"); try { await onSalvar(t); setMsg("✓ parecer salvo"); } catch (e) { setMsg("✗ não salvou: " + (e.message || e.code)); } }
+  return (
+    <div className="panel-body" style={{ background: "var(--paper)" }}>
+      <div className="grid-2">
+        <div>
+          <b style={{ fontSize: 12.5 }}>Como a nota foi composta</b>
+          <table>
+            <thead><tr><th>Critério</th><th>Resultado</th><th className="num">Nota</th><th className="num">Peso</th><th className="num">Pontos</th></tr></thead>
+            <tbody>
+              {linhas.map((l) => <tr key={l[0]}><td>{l[0]}</td><td>{l[1]}</td><td className="num mono">{l[2]}</td><td className="num mono">{l[3]}</td><td className="num mono">{l[4]}</td></tr>)}
+              {d.desconto > 0 && <tr><td colSpan={4}>Desconto por atraso ({d.dias} dia(s))</td><td className="num mono">−{fmt(d.desconto)}</td></tr>}
+              <tr><td colSpan={4}><b>Nota final sugerida</b></td><td className="num mono"><b>{d.notaFinal === null ? "—" : fmt(d.notaFinal)}</b></td></tr>
+            </tbody>
+          </table>
+          {d.qualidadeNota === null || d.qualidadeNota === undefined ? <div className="helper-note">Digite a qualidade técnica (ou clique em "usar" na sugestão) para fechar a nota final e o parecer.</div> : null}
+        </div>
+        <div>
+          <b style={{ fontSize: 12.5 }}>Parecer técnico (o aluno vê junto com a nota liberada)</b>
+          <textarea rows={11} style={{ width: "100%", boxSizing: "border-box", marginTop: 4 }} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Clique em “Gerar parecer” e ajuste o texto." />
+          <div className="btn-row" style={{ marginTop: 6 }}>
+            <button className="btn secondary" onClick={() => setTexto(parecerEtapa1(d))}>Gerar parecer</button>
+            <button className="btn green" onClick={() => gravar(texto)}>Salvar parecer</button>
+            {aluno.parecer && <button className="btn secondary" onClick={() => { setTexto(""); gravar(""); }}>Apagar</button>}
+            {msg && <span style={{ alignSelf: "center", fontSize: 13 }}>{msg}</span>}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 4 }}>{aluno.notaLiberada ? "Nota liberada: o aluno já vê o parecer salvo." : "Nota ainda não liberada: o aluno não vê nada."}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Mesma tabela de avaliação que antes ficava lá embaixo em "Painel do
 // professor" — agora com item próprio no menu, pra acesso rápido sem rolar
@@ -23,6 +67,7 @@ export default function Notas({ turma }) {
   const { contas } = usePlanoContas();
 
   const [prorrogando, setProrrogando] = useState(null); // matricula
+  const [fichaDe, setFichaDe] = useState(null); // matricula com a ficha de parecer aberta
   const [novoPrazoData, setNovoPrazoData] = useState("");
   const [novoPrazoMotivo, setNovoPrazoMotivo] = useState("");
 
@@ -125,8 +170,14 @@ export default function Notas({ turma }) {
                   classificacoes: progressoTurma.classificacoesPorMatricula[a.matricula],
                   contas: contas || [],
                 });
+                const dadosFicha = {
+                  completudePct, autonomiaPct, qual: qualidadeAuto, qualidadeNota: a.nota, notaFinal, desconto, dias,
+                  prazoTxt: fmtData(prazo),
+                  rodadas: lancsAluno.reduce((t, l) => t + (l.historicoCorrecoes?.length || 0), 0),
+                };
                 return (
-                  <tr key={a.matricula}>
+                  <Fragment key={a.matricula}>
+                  <tr>
                     <td>{a.nome}</td>
                     <td><span className="mono">{fmtData(prazo)}</span>{a.prazoIndividual && <span className="tag-pill" style={{ marginLeft: 6 }}>individual</span>}</td>
                     <td className="mono">{fmtData(a.dataEntrega)}</td>
@@ -152,10 +203,13 @@ export default function Notas({ turma }) {
                     <td className="num mono">{notaFinal === null ? "—" : fmt(notaFinal)}</td>
                     <td><span className={"status " + (a.notaLiberada ? "aprovado" : "rascunho")}>{a.notaLiberada ? "liberada" : "não liberada"}</span></td>
                     <td>
+                      <button className="btn secondary" style={{ marginRight: 6 }} onClick={() => setFichaDe(fichaDe === a.matricula ? null : a.matricula)}>{a.parecer ? "📝 parecer ✓" : "📝 parecer"}</button>
                       <button className="btn secondary" style={{ marginRight: 6 }} onClick={() => abrirProrrogacao(a)}>novo prazo</button>
                       <button className={a.notaLiberada ? "btn red" : "btn green"} disabled={a.nota === null || a.nota === undefined} onClick={() => toggleLiberada(a.matricula, a.notaLiberada)}>{a.notaLiberada ? "ocultar" : "liberar"}</button>
                     </td>
                   </tr>
+                  {fichaDe === a.matricula && <tr><td colSpan={12} style={{ padding: 0 }}><FichaParecer key={a.matricula} aluno={a} d={dadosFicha} onSalvar={(t) => updateDoc(alunoRef(a.matricula), { parecer: t })} /></td></tr>}
+                  </Fragment>
                 );
               })}
             </tbody>
