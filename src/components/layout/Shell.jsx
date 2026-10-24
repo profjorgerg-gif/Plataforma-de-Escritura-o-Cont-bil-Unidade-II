@@ -1460,7 +1460,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           {papelEfetivo === "aluno" && <FluxoEtapaPI key={"pi" + screen} tela={screen} onSuporte={() => setScreen("suporte")} />}
           {papelEfetivo === "aluno" && !emTeste && etapaDaTelaAtual && prazoTela.fechada && infoEtapaTela && infoEtapaTela.disponivel
             ? <EtapaFechada key={"ef" + screen} prazo={prazoTela.prazo} titulo={infoEtapaTela.titulo} livreFolha={screen === "diario"} onSuporte={() => setScreen("suporte")}>{tela}</EtapaFechada>
-            : (verComo ? <TravaLeitura key={screen}>{tela}</TravaLeitura> : tela)}
+            : (verComo ? <TravaLeitura key={"tl" + screen}>{tela}</TravaLeitura> : tela)}
         </div>
       </div>
     </div>
