@@ -175,6 +175,7 @@ export function gruposMenuProfessorPodc({ papel, badgeFila, badgeSuporte }) {
     ] },
     { id: "g-avaliar", label: "📊 avaliar e fechar", recolhivel: true, itens: [
       ab("alunos", "Alunos"),
+      { key: "ver-aluno", label: "👁 Ver como o aluno (só leitura)" },
       { key: "fechamento", label: "Fechamento da etapa" },
       ab("notas-aval", "Notas e avaliação"),
     ] },

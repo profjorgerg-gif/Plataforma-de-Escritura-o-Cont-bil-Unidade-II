@@ -5,7 +5,7 @@ import { useTurmasDoProfessor } from "../../hooks/useTurmasDoProfessor.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { extrairLinhasPdf, candidatosDeLinhas } from "../../lib/importarAlunosPdf.js";
 
-export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId, onSelecionarAluno }) {
+export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId, onSelecionarAluno, onVerComoAluno }) {
   const turmas = useTurmasDoProfessor(uid);
   const turmaAtual = turmas?.find((t) => t.id === turmaSelecionadaId) || turmas?.[0] || null;
   const alunos = useAlunosDaTurma(turmaAtual?.id);
@@ -290,7 +290,7 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
             )}
 
             <table>
-              <thead><tr><th>Aluno</th><th>Matrícula</th><th className="num">Nota</th><th></th><th></th></tr></thead>
+              <thead><tr><th>Aluno</th><th>Matrícula</th><th className="num">Nota</th><th></th>{onVerComoAluno && <th></th>}<th></th></tr></thead>
               <tbody>
                 {(alunos || []).map((a) => (
                   <tr key={a.matricula}>
@@ -298,6 +298,7 @@ export default function Turmas({ uid, turmaSelecionadaId, setTurmaSelecionadaId,
                     <td className="mono">{a.matricula}</td>
                     <td className="num mono">{a.notaLiberada ? a.nota : "—"}</td>
                     <td><span className="tag-pill" style={{ cursor: "pointer" }} onClick={() => onSelecionarAluno(a)}>ver histórico →</span></td>
+                    {onVerComoAluno && <td><button className="btn secondary" onClick={() => onVerComoAluno({ turmaId: turmaAtual.id, matricula: a.matricula, nome: a.nome, somenteLeitura: true })}>👁 Ver</button></td>}
                     <td>
                       <button className="btn red" disabled={removendo === a.matricula} onClick={() => removerAluno(a)}>
                         {removendo === a.matricula ? "Removendo…" : "Remover"}

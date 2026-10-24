@@ -51,6 +51,8 @@ import FilaCorrecao from "../professor/FilaCorrecao.jsx";
 import HistoricoAluno from "../professor/HistoricoAluno.jsx";
 import DocumentosFiscaisProfessor from "../professor/DocumentosFiscaisProfessor.jsx";
 import ModoTeste from "../professor/ModoTeste.jsx";
+import VerComoAluno from "../professor/VerComoAluno.jsx";
+import TravaLeitura from "../professor/TravaLeitura.jsx";
 
 import ManualAluno from "../manuais/ManualAluno.jsx";
 import ManualProfessor from "../manuais/ManualProfessor.jsx";
@@ -709,6 +711,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   const [foco, setFoco] = useState(null);
   const [testeAtivo, setTesteAtivo] = useState(null); // { turmaId, matricula, nome } | null
   const emTeste = ehProfessorOuAdmin && !!testeAtivo;
+  const verComo = emTeste && !!testeAtivo.somenteLeitura; // "Ver como o aluno": aluno real, só leitura
   // "Mesa do professor" (2026-10-16): formato novo, em paralelo com o menu lateral. Quando ligada, abrir uma tela abre uma janela.
   // Mesa do aluno (2026-10-16): mesmo formato, opcional, só em tela larga. A escolha de cada papel é guardada separadamente neste navegador.
   // No modo de teste o professor vê as telas do aluno, então usa a Mesa do aluno (sem precisar do link ?mesa=1).
@@ -782,7 +785,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   function entrarNoModoTeste(alvo) {
     setTesteAtivo(alvo);
     setPilhaTelas([]);
-    setScreenRaw("inicio");
+    setScreenRaw(alvo && alvo.somenteLeitura ? "dashboard" : "inicio");
   }
 
   // papelEfetivo/turmaId/matricula: o que as telas de aluno realmente usam,
@@ -884,12 +887,13 @@ export default function Shell({ usuario, perfil, onSair }) {
   // função, sem numeração (2026-10-08).
   // Menu PODC (Planejamento, Organização, Direção e Controle) — aprovado em 2026-10-12.
   // Só muda o agrupamento do menu: as chaves das telas e as regras de liberação são as mesmas de antes.
-  const mostrarAgb = emTeste || agbAluno.liberado;
-  const mostrarExAgb = exerciciosVisiveis(agbAluno, emTeste).length > 0;
-  const mostrarCa = emTeste || caAluno.liberado;
-  const mostrarResc = emTeste || !!(caAluno.config && caAluno.config.rescisaoLiberada);
-  const mostrarPi = emTeste || !!roteiroCfg;
-  const mostrarAtivFolha = emTeste || !!(caAluno.config && caAluno.config.empregados && caAluno.config.empregados.length > 0);
+  const testeLivre = emTeste && !verComo; // conta de teste vê tudo; "ver como aluno" vê só o que o aluno vê
+  const mostrarAgb = testeLivre || agbAluno.liberado;
+  const mostrarExAgb = exerciciosVisiveis(agbAluno, testeLivre).length > 0;
+  const mostrarCa = testeLivre || caAluno.liberado;
+  const mostrarResc = testeLivre || !!(caAluno.config && caAluno.config.rescisaoLiberada);
+  const mostrarPi = testeLivre || !!roteiroCfg;
+  const mostrarAtivFolha = testeLivre || !!(caAluno.config && caAluno.config.empregados && caAluno.config.empregados.length > 0);
   const etapasAluno = papelEfetivo === "aluno"
     ? montarEtapasAluno({
         roteiroCfg, rot: rotAluno,
@@ -901,7 +905,7 @@ export default function Shell({ usuario, perfil, onSair }) {
     menuGrupos = gruposMenuAlunoPodc({
       etapas: etapasAluno,
       incluirManuais: !emTeste,
-      incluirRoteiroTestes: emTeste,
+      incluirRoteiroTestes: testeLivre,
       mostrarPi,
       badgeDiario: correcoesPendentesAluno,
       badgeSuporte: suporteNaoLidoAluno,
@@ -1087,6 +1091,8 @@ export default function Shell({ usuario, perfil, onSair }) {
     tela = <ManualOperacao />;
   } else if (ehProfessorOuAdmin && !emTeste && screen === "envios") {
     tela = <EnviosPorLote turma={turmaSelecionada} />;
+  } else if (ehProfessorOuAdmin && !emTeste && screen === "ver-aluno") {
+    tela = <VerComoAluno turma={turmaSelecionada} onEntrar={entrarNoModoTeste} />;
   } else if (ehProfessorOuAdmin && !emTeste && screen === "modoteste") {
     tela = <ModoTeste turma={turmaSelecionada} onEntrar={entrarNoModoTeste} />;
   } else if (papelEfetivo === "aluno" && TELAS_COM_ESCRITURACAO.includes(screen) && esc.carregando) {
@@ -1094,7 +1100,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && TELAS_COM_DOCUMENTOS.includes(screen) && documentos === null) {
     tela = <div className="empty-state">Carregando documentos da turma…</div>;
   } else if (papelEfetivo === "aluno" && screen === "dashboard") {
-    tela = <TelaDashboardAluno identificacao={emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} registro={meuRegistro} turma={minhaTurma} />;
+    tela = <TelaDashboardAluno identificacao={verComo ? "Matrícula " + testeAtivo.matricula : emTeste ? "Conta de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula} esc={esc} documentos={documentos} progresso={progresso} registro={meuRegistro} turma={minhaTurma} />;
   } else if (papelEfetivo === "aluno" && screen === "minha-nota") {
     tela = <TelaMinhaNota registro={meuRegistro} turma={minhaTurma} documentos={documentos} progresso={progresso} lancamentos={esc.lancamentos} contas={esc.contas} />;
   } else if (papelEfetivo === "aluno" && screen === "empresa") {
@@ -1108,7 +1114,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (papelEfetivo === "aluno" && screen === "consulta") {
     tela = <ConsultaFiscal />;
   } else if (papelEfetivo === "aluno" && screen === "suporte") {
-    tela = <SuporteAluno turmaId={turmaId} matricula={matricula} nome={emTeste ? testeAtivo.nome : meuRegistro?.nome} documentos={documentos || []} />;
+    tela = <SuporteAluno somenteLeitura={verComo} turmaId={turmaId} matricula={matricula} nome={emTeste ? testeAtivo.nome : meuRegistro?.nome} documentos={documentos || []} />;
   } else if (papelEfetivo === "aluno" && screen === "guia-proj") {
     tela = <TelaComAbas key={screen} inicial="etapa1" abas={guiaAbas(false)} />;
   } else if (papelEfetivo === "aluno" && screen === "tabelas-proj") {
@@ -1232,6 +1238,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
+        onVerComoAluno={entrarNoModoTeste}
         uid={usuario.uid}
         turmaSelecionadaId={turmaSelecionada?.id}
         setTurmaSelecionadaId={setTurmaSelecionadaId}
@@ -1294,12 +1301,12 @@ export default function Shell({ usuario, perfil, onSair }) {
         brand="Mesa do Aluno" homeChave="inicio" homeLabel="🧭 Comece aqui" atalho={{ chave: "dashboard", label: "Meu progresso" }}
         menu={menuSuperiorAluno(menuGrupos)}
         mesa={mesa}
-        renderTela={(chave, f) => (<div key={chave}>{conteudoDaTela(chave, f)}</div>)}
+        renderTela={(chave, f) => (<div key={chave}>{verComo ? <TravaLeitura>{conteudoDaTela(chave, f)}</TravaLeitura> : conteudoDaTela(chave, f)}</div>)}
         tituloDe={tituloAluno}
-        turmaNome={emTeste ? "🧪 Modo de teste — " + testeAtivo.nome : "Matrícula " + perfil.matricula}
+        turmaNome={emTeste ? (verComo ? "👁 Vendo como — " : "🧪 Modo de teste — ") + testeAtivo.nome : "Matrícula " + perfil.matricula}
         resumo={(menuGrupos.flatMap((g) => g.itens || []).find((i) => i.key === "suporte") || {}).badge ? "Você tem resposta no suporte" : ""}
         textoAviso={(chave) => "Você já tem a tela “" + tituloAluno(chave) + "” aberta. Trouxe ela para a frente."}
-        acoes={{ voltarClassico: () => setModoMesa(false), sair: emTeste ? sairDoModoTeste : onSair, rotuloSair: emTeste ? "Sair do teste" : "Sair", tema: temaUi, backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
+        acoes={{ voltarClassico: () => setModoMesa(false), sair: emTeste ? sairDoModoTeste : onSair, rotuloSair: emTeste ? (verComo ? "Sair da visualização" : "Sair do teste") : "Sair", tema: temaUi, backup: () => { if (!gerandoBackup) gerarBackup(); }, rotuloBackup: "Baixar meu backup" }}
       />
     );
   }
@@ -1403,14 +1410,14 @@ export default function Shell({ usuario, perfil, onSair }) {
             <button className="menu-toggle" aria-label="Abrir menu" onClick={() => setMenuAberto(true)}>☰</button>
             <div className="empresa">
               {emTeste
-                ? "🧪 Modo de teste — " + testeAtivo.nome
+                ? (verComo ? "👁 Vendo como — " : "🧪 Modo de teste — ") + testeAtivo.nome
                 : perfil.papel === "aluno"
                   ? "Matrícula " + perfil.matricula
                   : (turmaSelecionada ? "Turma: " + turmaSelecionada.nome : "Nenhuma turma selecionada")}
             </div>
           </div>
           <div className="role-switch">
-            {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>Sair do modo de teste</button>}
+            {emTeste && <button className="role-btn" onClick={sairDoModoTeste}>{verComo ? "Sair da visualização" : "Sair do modo de teste"}</button>}
             {ehProfessorOuAdmin && !emTeste && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             {mesaDeAluno && mesaAlunoOk && telaLarga && <button className="role-btn" title="Menus no topo e telas em janelas (formato novo, em teste, só no computador)" onClick={() => setModoMesa(true)}>🪟 Mesa (novo)</button>}
             <button className="role-btn" disabled={gerandoBackup || (ehProfessorOuAdmin && !emTeste && !turmaSelecionada)} onClick={gerarBackup}>
@@ -1435,9 +1442,15 @@ export default function Shell({ usuario, perfil, onSair }) {
               )}
             </div>
           )}
-          {emTeste && (
+          {emTeste && !verComo && (
             <div className="balance-check bad no-print" style={{ marginBottom: 18 }}>
               🧪 Você está agindo como a conta de teste <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — não é um aluno real.
+            </div>
+          )}
+          {verComo && (
+            <div className="balance-check no-print" style={{ marginBottom: 18, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between", background: "var(--amber-pale)", color: "var(--amber)", border: "1px solid var(--amber)" }}>
+              <span>👁 Você está vendo a plataforma como <b>{testeAtivo.nome}</b> ({testeAtivo.matricula}) — <b>somente leitura</b>: nada é salvo.</span>
+              <button className="btn secondary" onClick={sairDoModoTeste}>Sair da visualização</button>
             </div>
           )}
           {papelEfetivo === "aluno" && infoEtapaTela && infoEtapaTela.disponivel && (
@@ -1447,7 +1460,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           {papelEfetivo === "aluno" && <FluxoEtapaPI key={"pi" + screen} tela={screen} onSuporte={() => setScreen("suporte")} />}
           {papelEfetivo === "aluno" && !emTeste && etapaDaTelaAtual && prazoTela.fechada && infoEtapaTela && infoEtapaTela.disponivel
             ? <EtapaFechada key={"ef" + screen} prazo={prazoTela.prazo} titulo={infoEtapaTela.titulo} livreFolha={screen === "diario"} onSuporte={() => setScreen("suporte")}>{tela}</EtapaFechada>
-            : tela}
+            : (verComo ? <TravaLeitura key={screen}>{tela}</TravaLeitura> : tela)}
         </div>
       </div>
     </div>

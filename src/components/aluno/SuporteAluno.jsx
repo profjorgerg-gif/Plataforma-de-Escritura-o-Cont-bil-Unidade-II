@@ -62,7 +62,7 @@ function Conversa({ c }) {
   );
 }
 
-function ChamadoItem({ c, turmaId }) {
+function ChamadoItem({ c, turmaId, somenteLeitura }) {
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -72,7 +72,7 @@ function ChamadoItem({ c, turmaId }) {
   async function abrir() {
     const novo = !aberto;
     setAberto(novo);
-    if (novo && c.naoLidoAluno) {
+    if (novo && c.naoLidoAluno && !somenteLeitura) {
       try { await updateDoc(doc(db, "turmas", turmaId, "chamados", c.id), { naoLidoAluno: false }); } catch (e) { /* silencioso */ }
     }
   }
@@ -111,7 +111,7 @@ function ChamadoItem({ c, turmaId }) {
   );
 }
 
-export default function SuporteAluno({ turmaId, matricula, nome, documentos }) {
+export default function SuporteAluno({ turmaId, matricula, nome, documentos, somenteLeitura }) {
   const { chamados, erro: erroLeitura } = useChamados(turmaId, matricula);
   const [assunto, setAssunto] = useState(ASSUNTOS_SUPORTE[0]);
   const [docId, setDocId] = useState("");
@@ -168,7 +168,7 @@ export default function SuporteAluno({ turmaId, matricula, nome, documentos }) {
         <div className="panel-body">
           {chamados === null ? <div className="empty-state">Carregando…</div>
             : chamados.length === 0 ? <div className="empty-state">Você ainda não abriu nenhum chamado.</div>
-            : chamados.map((c) => <ChamadoItem key={c.id} c={c} turmaId={turmaId} />)}
+            : chamados.map((c) => <ChamadoItem somenteLeitura={somenteLeitura} key={c.id} c={c} turmaId={turmaId} />)}
         </div>
       </div>
     </>
