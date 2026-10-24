@@ -5,6 +5,7 @@ import { useLancamentosDaTurma } from "../../hooks/useLancamentosDaTurma.js";
 import { useProgressoTurma } from "../../hooks/useProgressoTurma.js";
 import { Kpi } from "../shared/UI.jsx";
 import { fmt, prazoEfetivo } from "../../lib/contabil.js";
+import EspelhoCiclo from "./EspelhoCiclo.jsx";
 
 // Dashboard do ciclo — Entrada × Saída (2026-10-07, pedido do professor).
 //
@@ -275,6 +276,7 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
   const progressoTurma = useProgressoTurma(turma?.id, alunos);
 
   const [alunoRelatorio, setAlunoRelatorio] = useState(null);
+  const [modoImp, setModoImp] = useState(null); // impressão do espelho: "turma" ou matrícula
 
   const carregando = alunos === null || documentos === null;
 
@@ -408,6 +410,7 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
 
   return (
     <>
+      <div className={modoImp ? "no-print" : ""}>
       <div className="screen-eyebrow">dashboard do ciclo</div>
       <h2 className="screen-title">Dashboard do ciclo — Entrada × Saída</h2>
       <p className="screen-sub">
@@ -534,6 +537,8 @@ export default function DashboardCiclo({ turma, onSelecionarAluno }) {
           CFOP, NCM ou CST que o aluno marcou como incorreto para a operação, na Análise fiscal — não é erro do aluno, é a contagem do que ele próprio sinalizou.
         </div>
       </div>
+      </div>
+      <EspelhoCiclo turma={turma} alunos={alunos} documentos={documentos} progressoTurma={progressoTurma} todos={todos} modoImp={modoImp} setModoImp={setModoImp} />
     </>
   );
 }
