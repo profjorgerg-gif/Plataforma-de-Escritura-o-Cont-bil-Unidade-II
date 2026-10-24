@@ -9,10 +9,10 @@ const CSS = `
 .mesa{--m-tit1:#163F33;--m-tit2:#1F5C4A;--m-desk:var(--m-desk-c,#E6E0D0);--m-grid:var(--m-grid-c,#DCD5C2);position:fixed;inset:0;display:flex;flex-direction:column;background:var(--m-desk);z-index:50;font-size:14px}
 .mesa-sair-fixo{display:none;position:fixed;right:10px;bottom:10px;z-index:200;padding:10px 14px;border-radius:20px;border:1px solid var(--line-strong,#C3B79E);background:var(--green-dark,#163F33);color:#fff;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 @media (max-width:1100px){.mesa-sair-fixo{display:block}}
-.mesa-bar{display:flex;align-items:stretch;background:var(--paper-deep,#EFE9DA);border-bottom:1px solid var(--line-strong,#C3B79E);height:36px;flex:none;position:relative;z-index:60;user-select:none}
+.mesa-bar{display:flex;align-items:stretch;background:var(--paper-deep,#EFE9DA);border-bottom:1px solid var(--line-strong,#C3B79E);min-height:36px;flex:none;flex-wrap:wrap;position:relative;z-index:60;user-select:none}
 .mesa-brand{display:flex;align-items:center;padding:0 12px;font-weight:700;color:var(--green-dark,#163F33);white-space:nowrap}
-.mesa-mn{position:relative}
-.mesa-mn>button{height:100%;white-space:nowrap;padding:0 10px;background:none;border:0;cursor:pointer;color:var(--ink,#1E2A38);font:inherit}
+.mesa-mn{position:relative;height:36px}.mesa-brand{height:36px}.mesa-info{height:36px}
+.mesa-mn>button{height:100%;white-space:nowrap;padding:0 9px;background:none;border:0;cursor:pointer;color:var(--ink,#1E2A38);font:inherit}
 .mesa-mn>button:hover,.mesa-mn.open>button{background:var(--green-pale,#E4EEE9)}
 .mesa-dd{display:none;position:absolute;top:100%;left:0;min-width:250px;background:var(--surface,#fff);border:1px solid var(--line-strong,#C3B79E);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0;z-index:70}
 .mesa-mn.open .mesa-dd{display:block}
