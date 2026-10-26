@@ -347,7 +347,7 @@ export default function RelatorioOrientacao({ turma, alunoInicial = "", fechada 
                     </td>
                   </tr>
                 ))}
-                <tr style={{ fontWeight: 700, background: "#F6F2E9" }}>
+                <tr style={{ fontWeight: 700, background: "#F6F2E9", color: "#1d2a25" }}>
                   <td>Total da turma</td>
                   <td className="num mono">{gerado.linhas.reduce((s, r) => s + r.nOk, 0)}/{gerado.linhas.reduce((s, r) => s + r.total, 0)}</td>
                   <td className="num mono">{gerado.linhas.reduce((s, r) => s + r.comAluno, 0)}</td>

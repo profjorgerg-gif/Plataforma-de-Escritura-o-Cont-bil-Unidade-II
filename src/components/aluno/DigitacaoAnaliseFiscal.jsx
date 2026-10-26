@@ -261,7 +261,7 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos,
         </h3></div>
         <div className="panel-body">
           {rascDig && (
-            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", marginBottom: 12 }}>
+            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", color: "#1d2a25", marginBottom: 12 }}>
               ⚠ Encontramos uma digitação desta nota que <b>não foi salva</b> (guardada neste computador às {new Date(rascDig.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}).{" "}
               <button className="btn" onClick={restaurarDig}>Restaurar</button>{" "}
               <button className="btn secondary" onClick={descartarDig}>Descartar</button>
@@ -394,7 +394,7 @@ export default function DigitacaoAnaliseFiscal({ turmaId, matricula, documentos,
         </h3></div>
         <div className="panel-body">
           {rascAn && (
-            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", marginBottom: 12 }}>
+            <div className="balance-check" style={{ border: "2px solid #9C6B1F", background: "#FBF1DC", color: "#1d2a25", marginBottom: 12 }}>
               ⚠ Encontramos uma análise desta nota que <b>não foi salva</b> (guardada neste computador às {new Date(rascAn.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}).{" "}
               <button className="btn" onClick={restaurarAn}>Restaurar</button>{" "}
               <button className="btn secondary" onClick={descartarAn}>Descartar</button>

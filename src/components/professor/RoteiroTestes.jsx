@@ -9,7 +9,7 @@ export function FaixaTeste({ passo, emTeste, onConcluir, onVoltar }) {
   if (!passo) return null;
   const como = passo.quem === "aluno" ? "como aluno de teste" : passo.quem === "prof" ? "como professor" : "";
   return (
-    <div className="no-print" style={{ background: "#FBF4E2", border: "1px solid #C9A24A", borderRadius: 6, padding: "10px 14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+    <div className="no-print" style={{ background: "#FBF4E2", color: "#1d2a25", border: "1px solid #C9A24A", borderRadius: 6, padding: "10px 14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#8A5A10", letterSpacing: "0.04em" }}>
         🧪 ROTEIRO DE TESTES · passo {passo.id} de {PASSOS_TESTE.length} {como && "· " + como}{passo.quem === "aluno" && !emTeste ? " (entre na conta de teste)" : ""}
       </div>

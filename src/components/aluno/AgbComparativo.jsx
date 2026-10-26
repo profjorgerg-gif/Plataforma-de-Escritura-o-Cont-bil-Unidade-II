@@ -28,8 +28,8 @@ export default function AgbComparativo({ esc, trab, agb, emTeste }) {
     if (vals.length < 2 || v === null || v === undefined || !isFinite(v)) return {};
     const melhor = it.melhor === "maior" ? Math.max(...vals) : Math.min(...vals);
     const pior = it.melhor === "maior" ? Math.min(...vals) : Math.max(...vals);
-    if (v === melhor) return { background: "#e3f3e6", fontWeight: 700 };
-    if (v === pior) return { background: "#fbe4e1" };
+    if (v === melhor) return { background: "#e3f3e6", color: "#1d2a25", fontWeight: 700 };
+    if (v === pior) return { background: "#fbe4e1", color: "#1d2a25" };
     return {};
   }
 
@@ -37,7 +37,7 @@ export default function AgbComparativo({ esc, trab, agb, emTeste }) {
     <>
       <div className="screen-eyebrow">etapa 6 · análise comparativa</div>
       <h2 className="screen-title">Comparativo entre empresas</h2>
-      <p className="screen-sub">Sua empresa e as empresas dos exercícios, lado a lado. <span style={{ background: "#e3f3e6", padding: "0 4px" }}>verde</span> = melhor · <span style={{ background: "#fbe4e1", padding: "0 4px" }}>vermelho</span> = pior.</p>
+      <p className="screen-sub">Sua empresa e as empresas dos exercícios, lado a lado. <span style={{ background: "#e3f3e6", color: "#1d2a25", padding: "0 4px" }}>verde</span> = melhor · <span style={{ background: "#fbe4e1", padding: "0 4px" }}>vermelho</span> = pior.</p>
       {visiveis.length === 0 && <div className="empty-state">O professor ainda não liberou exercícios para comparar.</div>}
       {dados.semDados && <div className="balance-check bad" style={{ marginBottom: 14 }}>Sua empresa ainda não tem lançamentos aprovados; a coluna dela aparece com “—”.</div>}
       <div className="panel"><div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>

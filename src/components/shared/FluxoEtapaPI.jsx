@@ -32,7 +32,7 @@ export default function FluxoEtapaPI({ tela, onSuporte }) {
             {onSuporte && <button type="button" className="btn" onClick={onSuporte}>❓ Dúvida? Abrir o Suporte</button>}
             <span style={{ border: "1px dashed #8a8678", padding: "6px 10px" }}>Só para consulta: mostra o caminho da etapa, do início à nota.</span>
           </div>
-          <div className="fx1" style={{ ...FX1_VARS, overflowX: "auto", background: "#fff", border: "1px solid #d9d2c0", padding: 8 }}>
+          <div className="fx1" style={{ ...FX1_VARS, overflowX: "auto", background: "#fff", color: "#1d2a25", border: "1px solid #d9d2c0", padding: 8 }}>
             <style>{FX1_CSS}</style>
             <div dangerouslySetInnerHTML={{ __html: FXE_SVG[alvo[0]] }} />
           </div>

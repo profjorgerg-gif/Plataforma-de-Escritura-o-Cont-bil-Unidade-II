@@ -32,7 +32,7 @@ export default function FluxogramaProcesso() {
       </div>
       <div className="panel">
         <div className="panel-body">
-          <div className="fx1" style={{ ...FX1_VARS, overflowX: "auto", background: "#fff", padding: 8 }}>
+          <div className="fx1" style={{ ...FX1_VARS, overflowX: "auto", background: "#fff", color: "#1d2a25", padding: 8 }}>
             <style>{FX1_CSS}</style>
             <div dangerouslySetInnerHTML={{ __html: atual[2]() }} />
           </div>

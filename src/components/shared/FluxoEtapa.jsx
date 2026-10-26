@@ -140,7 +140,7 @@ function Caixa({ p }) {
   const [tipo, titulo, texto] = p;
   const [bg, borda] = COR[tipo] || COR.sy;
   return (
-    <div style={{ background: bg, border: "2px solid " + borda, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, lineHeight: 1.3, width: 150, flex: "0 0 auto" }}>
+    <div style={{ background: bg, border: "2px solid " + borda, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, lineHeight: 1.3, width: 150, flex: "0 0 auto", color: "#1d2a25" }}>
       <b style={{ display: "block", marginBottom: 2 }}>{titulo}</b>{texto}
     </div>
   );
@@ -229,7 +229,7 @@ export default function FluxoEtapa({ etapa, onSuporte }) {
           {!fluxo.ca && <div style={{ borderTop: "1px solid #d9d2c0", marginTop: 10, paddingTop: 8 }}>
             <button type="button" className="btn secondary" onClick={() => setVerFluxo(!verFluxo)}>{verFluxo ? "▾ Esconder o fluxograma completo" : "▸ Ver o fluxograma completo da Etapa 1"}</button>
             {verFluxo && (
-              <div className="fx1" style={{ ...FX1_VARS, marginTop: 8, overflowX: "auto", background: "#fff", border: "1px solid #d9d2c0", padding: 8 }}>
+              <div className="fx1" style={{ ...FX1_VARS, marginTop: 8, overflowX: "auto", background: "#fff", color: "#1d2a25", border: "1px solid #d9d2c0", padding: 8 }}>
                 <style>{FX1_CSS}</style>
                 <div dangerouslySetInnerHTML={{ __html: FX1_SVG }} />
               </div>
@@ -243,7 +243,7 @@ export default function FluxoEtapa({ etapa, onSuporte }) {
 
 function Caixa2({ a }) {
   const [bg, borda] = COR[a[0]];
-  return <div style={{ background: bg, border: "2px solid " + borda, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, marginTop: 6 }}>{a[1]}</div>;
+  return <div style={{ background: bg, border: "2px solid " + borda, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, marginTop: 6, color: "#1d2a25" }}>{a[1]}</div>;
 }
 
 // Exportações para a aba "Caminho do aluno" do Guia do professor (somente leitura).
