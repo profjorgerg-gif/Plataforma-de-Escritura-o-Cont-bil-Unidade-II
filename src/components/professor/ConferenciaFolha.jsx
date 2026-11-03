@@ -36,7 +36,7 @@ export default function ConferenciaFolha({ turma }) {
   const aluno = ordem.find((a) => a.matricula === mat) || null;
   const emp = aluno ? (empregados.find((e) => e.id === empId) || empregados[0]) : null;
 
-  const certo = { color: "var(--green-dark)", fontWeight: 700 };
+  const certo = { color: "var(--green-ink)", fontWeight: 700 };
   const errado = { color: "var(--red, #b3261e)", fontWeight: 700 };
 
   function quadro() {

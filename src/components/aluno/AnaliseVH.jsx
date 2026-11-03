@@ -49,7 +49,7 @@ export default function AnaliseVH({ esc, trab, agb }) {
                   </thead>
                   <tbody>
                     {tabela.rows.map((r, i) => {
-                      if (r.tipo === "bloco") return <tr key={i}><td colSpan={temAnterior ? 7 : 4} style={{ fontWeight: 700, color: "var(--green-dark)", background: "var(--paper-deep)" }}>{r.nome}</td></tr>;
+                      if (r.tipo === "bloco") return <tr key={i}><td colSpan={temAnterior ? 7 : 4} style={{ fontWeight: 700, color: "var(--green-ink)", background: "var(--paper-deep)" }}>{r.nome}</td></tr>;
                       const vAv = av(r.atual, tabela.base);
                       const vAh = temAnterior ? ah(r.atual, r.ant) : null;
                       const forte = r.tipo !== "linha";

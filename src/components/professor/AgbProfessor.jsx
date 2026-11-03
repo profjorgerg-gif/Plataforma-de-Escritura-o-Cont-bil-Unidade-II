@@ -165,7 +165,7 @@ function Liberacao({ turma, agb }) {
           </div>
           {["AC", "ANC", "PC", "PNC", "PL"].map((b) => (
             <div key={b} style={{ marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, color: "var(--green-dark)", margin: "10px 0 6px" }}>{BLOCOS_BP[b]}</div>
+              <div style={{ fontWeight: 700, color: "var(--green-ink)", margin: "10px 0 6px" }}>{BLOCOS_BP[b]}</div>
               {LINHAS_BP.filter((l) => l.bloco === b).map((l) => (
                 <div key={l.key} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", padding: "3px 0", borderBottom: "1px solid var(--line)" }}>
                   <span style={{ fontSize: 13.5 }}>{l.nome}</span>
@@ -178,7 +178,7 @@ function Liberacao({ turma, agb }) {
           <div className={"balance-check " + (fecha ? "ok" : "bad")} style={{ margin: "10px 0" }}>
             Ativo: {fmt(t.ativo)} · Passivo + PL: {fmt(t.passivoPL)} {fecha ? "✓ fecha" : "✗ não fecha (você ainda pode salvar, mas confira)"}
           </div>
-          <div style={{ fontWeight: 700, color: "var(--green-dark)", margin: "16px 0 6px" }}>DRE DO PERÍODO ANTERIOR</div>
+          <div style={{ fontWeight: 700, color: "var(--green-ink)", margin: "16px 0 6px" }}>DRE DO PERÍODO ANTERIOR</div>
           {LINHAS_DRE_EDIT.map((l) => (
             <div key={l.key} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", padding: "3px 0", borderBottom: "1px solid var(--line)" }}>
               <span style={{ fontSize: 13.5 }}>{l.nome}{l.key === "resultadoFinanceiro" ? " (negativo se despesa)" : ""}</span>

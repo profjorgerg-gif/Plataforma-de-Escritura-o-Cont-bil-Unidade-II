@@ -187,7 +187,7 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
       <div className="screen-eyebrow">fila de correção</div>
       <h2 className="screen-title">Lançamentos enviados para análise</h2>
       <p className="screen-sub">De todos os alunos da turma. Compare cada lançamento com o documento de origem antes de aprovar ou devolver.</p>
-      <div className="helper-note" style={{ borderLeftColor: "var(--green)", background: "var(--green-pale)", color: "var(--green-dark)" }}>
+      <div className="helper-note" style={{ borderLeftColor: "var(--green)", background: "var(--green-pale)", color: "var(--green-ink)" }}>
         <b>O que aparece aqui:</b> só os lançamentos já prontos no Livro Diário — a última etapa do fluxo do aluno. Digitação e análise fiscal em andamento (antes de virar lançamento) não entram nesta fila; para acompanhar essas etapas, use <b>Histórico do aluno</b>.
       </div>
       {foco && (
