@@ -44,7 +44,7 @@ export default function FormulasFolha() {
         ["HE noturna 50%", "horas × HTI × 1,20 × 1,5 (critério do projeto)"],
         ["HE noturna 100%", "horas × HTI × 1,20 × 2"],
         ["Total de horas extras", "HE 50% + HE 100% + HE noturnas 50% e 100%"],
-        ["DSR sobre horas extras", "(total de horas extras ÷ dias úteis) × repousos. Use os dias úteis e repousos do enunciado"],
+        ["DSR sobre horas extras", "(total de horas extras ÷ dias úteis) × repousos. Use os dias úteis e de descanso do mês da folha (calendário real: domingos + feriados), como mostra a tela Folha do mês"],
         ["Remuneração bruta", "salário-base + adicional + total de horas extras + DSR"],
       ]} />
 

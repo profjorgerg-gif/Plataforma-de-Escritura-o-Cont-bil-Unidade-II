@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { fmt } from "../../lib/contabil.js";
-import { folhaEmUso, encargos, nomeDoMes, folhaAlternativa, CASAS_HTI_ALTERNATIVAS } from "../../lib/folha.js";
+import { textoDSR } from "../../lib/calendarioDSR.js";
+import { folhaEmUso, encargos, nomeDoMes, folhaAlternativas } from "../../lib/folha.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 
 const TXT_AD = (a) => (!a || !a.tipo ? "—" : a.tipo === "AP" ? "AP 30%" : "AI " + (a.pct || 0) + "%");
@@ -9,7 +10,7 @@ export default function FolhaMes({ trab, ca }) {
   const campos = useCampos(trab, false);
   const f = useMemo(() => folhaEmUso(ca.folha), [ca.folha]);
   // jeitos de arredondar a HTI que também valem (o aluno que arredondou a hora integrada não é punido)
-  const alts = useMemo(() => CASAS_HTI_ALTERNATIVAS.map((c) => folhaAlternativa(ca.folha, c)), [ca.folha]);
+  const alts = useMemo(() => folhaAlternativas(ca.folha), [ca.folha]);
   if (ca.folha === undefined || trab.carregando) return <Carregando />;
   const p = f.parametros;
   const enc = encargos(f.calc.total, p);
@@ -25,7 +26,7 @@ export default function FolhaMes({ trab, ca }) {
       <div className="panel">
         <div className="panel-head"><h3>Dados da folha (informados pelo professor)</h3></div>
         <div className="panel-body" style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>
-          Carga horária {p.cargaHoraria} h · adicional noturno {Math.round(p.adicionalNoturno * 100)}% · DSR: {p.diasUteisDSR} dias úteis e {p.diasDescansoDSR} de descanso/feriados · insalubridade (AI) sobre o salário mínimo (R$ {fmt(p.salarioMinimo)}) e periculosidade (AP) 30% sobre o salário-base.<br />
+          Carga horária {p.cargaHoraria} h · adicional noturno {Math.round(p.adicionalNoturno * 100)}% · DSR de {nomeDoMes(f.competencia)}: {f.dsr ? textoDSR(f.dsr) : p.diasUteisDSR + " dias úteis e " + p.diasDescansoDSR + " de descanso"} · insalubridade (AI) sobre o salário mínimo (R$ {fmt(p.salarioMinimo)}) e periculosidade (AP) 30% sobre o salário-base.<br />
           Não arredonde a hora integrada: use 4 casas (ex.: 16,6459); se arredondar para centavos, o sistema também confere. HE 50% = hora integrada × 1,5 · HE 100% = × 2 · HE noturna = × 1,20 × (1,5 ou 2) · hora integrada = (salário + adicional) ÷ {p.cargaHoraria} · DSR = horas extras ÷ {p.diasUteisDSR} × {p.diasDescansoDSR}.
         </div>
       </div>

@@ -34,7 +34,7 @@ export function TabelaFolhaEncargos() {
             <tr><td style={td}>Carga horária mensal</td><td style={num}>{P.cargaHoraria} h</td></tr>
             <tr><td style={td}>Adicional noturno</td><td style={num}>{vir(P.adicionalNoturno * 100)}%</td></tr>
             <tr><td style={td}>Hora extra 50% / 100%</td><td style={num}>× 1,5 / × 2</td></tr>
-            <tr><td style={td}>DSR (dias úteis / descanso)</td><td style={num}>{P.diasUteisDSR} / {P.diasDescansoDSR}</td></tr>
+            <tr><td style={td}>DSR (dias úteis / descanso)</td><td style={num}>calendário real do mês (dias úteis / domingos + feriados). Ex.: out/2026 = 26 / 5</td></tr>
             <tr><td style={td}>Salário mínimo (base da insalubridade)</td><td style={num}>R$ {brl(P.salarioMinimo)}</td></tr>
             <tr><td style={td}>Adicional de insalubridade (AI)</td><td style={num}>10%, 20% ou 40% do salário mínimo</td></tr>
             <tr><td style={td}>Adicional de periculosidade (AP)</td><td style={num}>30% do salário-base</td></tr>
@@ -42,7 +42,7 @@ export function TabelaFolhaEncargos() {
             <tr><td style={td}>Vale-transporte (desconto do empregado)</td><td style={num}>{T.vtPercentual}% do salário-base</td></tr>
             <tr><td style={td}>Falta injustificada (dia)</td><td style={num}>(SB + AF) ÷ 30</td></tr>
             <tr><td style={td}>DSR fixo perdido (por semana com falta)</td><td style={num}>(SB + AF) ÷ 30</td></tr>
-            <tr><td style={td}>Reflexo na remuneração variável</td><td style={num}>(RV ÷ {P.diasUteisDSR}) por DSR perdido</td></tr>
+            <tr><td style={td}>Reflexo na remuneração variável</td><td style={num}>(RV ÷ dias úteis do mês) por DSR perdido</td></tr>
             <tr><td style={td}>Salário-família (por filho até 14 anos)</td><td style={num}>R$ {brl(T.salarioFamilia.cota)}</td></tr>
             <tr><td style={td}>Limite do salário-família</td><td style={num}>R$ {brl(T.salarioFamilia.limite)}</td></tr>
           </Tabela>

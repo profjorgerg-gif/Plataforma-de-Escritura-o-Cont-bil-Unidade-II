@@ -3,6 +3,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { fmt } from "../../lib/contabil.js";
 import { naturezaDe, destinoDe } from "../../data/planoContasOficial.js";
+import { textoDSR } from "../../lib/calendarioDSR.js";
 import { CONTAS_NOVAS, EMPREGADOS_MATERIAL, PARAMETROS_PADRAO, folhaEmUso, nomeDoMes } from "../../lib/folha.js";
 import { lerNumero } from "../../lib/agb.js";
 import { useCaTurma, salvarConfigCa, salvarFolhaCa, useTrabalhosCaDaTurma } from "../../hooks/useCa.js";
@@ -85,7 +86,7 @@ function EditorFolha({ turma, ca }) {
     setComp(f.competencia || "2026-04");
     setFixa(f.remuneracaoFixa ? String(f.remuneracaoFixa) : "");
     const p = { ...PARAMETROS_PADRAO, ...(f.parametros || {}) };
-    setPar({ salarioMinimo: String(p.salarioMinimo), inss: String(p.inss), fgts: String(p.fgts), rat: String(p.rat), terceiros: String(p.terceiros), cargaHoraria: String(p.cargaHoraria), diasUteisDSR: String(p.diasUteisDSR), diasDescansoDSR: String(p.diasDescansoDSR) });
+    setPar({ salarioMinimo: String(p.salarioMinimo), inss: String(p.inss), fgts: String(p.fgts), rat: String(p.rat), terceiros: String(p.terceiros), cargaHoraria: String(p.cargaHoraria), diasUteisDSR: String(p.dsrFixo ? p.dsrFixo.uteis : p.diasUteisDSR), diasDescansoDSR: String(p.dsrFixo ? p.dsrFixo.descanso : p.diasDescansoDSR), criterioDSR: p.criterioDSR === "fixo" ? "fixo" : "real", feriadosExtras: String(p.feriadosExtras || "") });
     setEmps((f.empregados && f.empregados.length ? f.empregados : EMPREGADOS_MATERIAL).map((e) => ({ ...e, adicional: { ...(e.adicional || {}) } })));
     setCarregou(true);
   }, [ca.folha, carregou]);
@@ -95,7 +96,7 @@ function EditorFolha({ turma, ca }) {
   const montar = () => ({
     competencia: comp,
     remuneracaoFixa: num(fixa) > 0 ? num(fixa) : null,
-    parametros: { salarioMinimo: num(par.salarioMinimo) || PARAMETROS_PADRAO.salarioMinimo, inss: num(par.inss), fgts: num(par.fgts), rat: num(par.rat), terceiros: num(par.terceiros), cargaHoraria: num(par.cargaHoraria) || 220, diasUteisDSR: num(par.diasUteisDSR) || 24, diasDescansoDSR: num(par.diasDescansoDSR) || 6, adicionalNoturno: 0.2 },
+    parametros: { salarioMinimo: num(par.salarioMinimo) || PARAMETROS_PADRAO.salarioMinimo, inss: num(par.inss), fgts: num(par.fgts), rat: num(par.rat), terceiros: num(par.terceiros), cargaHoraria: num(par.cargaHoraria) || 220, diasUteisDSR: num(par.diasUteisDSR) || 24, diasDescansoDSR: num(par.diasDescansoDSR) || 6, criterioDSR: par.criterioDSR === "fixo" ? "fixo" : "real", feriadosExtras: String(par.feriadosExtras || "").trim(), adicionalNoturno: 0.2 },
     empregados: emps.map((e) => ({ nome: e.nome, salario: num(e.salario), he50: num(e.he50), he100: num(e.he100), hen50: num(e.hen50), hen100: num(e.hen100),
       adicional: e.adicional && e.adicional.tipo ? { tipo: e.adicional.tipo, pct: e.adicional.tipo === "AI" ? num(e.adicional.pct) : 30 } : { tipo: null } })),
   });
@@ -134,9 +135,25 @@ function EditorFolha({ turma, ca }) {
         <p style={{ marginTop: 0, color: "var(--ink-soft)", fontSize: 13.5 }}>Os alunos calculam e contabilizam a partir destes dados (a empresa é única, então a folha é igual para todos). Já vem preenchida com os 4 empregados do material.</p>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="field"><label>Competência (aaaa-mm)</label><input className="mono" value={comp} onChange={(e) => setComp(e.target.value)} style={{ width: 110 }} /></div>
-          {[["salarioMinimo", "Salário mínimo (R$)"], ["inss", "INSS %"], ["fgts", "FGTS %"], ["rat", "RAT %"], ["terceiros", "Terceiros %"], ["cargaHoraria", "Carga (h)"], ["diasUteisDSR", "Dias úteis DSR"], ["diasDescansoDSR", "Dias descanso"]].map(([k, r]) => (
+          {[["salarioMinimo", "Salário mínimo (R$)"], ["inss", "INSS %"], ["fgts", "FGTS %"], ["rat", "RAT %"], ["terceiros", "Terceiros %"], ["cargaHoraria", "Carga (h)"], ["diasUteisDSR", "Dias úteis (se fixo)"], ["diasDescansoDSR", "Descanso (se fixo)"]].map(([k, r]) => (
             <div className="field" key={k}><label>{r}</label>{campo(80, par[k], (v) => setPar({ ...par, [k]: v }))}</div>
           ))}
+        </div>
+        <div style={{ border: "1px solid var(--line-strong)", padding: "10px 12px", marginBottom: 12, fontSize: 13.5 }}>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div className="field"><label>Critério do DSR</label>
+              <select value={par.criterioDSR === "fixo" ? "fixo" : "real"} onChange={(e) => setPar({ ...par, criterioDSR: e.target.value })}>
+                <option value="real">Calendário real da competência</option>
+                <option value="fixo">Mês comercial fixo (usa os dias úteis e de descanso acima)</option>
+              </select></div>
+            <div className="field"><label>Outros feriados (dd/mm, separados por vírgula)</label>
+              <input className="mono" value={par.feriadosExtras || ""} onChange={(e) => setPar({ ...par, feriadosExtras: e.target.value })} placeholder="ex.: 28/10" style={{ width: 200 }} disabled={par.criterioDSR === "fixo"} /></div>
+          </div>
+          <div style={{ marginTop: 8, color: "var(--ink-soft)" }}>
+            {previa.dsr
+              ? <>DSR de {nomeDoMes(previa.competencia)}: <b>{textoDSR(previa.dsr)}</b>. Conta: horas extras ÷ {previa.dsr.uteis} × {previa.dsr.descanso}. Feriados nacionais já entram; some só os estaduais ou municipais. A conferência do aluno também aceita o DSR fixo ({previa.parametros.dsrFixo.uteis} ÷ {previa.parametros.dsrFixo.descanso}).</>
+              : <>DSR fixo: horas extras ÷ {previa.parametros.diasUteisDSR} × {previa.parametros.diasDescansoDSR}, sem olhar o calendário.{par.criterioDSR !== "fixo" ? " (Não há lista de feriados cadastrada para esta competência.)" : ""}</>}
+          </div>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ minWidth: 720 }}>

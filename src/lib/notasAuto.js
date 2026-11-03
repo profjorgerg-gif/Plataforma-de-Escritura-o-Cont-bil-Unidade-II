@@ -1,7 +1,7 @@
 // Sugestão automática de nota (0,0 a 10,0) por critério. Funções PURAS: o professor sempre pode alterar o número.
 // Cada função devolve { chaveDoCriterio: nota | null }. null = sem base para sugerir (o professor digita).
 // "Acerto" = o valor digitado pelo aluno confere com o gabarito do sistema (mesma tolerância das telas).
-import { folhaEmUso, lancamentosDaFolha, conferirLancamento, nomeDoMes, folhaAlternativa, CASAS_HTI_ALTERNATIVAS } from "./folha.js";
+import { folhaEmUso, lancamentosDaFolha, conferirLancamento, nomeDoMes, folhaAlternativas } from "./folha.js";
 import { calcularRescisao, direitosDe, VERBAS_DIREITO, INCIDENCIAS, DOCUMENTOS, TOTAL_DOCUMENTOS, lancamentosDaRescisao, prazoPagamento, diasEntre } from "./rescisao.js";
 import { calcularRazao, calcularDRE, calcularBP } from "./contabil.js";
 import { balancoPorLinhas, dreParaLinhas, calcularIndicadores, capitalDeGiro, linhasBalanco, linhasDre, av, ah, lerNumero, confere } from "./agb.js";
@@ -29,7 +29,7 @@ export function sugestaoCa(trabCa, folhaCfg, lancamentos) {
   const enc = (e) => e; // legibilidade
   const itens = [];
   const r2 = (v) => Math.round(v * 100) / 100;
-  const alts = CASAS_HTI_ALTERNATIVAS.map((c) => folhaAlternativa(folhaCfg, c)); // HTI arredondada pelo aluno também vale
+  const alts = folhaAlternativas(folhaCfg); // HTI arredondada pelo aluno também vale
   f.calc.linhas.forEach((l, i) => {
     [["adic", l.adicional, (a) => a.calc.linhas[i].adicional], ["he", l.horasExtras, (a) => a.calc.linhas[i].horasExtras], ["dsr", l.dsr, (a) => a.calc.linhas[i].dsr], ["bruta", l.bruta, (a) => a.calc.linhas[i].bruta]]
       .forEach(([k, e, fa]) => itens.push(["folha", "e" + i + "_" + k, e, alts.map(fa)]));

@@ -1,6 +1,7 @@
 // Fase 2 — Contabilidade Avançada: folha de pagamento e provisões trabalhistas.
 // Funções PURAS (sem banco). Critério de arredondamento = o do gabarito do material:
 // cada parcela é arredondada para centavos e só depois somada.
+import { diasDSRdoMes } from "./calendarioDSR.js";
 export const r2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
 
 export const PARAMETROS_PADRAO = {
@@ -137,17 +138,32 @@ export function folhaEmUso(cfg) {
   const parametros = { ...PARAMETROS_PADRAO, ...(f.parametros || {}) };
   const empregados = f.empregados && f.empregados.length ? f.empregados : EMPREGADOS_MATERIAL;
   const competencia = f.competencia || "2026-04";
+  // DSR pelo calendário real da competência (padrão); "fixo" = os valores digitados pelo professor (24 e 6).
+  const dsrFixo = { uteis: parametros.diasUteisDSR, descanso: parametros.diasDescansoDSR };
+  const dsr = parametros.criterioDSR === "fixo" ? null : diasDSRdoMes(competencia, parametros.feriadosExtras);
+  if (dsr) { parametros.diasUteisDSR = dsr.uteis; parametros.diasDescansoDSR = dsr.descanso; }
+  parametros.dsrFixo = dsrFixo;
   const calc = calcularFolha(empregados, parametros);
   const fixa = Number(f.remuneracaoFixa) > 0 ? Number(f.remuneracaoFixa) : null;
   const remuneracao = fixa !== null ? fixa : calc.total;
-  return { parametros, empregados, competencia, calc, remuneracao, fixa, provisoes: calcularProvisoes(remuneracao, parametros) };
+  return { parametros, empregados, competencia, dsr, calc, remuneracao, fixa, provisoes: calcularProvisoes(remuneracao, parametros) };
 }
 
 // Folha do mês calculada com a HTI arredondada a N casas (só para a conferência aceitar o jeito do aluno).
-export function folhaAlternativa(cfg, casasHTI) {
+export function folhaAlternativa(cfg, casasHTI, dsrFixo) {
   const f = folhaEmUso(cfg);
-  const calc = calcularFolha(f.empregados, f.parametros, casasHTI);
+  const par = dsrFixo ? { ...f.parametros, diasUteisDSR: f.parametros.dsrFixo.uteis, diasDescansoDSR: f.parametros.dsrFixo.descanso } : f.parametros;
+  const calc = calcularFolha(f.empregados, par, casasHTI);
   return { calc, inss: r2((calc.total * f.parametros.inss) / 100), fgts: r2((calc.total * f.parametros.fgts) / 100) };
+}
+// Todos os jeitos aceitos na conferência: HTI sem arredondar/4/3/2 casas, no DSR do calendário real e no DSR fixo (24 e 6).
+export function folhaAlternativas(cfg) {
+  const f = folhaEmUso(cfg);
+  const lista = CASAS_HTI_ALTERNATIVAS.map((c) => folhaAlternativa(cfg, c));
+  if (f.dsr) { // só há diferença quando o calendário real está ligado
+    lista.push(folhaAlternativa(cfg, undefined, true), ...CASAS_HTI_ALTERNATIVAS.map((c) => folhaAlternativa(cfg, c, true)));
+  }
+  return lista;
 }
 
 // Dados didáticos do material (4 empregados) — ponto de partida que o professor pode alterar.

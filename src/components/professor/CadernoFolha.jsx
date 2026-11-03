@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, nomeDoMes, CONTAS_NOVAS } from "../../lib/folha.js";
 import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
+import { textoDSR } from "../../lib/calendarioDSR.js";
 import { calcularContracheque, empregadoDeCampos, PASSOS_CONTRACHEQUE, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { useAlunosReaisDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, salvarConfigCa } from "../../hooks/useCa.js";
@@ -171,7 +172,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
       <div className="cf-pg">
         {cab("Etapa 3 · Folha do mês")}
         <h3>Folha do mês e provisões</h3>
-        <p>Carga horária {f.parametros.cargaHoraria} h · adicional noturno {Math.round(f.parametros.adicionalNoturno * 100)}% · DSR com {f.parametros.diasUteisDSR} dias úteis e {f.parametros.diasDescansoDSR} de descanso · INSS {f.parametros.inss}% · FGTS {f.parametros.fgts}% · RAT {f.parametros.rat}% · terceiros {f.parametros.terceiros}%.</p>
+        <p>Carga horária {f.parametros.cargaHoraria} h · adicional noturno {Math.round(f.parametros.adicionalNoturno * 100)}% · DSR de {comp}: {f.dsr ? textoDSR(f.dsr) : f.parametros.diasUteisDSR + " dias úteis e " + f.parametros.diasDescansoDSR + " de descanso"} · INSS {f.parametros.inss}% · FGTS {f.parametros.fgts}% · RAT {f.parametros.rat}% · terceiros {f.parametros.terceiros}%.</p>
         <table><thead><tr><th>Empregado</th><th className="n">Salário</th><th>Dados do caso</th><th className="n">Adicional</th><th className="n">Horas extras</th><th className="n">DSR</th><th className="n">Remuneração bruta</th></tr></thead><tbody>
           {f.calc.linhas.map((l, i) => <tr key={i}><td>{l.nome}</td><td className="n">{brl(l.salario)}</td><td>{dadosDoCaso(f.empregados[i])}</td>{linhaBr("a", l.adicional)}{linhaBr("h", l.horasExtras)}{linhaBr("d", l.dsr)}{linhaBr("b", l.bruta)}</tr>)}
           <tr><td colSpan={6}><b>Total da folha (remuneração)</b></td>{linhaBr("t", f.calc.total)}</tr>

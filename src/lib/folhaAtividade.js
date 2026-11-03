@@ -102,8 +102,8 @@ export function empregadoDeCampos(get) {
 }
 
 export const PASSOS_CONTRACHEQUE = [
-  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. Não arredonde a HTI: use 4 casas (ex.: 16,6459). Se arredondar para centavos, o sistema também confere, mas o resultado muda em centavos. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
-  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis) × repousos perdidos. Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
+  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. DSR = horas extras ÷ dias úteis do mês × dias de descanso do mês (domingos + feriados), como mostra a tela Folha do mês. Não arredonde a HTI: use 4 casas (ex.: 16,6459). Se arredondar para centavos, o sistema também confere, mas o resultado muda em centavos. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
+  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis do mês) × repousos perdidos. Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },
   { k: "irrf", nome: "(−) IRRF, já com a redução da Lei 15.270/2025", como: "Imposto pela tabela (após deduções) − redução. A redução usa o rendimento tributável SEM descontar o INSS.", v: (c) => c.irrf },
@@ -129,8 +129,11 @@ export function valorDoCampo(fp, id, campo, base) {
 export function contrachequeConferido(emp, digitados, t = T, p = PARAMETROS_PADRAO) {
   const dig = digitados && typeof digitados === "object" ? digitados : {};
   let melhor = null;
-  for (const casas of [undefined, 4, 3, 2]) {
-    const c = calcularContracheque(emp, t, p, casas);
+  // Também vale o DSR fixo (24 e 6) quando a folha usa o calendário real: quem já fez assim não é punido. Em empate, vale o gabarito (calendário real).
+  const variantes = [p];
+  if (p && p.criterioDSR !== "fixo" && p.dsrFixo && (p.dsrFixo.uteis !== p.diasUteisDSR || p.dsrFixo.descanso !== p.diasDescansoDSR)) variantes.push({ ...p, diasUteisDSR: p.dsrFixo.uteis, diasDescansoDSR: p.dsrFixo.descanso });
+  for (const pv of variantes) for (const casas of [undefined, 4, 3, 2]) {
+    const c = calcularContracheque(emp, t, pv, casas);
     const ac = PASSOS_CONTRACHEQUE.filter((ps) => dig[ps.k] !== null && dig[ps.k] !== undefined && Math.abs(dig[ps.k] - ps.v(c)) <= TOLERANCIA_PEDAGOGICA).length;
     if (!melhor || ac > melhor.ac) melhor = { c, casas: casas === undefined ? null : casas, ac };
   }
