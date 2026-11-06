@@ -4,7 +4,7 @@ import { textoDSR } from "../../lib/calendarioDSR.js";
 import { folhaEmUso, encargos, nomeDoMes, folhaAlternativas } from "../../lib/folha.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 
-const TXT_AD = (a) => (!a || !a.tipo ? "—" : a.tipo === "AP" ? "AP 30%" : "AI " + (a.pct || 0) + "%");
+const TXT_AD = (a) => (!a || !a.tipo ? "sem adicional" : a.tipo === "AP" ? "AP 30%" : "AI " + (a.pct || 0) + "%");
 
 export default function FolhaMes({ trab, ca }) {
   const campos = useCampos(trab, false);
@@ -36,7 +36,7 @@ export default function FolhaMes({ trab, ca }) {
         const altsDe = (k) => alts.map((a) => ({ adic: a.calc.linhas[i].adicional, he: a.calc.linhas[i].horasExtras, dsr: a.calc.linhas[i].dsr, bruta: a.calc.linhas[i].bruta })[k]);
         return (
           <div className="panel" key={i}>
-            <div className="panel-head"><h3>{l.nome}</h3><span className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>salário R$ {fmt(l.salario)} · {TXT_AD(e.adicional)} · HE50 {e.he50 || 0}h · HE100 {e.he100 || 0}h · HEN50 {e.hen50 || 0}h · HEN100 {e.hen100 || 0}h</span></div>
+            <div className="panel-head"><h3>{l.nome}</h3><span className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>salário R$ {fmt(l.salario)} · {TXT_AD(e.adicional)} · HE50 {e.he50 || 0} h · HE100 {e.he100 || 0} h · HEN50 {e.hen50 || 0} h · HEN100 {e.hen100 || 0} h</span></div>
             <div className="panel-body" style={{ padding: 0 }}>
               <table>
                 <tbody>
