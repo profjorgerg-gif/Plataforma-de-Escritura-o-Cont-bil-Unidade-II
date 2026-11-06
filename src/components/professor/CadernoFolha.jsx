@@ -4,6 +4,7 @@ import EscolhaCabecalho from "./EscolhaCabecalho.jsx";
 import { GabaritoEmpregado, GabaritoEtapa3 } from "./GabaritoCalculos.jsx";
 import { createPortal } from "react-dom";
 import { fmt } from "../../lib/contabil.js";
+import { folhaDoAluno } from "../../lib/folhaAluno.js";
 import { folhaEmUso, lancamentosDaFolha, nomeDoMes, CONTAS_NOVAS } from "../../lib/folha.js";
 import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { textoDSR } from "../../lib/calendarioDSR.js";
@@ -68,7 +69,8 @@ const Rod = ({ esq, dir }) => <div className="cf-rod"><span>{esq}</span><span>{d
 
 // Páginas de UM aluno (aluno = null: caderno em branco)
 function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmasPI, comResp, listaEm, capaCab, professor, nLinhas }) {
-  const f = useMemo(() => folhaEmUso(folha), [folha]);
+  const folhaP = useMemo(() => (aluno ? folhaDoAluno(folha, cfg, aluno.matricula) : folha), [folha, cfg, aluno]); // etapa 3 com os empregados do caderno do aluno
+  const f = useMemo(() => folhaEmUso(folhaP), [folhaP]);
   const comp = nomeDoMes(f.competencia) || f.competencia;
   const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
   const gab = comResp ? "VERSÃO DO PROFESSOR · gabarito" : "Calcule aqui e depois digite no sistema, que confere";
@@ -94,7 +96,7 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
   );
   const rodGab = "Gabarito · versão do professor, não entregar aos alunos";
   const lanc = lancamentosDaFolha(f.provisoes);
-  const enun = enunciadosLancamentos(folha, cfg.enunciadoObs);
+  const enun = enunciadosLancamentos(folhaP, cfg.enunciadoObs);
   const pv = f.provisoes;
   const nL = lanc.length;
   const linhaBr = (k, v) => <td className={comResp ? "gab" : "br"} key={k}>{comResp ? brl(v) : ""}</td>;

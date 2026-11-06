@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { folhaDoAluno } from "../../lib/folhaAluno.js";
 import { useTema } from "../../hooks/useTema.js";
 import { useEscrituracao } from "../../hooks/useEscrituracao.js";
 import { useDocumentosDaTurma } from "../../hooks/useDocumentosDaTurma.js";
@@ -805,7 +806,9 @@ export default function Shell({ usuario, perfil, onSair }) {
   const minhaTurma = useTurma(turmaId);
   // Fase 3 (AGB): liberação/período anterior da turma e o trabalho do aluno (um listener só para as 4 telas)
   const agbAluno = useAgbTurma(papelEfetivo === "aluno" ? turmaId : null);
-  const caAluno = useCaTurma(papelEfetivo === "aluno" ? turmaId : null);
+  const caTurmaBruto = useCaTurma(papelEfetivo === "aluno" ? turmaId : null);
+  // etapa 3: folha PESSOAL (empregados e dados do caderno do aluno); a da turma fica em folhaTurma só para a conferência aceitar as duas
+  const caAluno = useMemo(() => (caTurmaBruto.folha === undefined || !matricula ? caTurmaBruto : { ...caTurmaBruto, folha: folhaDoAluno(caTurmaBruto.folha, caTurmaBruto.config, matricula), folhaTurma: caTurmaBruto.folha }), [caTurmaBruto, matricula]);
   const rescAluno = useRescisaoTurma(papelEfetivo === "aluno" ? turmaId : null);
   const trabCa = useTrabalhoCa(papelEfetivo === "aluno" ? turmaId : null, papelEfetivo === "aluno" ? matricula : null);
   const roteiroCfg = useRoteiroTurma(papelEfetivo === "aluno" ? turmaId : null);

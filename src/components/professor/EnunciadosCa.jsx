@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { salvarConfigCa } from "../../hooks/useCa.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
+import { folhaDoAluno } from "../../lib/folhaAluno.js";
 import { folhaEmUso, EMPREGADOS_MATERIAL } from "../../lib/folha.js";
 import { casoDoEmpregado, textoDoCaso, enunciadosLancamentos, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 
@@ -19,7 +20,8 @@ export default function EnunciadosCa({ turma, ca }) {
   const ativo = cfg.enunciadoAtivo !== false;
   const obsAtual = obs === null ? (cfg.enunciadoObs || "") : obs;
   const aluno = (alunos || []).find((a) => a.matricula === mat);
-  const enun = useMemo(() => enunciadosLancamentos(ca.folha, obsAtual), [ca.folha, obsAtual]);
+  const folhaVista = useMemo(() => (aluno ? folhaDoAluno(ca.folha, ca.config, aluno.matricula) : ca.folha), [ca.folha, ca.config, aluno]);
+  const enun = useMemo(() => enunciadosLancamentos(folhaVista, obsAtual), [folhaVista, obsAtual]);
 
   async function salvar(dados, ok) {
     setMsg("salvando…");
@@ -61,7 +63,7 @@ export default function EnunciadosCa({ turma, ca }) {
         </div>
       </div>
       <div className="panel">
-        <div className="panel-head"><h3>Enunciados dos 6 lançamentos (etapa 3)</h3></div>
+        <div className="panel-head"><h3>Enunciados dos 6 lançamentos (etapa 3){aluno ? " · " + aluno.nome : " · folha da turma"}</h3></div>
         <div className="panel-body">
           {Object.values(enun).map((t, i) => <p key={i} style={{ margin: "0 0 8px" }}><b>{i + 1}.</b> {t}</p>)}
         </div>

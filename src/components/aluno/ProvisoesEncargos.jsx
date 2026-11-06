@@ -1,15 +1,17 @@
 import { useMemo } from "react";
 import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, nomeDoMes } from "../../lib/folha.js";
+import { valoresProvisoes } from "../../lib/folhaAluno.js";
 import { EstadoGravacao, MeuCalculo, Carregando, useCampos } from "../shared/AgbUI.jsx";
 
 export default function ProvisoesEncargos({ trab, ca }) {
   const campos = useCampos(trab, false);
   const f = useMemo(() => folhaEmUso(ca.folha), [ca.folha]);
+  const antigos = useMemo(() => (ca.folhaTurma ? valoresProvisoes(folhaEmUso(ca.folhaTurma).provisoes) : {}), [ca.folhaTurma]); // folha antiga da turma também vale
   if (ca.folha === undefined || trab.carregando) return <Carregando />;
   const pv = f.provisoes, p = f.parametros;
   const celula = (k, esp, l = 110) => (
-    <MeuCalculo largura={l} valor={campos.get("prov", k)} esperado={esp} tolerancia={0.02} onChange={(v) => campos.set("prov", k, v)} />
+    <MeuCalculo largura={l} valor={campos.get("prov", k)} esperado={esp} alternativas={antigos[k] !== undefined ? [antigos[k]] : undefined} tolerancia={0.02} onChange={(v) => campos.set("prov", k, v)} />
   );
   const blocos = [
     ["s", "Encargos sobre a folha de salários", pv.encSalarios],

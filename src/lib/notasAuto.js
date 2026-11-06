@@ -1,6 +1,7 @@
 // Sugestão automática de nota (0,0 a 10,0) por critério. Funções PURAS: o professor sempre pode alterar o número.
 // Cada função devolve { chaveDoCriterio: nota | null }. null = sem base para sugerir (o professor digita).
 // "Acerto" = o valor digitado pelo aluno confere com o gabarito do sistema (mesma tolerância das telas).
+import { conferirLancamentoDuplo, valoresProvisoes } from "./folhaAluno.js";
 import { folhaEmUso, lancamentosDaFolha, conferirLancamento, nomeDoMes, folhaAlternativas } from "./folha.js";
 import { calcularRescisao, direitosDe, VERBAS_DIREITO, INCIDENCIAS, DOCUMENTOS, TOTAL_DOCUMENTOS, lancamentosDaRescisao, prazoPagamento, diasEntre } from "./rescisao.js";
 import { calcularRazao, calcularDRE, calcularBP } from "./contabil.js";
@@ -24,30 +25,33 @@ export function dadosAnaliseAluno(lancamentos, contas) {
 }
 
 // ---------------- Fase 2 · Folha, provisões e contabilização ----------------
-export function sugestaoCa(trabCa, folhaCfg, lancamentos) {
+export function sugestaoCa(trabCa, folhaCfg, lancamentos, folhaTurma) {
   const f = folhaEmUso(folhaCfg), pv = f.provisoes, p = f.parametros;
   const enc = (e) => e; // legibilidade
   const itens = [];
   const r2 = (v) => Math.round(v * 100) / 100;
-  const alts = folhaAlternativas(folhaCfg); // HTI arredondada pelo aluno também vale
+  const alts = folhaAlternativas(folhaCfg).concat(folhaTurma ? folhaAlternativas(folhaTurma) : []); // HTI arredondada e a folha antiga da turma também valem
+  const pvT = folhaTurma ? valoresProvisoes(folhaEmUso(folhaTurma).provisoes) : {};
   f.calc.linhas.forEach((l, i) => {
     [["adic", l.adicional, (a) => a.calc.linhas[i].adicional], ["he", l.horasExtras, (a) => a.calc.linhas[i].horasExtras], ["dsr", l.dsr, (a) => a.calc.linhas[i].dsr], ["bruta", l.bruta, (a) => a.calc.linhas[i].bruta]]
-      .forEach(([k, e, fa]) => itens.push(["folha", "e" + i + "_" + k, e, alts.map(fa)]));
+      .forEach(([k, e, fa]) => itens.push(["folha", "e" + i + "_" + k, e, alts.filter((a) => a.calc.linhas[i]).map(fa)]));
   });
   const encF = { inss: r2(f.calc.total * p.inss / 100), fgts: r2(f.calc.total * p.fgts / 100) };
   itens.push(["folha", "t_total", r2(f.calc.total), alts.map((a) => r2(a.calc.total))], ["folha", "t_inss", encF.inss, alts.map((a) => a.inss)], ["folha", "t_fgts", encF.fgts, alts.map((a) => a.fgts)],
     ["folha", "t_custo", r2(f.calc.total + encF.inss + encF.fgts), alts.map((a) => r2(a.calc.total + a.inss + a.fgts))]);
-  [["sal", pv.salarios], ["fer", pv.ferias], ["terco", pv.tercoFerias], ["ferT", pv.feriasTotal], ["dec", pv.decimo]].forEach(([k, e]) => itens.push(["prov", "p_" + k, e]));
+  const aT = (k) => (pvT[k] !== undefined ? [pvT[k]] : undefined);
+  [["sal", pv.salarios], ["fer", pv.ferias], ["terco", pv.tercoFerias], ["ferT", pv.feriasTotal], ["dec", pv.decimo]].forEach(([k, e]) => itens.push(["prov", "p_" + k, e, aT("p_" + k)]));
   [["s", pv.encSalarios], ["f", pv.encFerias], ["d", pv.enc13]].forEach(([b, e]) => {
-    [["fgts", e.fgts], ["inss", e.inss], ["rat", e.rat], ["terc", e.terceiros], ["tot", e.total]].forEach(([k, v]) => itens.push(["prov", "e" + b + "_" + k, v]));
+    [["fgts", e.fgts], ["inss", e.inss], ["rat", e.rat], ["terc", e.terceiros], ["tot", e.total]].forEach(([k, v]) => itens.push(["prov", "e" + b + "_" + k, v, aT("e" + b + "_" + k)]));
   });
-  [["emp", pv.obrigacoesEmpregados], ["enc", pv.encargosTotal], ["geral", pv.totalGeral]].forEach(([k, v]) => itens.push(["prov", "c_" + k, v]));
+  [["emp", pv.obrigacoesEmpregados], ["enc", pv.encargosTotal], ["geral", pv.totalGeral]].forEach(([k, v]) => itens.push(["prov", "c_" + k, v, aT("c_" + k)]));
   const acertos = itens.filter(([s, k, e, alt]) => okNum(get(trabCa, s, k), e, 0.02) || (alt || []).some((x) => okNum(get(trabCa, s, k), x, 0.02))).length;
 
   const esperados = lancamentosDaFolha(pv);
+  const esperadosT = folhaTurma ? lancamentosDaFolha(folhaEmUso(folhaTurma).provisoes) : null;
   const mes = nomeDoMes(f.competencia);
   let conf = 0, aprov = 0;
-  esperados.forEach((l) => {
+  esperados.forEach((l, li) => {
     const n = Number(get(trabCa, "lanc", l.key + "_n")) || 2;
     const ps = Array.from({ length: n }, (_, i) => ({
       conta: get(trabCa, "lanc", l.key + "_" + i + "_conta"),
@@ -55,7 +59,7 @@ export function sugestaoCa(trabCa, folhaCfg, lancamentos) {
       valor: lerNumero(get(trabCa, "lanc", l.key + "_" + i + "_valor")) ?? "",
       valorTxt: get(trabCa, "lanc", l.key + "_" + i + "_valor"),
     }));
-    if (conferirLancamento(ps, l.partidas).ok) conf++;
+    if (conferirLancamentoDuplo(ps, l.partidas, esperadosT && esperadosT[li] && esperadosT[li].partidas).ok) conf++;
     const hist = "Folha " + mes + " · " + l.titulo;
     const chave = "folha|" + f.competencia + "|" + l.key;
     if ((lancamentos || []).some((x) => (x.chave === chave || x.historico === hist) && x.status === "aprovado")) aprov++;
@@ -133,7 +137,7 @@ export function sugestaoComp(trabAgb, liberados) {
 
 export function sugestaoEtapa(etapaId, ctx) {
   try {
-    if (etapaId === "ca") return sugestaoCa(ctx.trabCa, ctx.folhaCfg, ctx.lancamentos);
+    if (etapaId === "ca") return sugestaoCa(ctx.trabCa, ctx.folhaCfg, ctx.lancamentos, ctx.folhaTurma);
     if (etapaId === "resc") return sugestaoResc(ctx.trabCa, ctx.casoCfg, ctx.lancamentos);
     if (etapaId === "agb") return sugestaoAgb(ctx.trabAgb, dadosAnaliseAluno(ctx.lancamentos, ctx.contas), ctx.anterior);
     if (etapaId === "comp") return sugestaoComp(ctx.trabAgb, ctx.liberados);

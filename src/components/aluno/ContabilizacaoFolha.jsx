@@ -3,6 +3,7 @@ import { fmt } from "../../lib/contabil.js";
 import { folhaEmUso, lancamentosDaFolha, conferirLancamento, ultimoDiaDoMes, nomeDoMes, CONTAS_FOLHA } from "../../lib/folha.js";
 import { lerNumero } from "../../lib/agb.js";
 import { EstadoGravacao, Carregando, useCampos } from "../shared/AgbUI.jsx";
+import { conferirLancamentoDuplo, lancamentosAlt } from "../../lib/folhaAluno.js";
 import { enunciadosLancamentos } from "../../lib/enunciadosCA.js";
 
 const ROTULO_STATUS = { rascunho: "rascunho no Livro diário", enviado: "enviado ao professor", correcao: "devolvido para correção", aprovado: "aprovado ✓" };
@@ -11,6 +12,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
   const campos = useCampos(trab, false);
   const f = useMemo(() => folhaEmUso(ca.folha), [ca.folha]);
   const esperados = useMemo(() => lancamentosDaFolha(f.provisoes), [f]);
+  const esperadosAlt = useMemo(() => lancamentosAlt(ca.folhaTurma), [ca.folhaTurma]); // folha antiga da turma também vale
   const enunciados = useMemo(() => enunciadosLancamentos(ca.folha, ca.config && ca.config.enunciadoObs), [ca.folha, ca.config]);
   const mostraEnunciado = !(ca.config && ca.config.enunciadoAtivo === false);
   if (ca.folha === undefined || trab.carregando || !esc.contas) return <Carregando />;
@@ -42,7 +44,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
       )}
       {esperados.map((l, bi) => {
         const ps = partidasDe(l.key);
-        const r = conferirLancamento(ps, l.partidas);
+        const r = conferirLancamentoDuplo(ps, l.partidas, esperadosAlt && esperadosAlt[bi] && esperadosAlt[bi].partidas);
         const historico = "Folha " + mes + " · " + l.titulo;
         const chave = "folha|" + f.competencia + "|" + l.key; // código interno: o aluno pode ajustar o histórico sem perder a ligação
         const existente = (esc.lancamentos || []).find((x) => x.chave === chave || x.historico === historico);

@@ -3,6 +3,7 @@ import { ETAPAS, etapaPorId, notaDaEtapa, limitaNota, fmtNota, faixaDaNota, DESC
 import { resumoAtividade } from "../../lib/folhaAtividade.js";
 import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
+import { folhaDoAluno } from "../../lib/folhaAluno.js";
 import { sugestaoEtapa } from "../../lib/notasAuto.js";
 import { parecerEtapaCriterios } from "../../lib/parecerNota.js";
 import { etapasEfetivas } from "../../lib/roteiro.js";
@@ -105,7 +106,7 @@ export default function AvaliacaoProfessor({ turma }) {
       return { calculos: r.notaCalculos, quantidade: r.notaQuantidade };
     }
     return sugestaoEtapa(etapaId, {
-      trabCa: (trabCa || {})[a.matricula], trabAgb: (trabAgb || {})[a.matricula], folhaCfg: ca.folha, casoCfg: resc.caso,
+      trabCa: (trabCa || {})[a.matricula], trabAgb: (trabAgb || {})[a.matricula], folhaCfg: folhaDoAluno(ca.folha, ca.config, a.contaTeste && !a.matricula ? null : a.matricula), folhaTurma: ca.folha, casoCfg: resc.caso,
       lancamentos: (lancs || {})[a.matricula] || [], contas, anterior: agb.anterior, liberados: (agb.config && agb.config.exerciciosLiberados) || [],
     });
   }

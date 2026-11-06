@@ -11,6 +11,8 @@ export default function FolhaMes({ trab, ca }) {
   const f = useMemo(() => folhaEmUso(ca.folha), [ca.folha]);
   // jeitos de arredondar a HTI que também valem (o aluno que arredondou a hora integrada não é punido)
   const alts = useMemo(() => folhaAlternativas(ca.folha), [ca.folha]);
+  // a folha antiga da turma também vale (quem já digitou com ela não perde o que fez)
+  const altsT = useMemo(() => (ca.folhaTurma ? folhaAlternativas(ca.folhaTurma) : []), [ca.folhaTurma]);
   if (ca.folha === undefined || trab.carregando) return <Carregando />;
   const p = f.parametros;
   const enc = encargos(f.calc.total, p);
@@ -33,7 +35,7 @@ export default function FolhaMes({ trab, ca }) {
 
       {f.calc.linhas.map((l, i) => {
         const e = f.empregados[i];
-        const altsDe = (k) => alts.map((a) => ({ adic: a.calc.linhas[i].adicional, he: a.calc.linhas[i].horasExtras, dsr: a.calc.linhas[i].dsr, bruta: a.calc.linhas[i].bruta })[k]);
+        const altsDe = (k) => alts.concat(altsT).filter((a) => a.calc.linhas[i]).map((a) => ({ adic: a.calc.linhas[i].adicional, he: a.calc.linhas[i].horasExtras, dsr: a.calc.linhas[i].dsr, bruta: a.calc.linhas[i].bruta })[k]);
         return (
           <div className="panel" key={i}>
             <div className="panel-head"><h3>{l.nome}</h3><span className="mono" style={{ fontSize: 12, color: "var(--ink-faint)" }}>salário R$ {fmt(l.salario)} · {TXT_AD(e.adicional)} · HE50 {e.he50 || 0} h · HE100 {e.he100 || 0} h · HEN50 {e.hen50 || 0} h · HEN100 {e.hen100 || 0} h</span></div>
@@ -58,10 +60,10 @@ export default function FolhaMes({ trab, ca }) {
         <div className="panel-body" style={{ padding: 0 }}>
           <table>
             <tbody>
-              {[["total", "Total da folha de salários (soma das remunerações brutas)", f.calc.total, alts.map((a) => a.calc.total)],
-                ["inss", "INSS patronal (" + p.inss + "% da folha)", enc.inss, alts.map((a) => a.inss)],
-                ["fgts", "FGTS (" + p.fgts + "% da folha)", enc.fgts, alts.map((a) => a.fgts)],
-                ["custo", "Custo total da folha para a empresa (folha + INSS + FGTS)", f.calc.total + enc.inss + enc.fgts, alts.map((a) => a.calc.total + a.inss + a.fgts)]].map(([k, nome, esp, altT]) => (
+              {[["total", "Total da folha de salários (soma das remunerações brutas)", f.calc.total, alts.concat(altsT).map((a) => a.calc.total)],
+                ["inss", "INSS patronal (" + p.inss + "% da folha)", enc.inss, alts.concat(altsT).map((a) => a.inss)],
+                ["fgts", "FGTS (" + p.fgts + "% da folha)", enc.fgts, alts.concat(altsT).map((a) => a.fgts)],
+                ["custo", "Custo total da folha para a empresa (folha + INSS + FGTS)", f.calc.total + enc.inss + enc.fgts, alts.concat(altsT).map((a) => a.calc.total + a.inss + a.fgts)]].map(([k, nome, esp, altT]) => (
                 <tr key={k}>
                   <td>{nome}</td>
                   <td className="num"><MeuCalculo largura={120} valor={campos.get("folha", "t_" + k)} esperado={Math.round(esp * 100) / 100} alternativas={altT.map((x) => Math.round(x * 100) / 100)} tolerancia={tol} onChange={(v) => campos.set("folha", "t_" + k, v)} /></td>
