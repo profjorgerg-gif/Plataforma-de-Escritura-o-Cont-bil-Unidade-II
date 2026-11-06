@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { fmt } from "../../lib/contabil.js";
-import { contrachequeConferido, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
+import { somaPropria, contrachequeConferido, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
 import { folhaEmUso } from "../../lib/folha.js";
@@ -30,6 +30,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
   const get = (c) => valorDoCampo(fp, emp.id, c, caso);
   const set = (c, v) => campos.set(SEC, emp.id + "__" + c, v);
   const c = contrachequeConferido(empregadoDeCampos(get), Object.fromEntries(PASSOS_CONTRACHEQUE.map((p) => [p.k, lerValor(get("m_" + p.k))])), undefined, parametros).c; // aceita também a HTI arredondada pelo aluno
+  const digitos = Object.fromEntries(PASSOS_CONTRACHEQUE.map((p) => [p.k, lerValor(get("m_" + p.k))]));
   const usadoSalario = lerValor(get("salario"));
   const aberto = !!usadoSalario;
 
@@ -96,7 +97,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
                 {PASSOS_CONTRACHEQUE.map((p) => (
                   <tr key={p.k} style={p.k === "liq" ? { fontWeight: 700 } : null}>
                     <td>{p.nome}</td><td style={{ color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 400 }}>{p.como}</td>
-                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
+                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} alternativas={(() => { const a = somaPropria(p.k, digitos); return a === null ? undefined : [a]; })()} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -82,6 +82,27 @@ export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO, casasHTI
 // ---------------------------------------------------------------------------
 // Atividade do aluno: passos do contracheque, conferência e resumo
 // ---------------------------------------------------------------------------
+// Totais coerentes com o que o próprio aluno digitou nas linhas (diferenças de centavos entre linhas não se acumulam no total):
+// proventos = bruta + salário-família; descontos = faltas + INSS + IRRF + vale-transporte; líquido = proventos − descontos.
+export function somaPropria(k, dig) {
+  const d = dig || {};
+  const v = (x) => (d[x] === null || d[x] === undefined || Number.isNaN(d[x]) ? null : Number(d[x]));
+  const z = (x) => v(x) ?? 0;
+  const r = (x) => Math.round(x * 100) / 100;
+  const prov = () => (v("rem") === null ? null : r(z("rem") + z("sf")));
+  const desc = () => (v("inss") === null || v("irrf") === null ? null : r(z("falt") + z("inss") + z("irrf") + z("vt")));
+  if (k === "prov") return prov();
+  if (k === "desc") return desc();
+  if (k === "liq") { const p = v("prov") ?? prov(), q = v("desc") ?? desc(); return p === null || q === null ? null : r(p - q); }
+  return null;
+}
+export function passoOk(ps, dig, c) {
+  const d = dig[ps.k];
+  if (d === null || d === undefined || Number.isNaN(d)) return false;
+  if (Math.abs(d - ps.v(c)) <= TOLERANCIA_PEDAGOGICA) return true;
+  const a = somaPropria(ps.k, dig);
+  return a !== null && Math.abs(d - a) <= 0.015;
+}
 export const TOLERANCIA_PEDAGOGICA = 0.02; // critério pedagógico (arredondamento); não vale para erro de base, alíquota, faixa ou teto
 export const CAMPOS_EMPREGADO = ["salario", "adTipo", "adPct", "he50", "he100", "hen50", "hen100", "faltas", "sem", "dep", "filhos", "vt", "vtCusto"];
 
@@ -134,7 +155,7 @@ export function contrachequeConferido(emp, digitados, t = T, p = PARAMETROS_PADR
   if (p && p.criterioDSR !== "fixo" && p.dsrFixo && (p.dsrFixo.uteis !== p.diasUteisDSR || p.dsrFixo.descanso !== p.diasDescansoDSR)) variantes.push({ ...p, diasUteisDSR: p.dsrFixo.uteis, diasDescansoDSR: p.dsrFixo.descanso });
   for (const pv of variantes) for (const casas of [undefined, 4, 3, 2]) {
     const c = calcularContracheque(emp, t, pv, casas);
-    const ac = PASSOS_CONTRACHEQUE.filter((ps) => dig[ps.k] !== null && dig[ps.k] !== undefined && Math.abs(dig[ps.k] - ps.v(c)) <= TOLERANCIA_PEDAGOGICA).length;
+    const ac = PASSOS_CONTRACHEQUE.filter((ps) => passoOk(ps, dig, c)).length;
     if (!melhor || ac > melhor.ac) melhor = { c, casas: casas === undefined ? null : casas, ac };
   }
   return melhor;
@@ -145,9 +166,10 @@ export function situacaoEmpregado(fp, id, t = T, base = null, p = PARAMETROS_PAD
   const get = (c) => valorDoCampo(fp, id, c, base);
   const salario = num(get("salario"));
   const c = contrachequeConferido(empregadoDeCampos(get), digitadosDe(fp, id), t, p).c;
+  const digs = digitadosDe(fp, id);
   const passos = PASSOS_CONTRACHEQUE.map((p) => {
     const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
-    return { k: p.k, digitado: d !== null, ok: d !== null && Math.abs(d - p.v(c)) <= TOLERANCIA_PEDAGOGICA };
+    return { k: p.k, digitado: d !== null, ok: d !== null && passoOk(p, digs, c) };
   });
   const acertos = passos.filter((p) => p.ok).length;
   return { iniciado: salario !== null && salario > 0 && passos.some((p) => p.digitado), passos, acertos, concluido: salario !== null && salario > 0 && acertos === passos.length };
@@ -157,10 +179,11 @@ export function situacaoEmpregado(fp, id, t = T, base = null, p = PARAMETROS_PAD
 export function detalheEmpregado(fp, id, t = T, base = null, p = PARAMETROS_PADRAO) {
   const get = (c) => valorDoCampo(fp, id, c, base);
   const c = contrachequeConferido(empregadoDeCampos(get), digitadosDe(fp, id), t, p).c;
+  const digs = digitadosDe(fp, id);
   const linhas = PASSOS_CONTRACHEQUE.map((p) => {
     const d = num(((fp || {})[id + "__m_" + p.k]) ?? "");
     const esperado = p.v(c);
-    return { k: p.k, nome: p.nome, esperado, digitado: d, ok: d !== null && Math.abs(d - esperado) <= TOLERANCIA_PEDAGOGICA };
+    return { k: p.k, nome: p.nome, esperado, digitado: d, ok: d !== null && passoOk(p, digs, c) };
   });
   const dados = Object.fromEntries(CAMPOS_EMPREGADO.map((k) => [k, get(k)]));
   return { dados, linhas, acertos: linhas.filter((l) => l.ok).length, ...situacaoEmpregado(fp, id, t, base, p) };
