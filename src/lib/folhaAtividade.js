@@ -84,9 +84,10 @@ export function calcularContracheque(emp, t = T, p = PARAMETROS_PADRAO, casasHTI
 // ---------------------------------------------------------------------------
 // Totais coerentes com o que o próprio aluno digitou nas linhas (diferenças de centavos entre linhas não se acumulam no total):
 // proventos = bruta + salário-família; descontos = faltas + INSS + IRRF + vale-transporte; líquido = proventos − descontos.
+export const SINAL_NEGATIVO = ["falt", "inss", "irrf", "vt", "desc"];
 export function somaPropria(k, dig) {
   const d = dig || {};
-  const v = (x) => (d[x] === null || d[x] === undefined || Number.isNaN(d[x]) ? null : Number(d[x]));
+  const v = (x) => (d[x] === null || d[x] === undefined || Number.isNaN(d[x]) ? null : SINAL_NEGATIVO.includes(x) ? Math.abs(Number(d[x])) : Number(d[x]));
   const z = (x) => v(x) ?? 0;
   const r = (x) => Math.round(x * 100) / 100;
   const prov = () => (v("rem") === null ? null : r(z("rem") + z("sf")));
@@ -100,8 +101,10 @@ export function passoOk(ps, dig, c) {
   const d = dig[ps.k];
   if (d === null || d === undefined || Number.isNaN(d)) return false;
   if (Math.abs(d - ps.v(c)) <= TOLERANCIA_PEDAGOGICA) return true;
+  // linhas "(−)": o aluno que digita com sinal negativo (ex.: −420,84) não erra o cálculo
+  if (SINAL_NEGATIVO.includes(ps.k) && d < 0 && Math.abs(Math.abs(d) - ps.v(c)) <= TOLERANCIA_PEDAGOGICA) return true;
   const a = somaPropria(ps.k, dig);
-  return a !== null && Math.abs(d - a) <= 0.015;
+  return a !== null && (Math.abs(d - a) <= 0.015 || (SINAL_NEGATIVO.includes(ps.k) && d < 0 && Math.abs(Math.abs(d) - a) <= 0.015));
 }
 export const TOLERANCIA_PEDAGOGICA = 0.02; // critério pedagógico (arredondamento); não vale para erro de base, alíquota, faixa ou teto
 export const CAMPOS_EMPREGADO = ["salario", "adTipo", "adPct", "he50", "he100", "hen50", "hen100", "faltas", "sem", "dep", "filhos", "vt", "vtCusto"];

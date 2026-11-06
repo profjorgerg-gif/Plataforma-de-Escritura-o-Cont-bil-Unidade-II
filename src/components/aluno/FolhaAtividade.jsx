@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { fmt } from "../../lib/contabil.js";
-import { somaPropria, contrachequeConferido, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
+import { SINAL_NEGATIVO, somaPropria, contrachequeConferido, PASSOS_CONTRACHEQUE, empregadoDeCampos, situacaoEmpregado, resumoAtividade, valorDoCampo, lerValor, TOLERANCIA_PEDAGOGICA, TABELAS_2026 } from "../../lib/folhaAtividade.js";
 import { EstadoGravacao, MeuCalculo, CaixaTexto, Carregando, useCampos } from "../shared/AgbUI.jsx";
 import EnunciadoEmpregado from "./EnunciadoEmpregado.jsx";
 import { folhaEmUso } from "../../lib/folha.js";
@@ -97,7 +97,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
                 {PASSOS_CONTRACHEQUE.map((p) => (
                   <tr key={p.k} style={p.k === "liq" ? { fontWeight: 700 } : null}>
                     <td>{p.nome}</td><td style={{ color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 400 }}>{p.como}</td>
-                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} alternativas={(() => { const a = somaPropria(p.k, digitos); return a === null ? undefined : [a]; })()} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
+                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} alternativas={(() => { const a = somaPropria(p.k, digitos); const l = a === null ? [] : [a]; if (SINAL_NEGATIVO.includes(p.k)) l.push(-p.v(c), ...(a === null ? [] : [-a])); return l.length ? l : undefined; })()} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
                   </tr>
                 ))}
               </tbody>
