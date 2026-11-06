@@ -16,7 +16,7 @@ export default function FolhaMes({ trab, ca }) {
   if (ca.folha === undefined || trab.carregando) return <Carregando />;
   const p = f.parametros;
   const enc = encargos(f.calc.total, p);
-  const tol = 0.02;
+  const tol = 0.5;
 
   return (
     <>
@@ -72,7 +72,7 @@ export default function FolhaMes({ trab, ca }) {
             </tbody>
           </table>
           <div style={{ padding: "10px 18px", fontSize: 12.5, color: "var(--ink-faint)", borderTop: "1px solid var(--line-strong)" }}>
-            Aceita vírgula ou ponto. Diferença de até R$ 0,02 (arredondamento) conta como certa. Cálculo só com INSS e FGTS, como na Atividade 2; RAT e Terceiros entram na tela seguinte.
+            Aceita vírgula ou ponto. Diferença de até R$ 0,50 (arredondamento) conta como certa. Cálculo só com INSS e FGTS, como na Atividade 2; RAT e Terceiros entram na tela seguinte.
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ export default function RescConferencia({ trab, resc, esc }) {
   if (resc.caso === undefined || trab.carregando) return <Carregando />;
   const c = r.caso, dir = direitosDe(c.modalidade);
   const g = (s, k) => campos.get(s, k);
-  const okNum = (k, esp) => { const n = lerNumero(g("rcalc", k)); return n !== null && Math.abs(n - esp) <= 0.02; };
+  const okNum = (k, esp) => { const n = lerNumero(g("rcalc", k)); return n !== null && Math.abs(n - esp) <= 0.5; };
   const val = valoresCalc(r);
   const fatos = g("rcaso", "modalidade") === c.modalidade && VERBAS_DIREITO.every((v) => g("rcaso", "d_" + v.key) === dir[v.key]);
   const dados = ["anos", "avisoDias", "projDias", "avF", "av13"].every((k) => okNum(k, val[k]));

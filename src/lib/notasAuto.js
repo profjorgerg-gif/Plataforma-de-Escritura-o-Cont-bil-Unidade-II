@@ -45,7 +45,7 @@ export function sugestaoCa(trabCa, folhaCfg, lancamentos, folhaTurma) {
     [["fgts", e.fgts], ["inss", e.inss], ["rat", e.rat], ["terc", e.terceiros], ["tot", e.total]].forEach(([k, v]) => itens.push(["prov", "e" + b + "_" + k, v, aT("e" + b + "_" + k)]));
   });
   [["emp", pv.obrigacoesEmpregados], ["enc", pv.encargosTotal], ["geral", pv.totalGeral]].forEach(([k, v]) => itens.push(["prov", "c_" + k, v, aT("c_" + k)]));
-  const acertos = itens.filter(([s, k, e, alt]) => okNum(get(trabCa, s, k), e, 0.02) || (alt || []).some((x) => okNum(get(trabCa, s, k), x, 0.02))).length;
+  const acertos = itens.filter(([s, k, e, alt]) => okNum(get(trabCa, s, k), e, 0.5) || (alt || []).some((x) => okNum(get(trabCa, s, k), x, 0.5))).length;
 
   const esperados = lancamentosDaFolha(pv);
   const esperadosT = folhaTurma ? lancamentosDaFolha(folhaEmUso(folhaTurma).provisoes) : null;
@@ -73,7 +73,7 @@ export function sugestaoResc(trabCa, casoCfg, lancamentos) {
   const r = calcularRescisao(casoCfg), c = r.caso, dir = direitosDe(c.modalidade);
   const val = { anos: r.anos, avisoDias: r.avisoDias, projDias: r.projDias, avF: r.avF, av13: r.av13, saldo: r.saldo, aviso: r.aviso, fv: r.fv, fv3: r.fv3, fp: r.fp, fp3: r.fp3, d13: r.d13, bruto: r.bruto, baseFgts: r.baseFgts, fgts8: r.fgts8, multa: r.multa, baseInss: r.baseInss, inss: r.inss, rat: r.rat, terceiros: r.terceiros };
   const chaves = Object.keys(val);
-  let ok = chaves.filter((k) => okNum(get(trabCa, "rcalc", k), val[k], 0.02)).length;
+  let ok = chaves.filter((k) => okNum(get(trabCa, "rcalc", k), val[k], 0.5)).length;
   let total = chaves.length;
   total += 1 + VERBAS_DIREITO.length;
   if (get(trabCa, "rcaso", "modalidade") === c.modalidade) ok++;

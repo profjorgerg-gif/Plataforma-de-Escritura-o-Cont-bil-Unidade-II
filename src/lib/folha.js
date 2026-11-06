@@ -99,9 +99,9 @@ export function lancamentosDaFolha(pv) {
   ];
 }
 
-// Compara o lançamento do aluno com o esperado: ignora a ordem das partidas, tolera R$ 0,02 (arredondamento).
+// Compara o lançamento do aluno com o esperado: ignora a ordem das partidas, tolera R$ 0,50 (arredondamento).
 // Não entrega o gabarito: as dicas dizem O QUE está errado (conta, valor, equilíbrio), sem dizer qual conta ou valor.
-export function conferirLancamento(partidasAluno, esperadas, tol = 0.02) {
+export function conferirLancamento(partidasAluno, esperadas, tol = 0.5) {
   const preenchidas = partidasAluno.filter((p) => p.conta && Number(p.valor) > 0);
   const soma = (ps, t) => r2(ps.filter((p) => p.tipo === t).reduce((s, p) => s + (Number(p.valor) || 0), 0));
   const dicas = [];

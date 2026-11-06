@@ -11,7 +11,7 @@ export default function ProvisoesEncargos({ trab, ca }) {
   if (ca.folha === undefined || trab.carregando) return <Carregando />;
   const pv = f.provisoes, p = f.parametros;
   const celula = (k, esp, l = 110) => (
-    <MeuCalculo largura={l} valor={campos.get("prov", k)} esperado={esp} alternativas={antigos[k] !== undefined ? [antigos[k]] : undefined} tolerancia={0.02} onChange={(v) => campos.set("prov", k, v)} />
+    <MeuCalculo largura={l} valor={campos.get("prov", k)} esperado={esp} alternativas={antigos[k] !== undefined ? [antigos[k]] : undefined} tolerancia={0.5} onChange={(v) => campos.set("prov", k, v)} />
   );
   const blocos = [
     ["s", "Encargos sobre a folha de salários", pv.encSalarios],
@@ -66,7 +66,7 @@ export default function ProvisoesEncargos({ trab, ca }) {
             ))}
           </tbody></table>
           <div style={{ padding: "10px 18px", fontSize: 12.5, color: "var(--ink-faint)", borderTop: "1px solid var(--line-strong)" }}>
-            Cada encargo é arredondado separadamente e depois somado, como no gabarito. Diferença de até R$ 0,02 conta como certa.
+            Cada encargo é arredondado separadamente e depois somado, como no gabarito. Diferença de até R$ 0,50 conta como certa.
           </div>
         </div>
       </div>

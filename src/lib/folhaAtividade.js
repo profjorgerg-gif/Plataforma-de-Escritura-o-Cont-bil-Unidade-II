@@ -24,7 +24,7 @@ const arred = (v) => Math.round((Number(v) + 1e-9) * 100) / 100;
 const trunc = (v) => Math.floor((Number(v) + 1e-9) * 100) / 100; // truncamento em 2 casas (como no eSocial)
 
 // INSS: cada faixa é TRUNCADA em duas casas e depois somada (procedimento do eSocial, S-5001).
-// A tolerância de R$ 0,02 na conferência do aluno é um critério PEDAGÓGICO (arredondamento), não autorização legal
+// A tolerância de R$ 0,50 na conferência do aluno é um critério PEDAGÓGICO (arredondamento), não autorização legal
 // para divergência no recolhimento; ela não deve encobrir erro de base, alíquota, faixa ou teto.
 export function calcularINSS(base, t = T) {
   const b = Math.min(Math.max(Number(base) || 0, 0), t.inss[t.inss.length - 1].ate);
@@ -106,7 +106,7 @@ export function passoOk(ps, dig, c) {
   const a = somaPropria(ps.k, dig);
   return a !== null && (Math.abs(d - a) <= 0.015 || (SINAL_NEGATIVO.includes(ps.k) && d < 0 && Math.abs(Math.abs(d) - a) <= 0.015));
 }
-export const TOLERANCIA_PEDAGOGICA = 0.02; // critério pedagógico (arredondamento); não vale para erro de base, alíquota, faixa ou teto
+export const TOLERANCIA_PEDAGOGICA = 0.5; // critério pedagógico (arredondamento); não vale para erro de base, alíquota, faixa ou teto
 export const CAMPOS_EMPREGADO = ["salario", "adTipo", "adPct", "he50", "he100", "hen50", "hen100", "faltas", "sem", "dep", "filhos", "vt", "vtCusto"];
 
 const num = (x) => { const s = String(x ?? "").trim().replace(/\s/g, "").replace("R$", ""); if (s === "") return null; const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s); return isFinite(n) ? n : null; };

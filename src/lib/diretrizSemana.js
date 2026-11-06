@@ -55,7 +55,7 @@ export const SEMANAS = [
       "IRRF sem considerar dedução por dependente, desconto simplificado e a redução da Lei 15.270/2025 (p.16)",
       "Esquecer o salário-família",
       "Digitar sem calcular antes no caderno (Ficha B)",
-      "A tolerância de R$ 0,02 vale só para arredondamento, nunca para erro de base, alíquota, faixa ou teto",
+      "A tolerância de R$ 0,50 vale só para arredondamento, nunca para erro de base, alíquota, faixa ou teto",
     ],
     antes: ["Contracheques conferidos", "Resumo escrito", "Entregar clicado"],
     regras: "Critérios: cálculos conferidos 60%, quantidade de contracheques 20%, resumo 20%. Entregar depois de 23/10 desconta 2,0 pontos.",

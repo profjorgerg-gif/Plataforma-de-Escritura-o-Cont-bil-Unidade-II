@@ -103,7 +103,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
               </tbody>
             </table>
             <div style={{ padding: "10px 18px", fontSize: 12.5, color: "var(--ink-faint)", borderTop: "1px solid var(--line-strong)" }}>
-              Tolerância de R$ 0,02: critério <b>pedagógico</b>, só para arredondamento. Não vale para erro de base, alíquota, faixa ou teto. O FGTS ({TABELAS_2026.fgtsPercentual}%) é encargo da empresa, não desconto do empregado.
+              Tolerância de R$ 0,50: critério <b>pedagógico</b>, só para arredondamento. Não vale para erro de base, alíquota, faixa ou teto. O FGTS ({TABELAS_2026.fgtsPercentual}%) é encargo da empresa, não desconto do empregado.
             </div>
           </div>
         </div>

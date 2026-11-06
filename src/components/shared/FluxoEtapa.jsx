@@ -80,7 +80,7 @@ FLUXOS["ca-ativ"] = { ca: true, titulo: "Etapa 2 · Elaborar a folha de pagament
   ["al", "1. Escolha o empregado", "botões no topo; ✓ quando o contracheque está conferido"],
   ["al", "2. Receba o caso", "botão “Receber meu caso” traz os dados do empregado (ou use os seus)"],
   ["al", "3. Calcule", "proventos, INSS, IRRF, vale-transporte e líquido, na ordem da tabela"],
-  ["sy", "Sistema confere", "compara com o seu cálculo (R$ 0,02 só de arredondamento)"],
+  ["sy", "Sistema confere", "compara com o seu cálculo (até R$ 0,50 de arredondamento)"],
   ["al", "4. Repita", "confira pelo menos o mínimo de contracheques"],
   ["al", "5. Resumo", "escreva o que mais pesou nos descontos"],
   ["al", "6. Marque como entregue", "em “Meu roteiro por etapas”"],

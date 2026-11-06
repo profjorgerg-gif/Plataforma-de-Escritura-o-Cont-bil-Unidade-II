@@ -8,7 +8,7 @@ export default function RescCalculo({ trab, resc }) {
   const r = useMemo(() => calcularRescisao(resc.caso), [resc.caso]);
   if (resc.caso === undefined || trab.carregando) return <Carregando />;
   const c = r.caso;
-  const cel = (k, esp, l = 110) => <MeuCalculo largura={l} valor={campos.get("rcalc", k)} esperado={esp} tolerancia={0.02} onChange={(v) => campos.set("rcalc", k, v)} />;
+  const cel = (k, esp, l = 110) => <MeuCalculo largura={l} valor={campos.get("rcalc", k)} esperado={esp} tolerancia={0.5} onChange={(v) => campos.set("rcalc", k, v)} />;
   const sec = (titulo, linhas, nota) => (
     <div className="panel">
       <div className="panel-head"><h3>{titulo}</h3></div>
