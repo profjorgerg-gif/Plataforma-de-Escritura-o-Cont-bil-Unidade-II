@@ -84,10 +84,10 @@ export default function TabelasInssIrrf() {
           ))}
         </Tabela>
         <Lista>
-          <li>Fórmula: salário × alíquota da faixa − parcela a deduzir (uma conta só).</li>
+          <li>Fórmula: (salário × alíquota da faixa) − parcela a deduzir (uma conta só).</li>
           <li>Mesmo resultado da Forma 1, com diferença de no máximo R$ 0,02 por arredondamento (a Forma 2 dá o mesmo valor ou até 2 centavos a mais).</li>
           <li><b>Use um método só na folha inteira.</b> A Forma 1 (por faixa, truncando cada faixa) é a que segue o eSocial e a que o gabarito usa. A tolerância de R$ 0,02 é um critério pedagógico de arredondamento; não vale como diferença de recolhimento.</li>
-          <li>Exemplo: {brl(rem)} × 12% − {brl(faixas[2].ded)} = {brl(inssB)} (a Forma 1 dá {brl(inss)}).</li>
+          <li>Exemplo: ({brl(rem)} × 12%) − {brl(faixas[2].ded)} = {brl(inssB)} (a Forma 1 dá {brl(inss)}).</li>
         </Lista>
       </Bloco>
 
@@ -101,7 +101,7 @@ export default function TabelasInssIrrf() {
         <Lista>
           <li>Dedução por dependente: R$ {brl(T.deducaoDependente)}.</li>
           <li>Desconto simplificado: R$ {brl(T.descontoSimplificado)} (vale o que for maior: simplificado ou INSS + dependentes).</li>
-          <li>Imposto = base × alíquota − parcela a deduzir.</li>
+          <li>Imposto = (base × alíquota) − parcela a deduzir.</li>
         </Lista>
         <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "8px 0 0" }}>Fonte: tabela da Receita Federal para {T.vigencia}.</p>
       </Bloco>
@@ -109,7 +109,7 @@ export default function TabelasInssIrrf() {
       <Bloco titulo="Redução do IRRF (Lei 15.270/2025)">
         <Lista>
           <li>Rendimento tributável até <b>R$ {brl(r.limiteIsento)}</b>: o IRRF é zerado.</li>
-          <li>De <b>R$ {brl(r.limiteIsento + 0.01)} a R$ {brl(r.limiteFim)}</b>: redução = {brl(r.a)} − {String(r.b).replace(".", ",")} × rendimento tributável.</li>
+          <li>De <b>R$ {brl(r.limiteIsento + 0.01)} a R$ {brl(r.limiteFim)}</b>: redução = {brl(r.a)} − ({String(r.b).replace(".", ",")} × rendimento tributável).</li>
           <li>Acima de <b>R$ {brl(r.limiteFim)}</b>: não há redução.</li>
           <li>A redução usa o rendimento tributável <b>sem</b> descontar o INSS e nunca passa do imposto calculado.</li>
         </Lista>
@@ -120,15 +120,15 @@ export default function TabelasInssIrrf() {
         <Tabela cab={["Passo", "Fórmula"]}>
           {[
             ["1. Remuneração bruta", "salário + adicional + horas extras + DSR das horas extras"],
-            ["2. Faltas injustificadas", "(a) [(salário + adicional) ÷ 30] × faltas + (b) [(salário + adicional) ÷ 30] × repousos perdidos + (c) (horas extras ÷ dias úteis) × repousos perdidos. Falta na semana também perde o repouso (critério didático do projeto)."],
+            ["2. Faltas injustificadas", "(a) ([(salário + adicional) ÷ 30] × faltas) + (b) ([(salário + adicional) ÷ 30] × repousos perdidos) + (c) ((horas extras ÷ dias úteis) × repousos perdidos). Falta na semana também perde o repouso (critério didático do projeto)."],
             ["3. Remuneração tributável", "remuneração bruta − faltas (é a base do INSS)"],
-            ["4. INSS do empregado", "Forma 1: Σ (parte da base em cada faixa × alíquota). Forma 2: base × alíquota − parcela a deduzir. Base limitada ao teto de " + brl(teto) + "."],
+            ["4. INSS do empregado", "Forma 1: Σ (parte da base em cada faixa × alíquota). Forma 2: (base × alíquota) − parcela a deduzir. Base limitada ao teto de " + brl(teto) + "."],
             ["5. Parte da faixa", "mín(base; limite da faixa) − limite da faixa anterior"],
             ["6. Dedução dos dependentes", "nº de dependentes × " + brl(T.deducaoDependente)],
             ["7. Dedução do IRRF", "maior entre " + brl(T.descontoSimplificado) + " (simplificado) e INSS + dependentes"],
             ["8. Base do IRRF", "remuneração tributável − dedução do passo 7"],
-            ["9. Imposto da tabela", "base do IRRF × alíquota − parcela a deduzir (mínimo 0)"],
-            ["10. Redução (Lei 15.270)", "até " + brl(r.limiteIsento) + ": zera o imposto · de " + brl(r.limiteIsento + 0.01) + " a " + brl(r.limiteFim) + ": " + brl(r.a) + " − " + String(r.b).replace(".", ",") + " × remuneração tributável · acima: 0"],
+            ["9. Imposto da tabela", "(base do IRRF × alíquota) − parcela a deduzir (mínimo 0)"],
+            ["10. Redução (Lei 15.270)", "até " + brl(r.limiteIsento) + ": zera o imposto · de " + brl(r.limiteIsento + 0.01) + " a " + brl(r.limiteFim) + ": " + brl(r.a) + " − (" + String(r.b).replace(".", ",") + " × remuneração tributável) · acima: 0"],
             ["11. IRRF a descontar", "imposto da tabela − redução (mínimo 0)"],
             ["12. Salário-família", "nº de filhos até 14 anos × " + brl(T.salarioFamilia.cota) + ", se a remuneração bruta (antes das faltas) for até " + brl(T.salarioFamilia.limite)],
             ["13. Vale-transporte", T.vtPercentual + "% do salário-base (limitado ao custo do vale, se informado)"],
@@ -143,10 +143,10 @@ export default function TabelasInssIrrf() {
         <Tabela cab={["Cálculo", { t: "R$", n: 1 }]}>
           {partes.map((f, i) => <tr key={i}><td style={td}>INSS faixa {i + 1}: {i === 0 ? brl(f.ate) : "(" + (f.ate < rem ? brl(f.ate) : brl(rem)) + " − " + brl(f.de - 0.01) + ")"} × {pct(f.aliq)}</td><td style={num}>{brl(f.v)}</td></tr>)}
           <tr style={tot}><td style={td}>INSS do empregado</td><td style={num}>{brl(inss)}</td></tr>
-          <tr><td style={td}>Conferência pela Forma 2: {brl(rem)} × 12% − {brl(faixas[2].ded)}</td><td style={num}>{brl(inssB)}</td></tr>
+          <tr><td style={td}>Conferência pela Forma 2: ({brl(rem)} × 12%) − {brl(faixas[2].ded)}</td><td style={num}>{brl(inssB)}</td></tr>
           <tr><td style={td}>Dedução: {simpl ? "simplificado (" + brl(T.descontoSimplificado) + ") é maior que o INSS (" + brl(inss) + ")" : "INSS é maior que o simplificado"}</td><td style={num}>{brl(dedEx)}</td></tr>
           <tr><td style={td}>Base do IRRF: {brl(rem)} − {brl(dedEx)}</td><td style={num}>{brl(baseIR)}</td></tr>
-          <tr><td style={td}>Imposto: {brl(baseIR)} × {pct(fx.aliq)} − {brl(fx.ded)}</td><td style={num}>{brl(fx.imposto)}</td></tr>
+          <tr><td style={td}>Imposto: ({brl(baseIR)} × {pct(fx.aliq)}) − {brl(fx.ded)}</td><td style={num}>{brl(fx.imposto)}</td></tr>
           <tr><td style={td}>Redução: {rem <= r.limiteIsento ? "rendimento até " + brl(r.limiteIsento) + " zera o IRRF" : "conforme a regra"}</td><td style={num}>− {brl(red)}</td></tr>
           <tr style={tot}><td style={td}>IRRF a descontar</td><td style={num}>{brl(irrf)}</td></tr>
         </Tabela>

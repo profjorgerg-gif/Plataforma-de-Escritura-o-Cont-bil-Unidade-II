@@ -9,7 +9,7 @@ export const TABELAS_2026 = {
   inss: [ // faixas progressivas (cada parte do salário paga a sua alíquota)
     { ate: 1621.0, aliq: 0.075 }, { ate: 2902.84, aliq: 0.09 }, { ate: 4354.27, aliq: 0.12 }, { ate: 8475.55, aliq: 0.14 },
   ],
-  irrf: [ // tabela progressiva mensal: imposto = base × alíquota − parcela a deduzir
+  irrf: [ // tabela progressiva mensal: imposto = (base × alíquota) − parcela a deduzir
     { ate: 2428.8, aliq: 0, ded: 0 }, { ate: 2826.65, aliq: 0.075, ded: 182.16 }, { ate: 3751.05, aliq: 0.15, ded: 394.16 },
     { ate: 4664.68, aliq: 0.225, ded: 675.49 }, { ate: Infinity, aliq: 0.275, ded: 908.73 },
   ],
@@ -126,8 +126,8 @@ export function empregadoDeCampos(get) {
 }
 
 export const PASSOS_CONTRACHEQUE = [
-  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. DSR = horas extras ÷ dias úteis do mês × dias de descanso do mês (domingos + feriados), como mostra a tela Folha do mês. Não arredonde a HTI: use 4 casas (ex.: 16,6459). Se arredondar para centavos, o sistema também confere, mas o resultado muda em centavos. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
-  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis do mês) × repousos perdidos. Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
+  { k: "rem", nome: "Remuneração bruta (salário + adicional + horas extras + DSR)", como: "Adicional: insalubridade (AI) = % × salário mínimo; periculosidade (AP) = 30% × salário-base. Hora integrada (HTI) = (salário + adicional) ÷ 220, usada nas horas extras. DSR = (horas extras ÷ dias úteis do mês) × dias de descanso do mês (domingos + feriados), como mostra a tela Folha do mês. Não arredonde a HTI: use 4 casas (ex.: 16,6459). Se arredondar para centavos, o sistema também confere, mas o resultado muda em centavos. Some salário, adicional, horas extras e DSR.", v: (c) => c.bruta },
+  { k: "falt", nome: "(−) Faltas injustificadas (dias + repousos perdidos)", como: "(1) [(salário + adicional) ÷ 30] × faltas; (2) [(salário + adicional) ÷ 30] × repousos perdidos; (3) (horas extras ÷ dias úteis do mês) × repousos perdidos. Soma: (1) + (2) + (3). Duas faltas na mesma semana: 2 dias e 1 repouso perdido.", v: (c) => c.descFaltas },
   { k: "inss", nome: "(−) INSS do empregado", como: "Cada faixa é truncada em 2 casas (como no eSocial) e depois somada, até o teto.", v: (c) => c.inss },
   { k: "base", nome: "Base do IRRF (com a dedução mais vantajosa)", como: "Remuneração − (INSS + dependentes) ou − desconto simplificado, o que for maior.", v: (c) => c.baseIR },
   { k: "irrf", nome: "(−) IRRF, já com a redução da Lei 15.270/2025", como: "Imposto pela tabela (após deduções) − redução. A redução usa o rendimento tributável SEM descontar o INSS.", v: (c) => c.irrf },

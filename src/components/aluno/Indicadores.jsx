@@ -13,9 +13,9 @@ const GRUPOS = [
     { k: "ccl", nome: "Capital circulante líquido", formula: "Ativo circulante − Passivo circulante", tipo: "rs" },
   ] },
   { key: "prazos", label: "Prazos e ciclo", itens: [
-    { k: "pme", nome: "Prazo médio de estocagem (PME)", formula: "Estoques ÷ CMV × dias", tipo: "dias" },
-    { k: "pmr", nome: "Prazo médio de recebimento (PMR)", formula: "Clientes ÷ Receita bruta × dias", tipo: "dias" },
-    { k: "pmp", nome: "Prazo médio de pagamento (PMP)", formula: "Fornecedores ÷ CMV × dias (compras ≈ CMV)", tipo: "dias" },
+    { k: "pme", nome: "Prazo médio de estocagem (PME)", formula: "(Estoques ÷ CMV) × dias", tipo: "dias" },
+    { k: "pmr", nome: "Prazo médio de recebimento (PMR)", formula: "(Clientes ÷ Receita bruta) × dias", tipo: "dias" },
+    { k: "pmp", nome: "Prazo médio de pagamento (PMP)", formula: "(Fornecedores ÷ CMV) × dias (compras ≈ CMV)", tipo: "dias" },
     { k: "cicloOperacional", nome: "Ciclo operacional", formula: "PME + PMR", tipo: "dias" },
     { k: "cicloFinanceiro", nome: "Ciclo financeiro", formula: "Ciclo operacional − PMP", tipo: "dias" },
   ] },

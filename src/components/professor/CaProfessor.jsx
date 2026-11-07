@@ -151,8 +151,8 @@ function EditorFolha({ turma, ca }) {
           </div>
           <div style={{ marginTop: 8, color: "var(--ink-soft)" }}>
             {previa.dsr
-              ? <>DSR de {nomeDoMes(previa.competencia)}: <b>{textoDSR(previa.dsr)}</b>. Conta: horas extras ÷ {previa.dsr.uteis} × {previa.dsr.descanso}. Feriados nacionais já entram; some só os estaduais ou municipais. A conferência do aluno também aceita o DSR fixo ({previa.parametros.dsrFixo.uteis} ÷ {previa.parametros.dsrFixo.descanso}).</>
-              : <>DSR fixo: horas extras ÷ {previa.parametros.diasUteisDSR} × {previa.parametros.diasDescansoDSR}, sem olhar o calendário.{par.criterioDSR !== "fixo" ? " (Não há lista de feriados cadastrada para esta competência.)" : ""}</>}
+              ? <>DSR de {nomeDoMes(previa.competencia)}: <b>{textoDSR(previa.dsr)}</b>. Conta: (horas extras ÷ {previa.dsr.uteis}) × {previa.dsr.descanso}. Feriados nacionais já entram; some só os estaduais ou municipais. A conferência do aluno também aceita o DSR fixo ({previa.parametros.dsrFixo.uteis} ÷ {previa.parametros.dsrFixo.descanso}).</>
+              : <>DSR fixo: (horas extras ÷ {previa.parametros.diasUteisDSR}) × {previa.parametros.diasDescansoDSR}, sem olhar o calendário.{par.criterioDSR !== "fixo" ? " (Não há lista de feriados cadastrada para esta competência.)" : ""}</>}
           </div>
         </div>
         <div style={{ overflowX: "auto" }}>

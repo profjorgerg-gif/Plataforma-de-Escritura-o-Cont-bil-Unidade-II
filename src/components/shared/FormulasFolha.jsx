@@ -63,11 +63,11 @@ export default function FormulasFolha() {
       ]} nota="A tabela com parcela a deduzir (cálculo rápido) pode diferir em até R$ 0,02 deste cálculo. Use um método só na folha inteira; o gabarito usa o cálculo por faixa." />
 
       <Bloco titulo="5 · IRRF e redução (Lei 15.270/2025)" linhas={[
-        ["Dedução escolhida", "maior entre R$ " + brl(T.descontoSimplificado) + " (simplificado) e INSS + dependentes × R$ " + brl(T.deducaoDependente)],
+        ["Dedução escolhida", "maior entre R$ " + brl(T.descontoSimplificado) + " (simplificado) e INSS + (dependentes × R$ " + brl(T.deducaoDependente) + ")"],
         ["Base do IRRF", "maior entre zero e (remuneração tributável − dedução escolhida)"],
-        ["Imposto da tabela", "maior entre zero e (base × alíquota da faixa − parcela a deduzir)"],
+        ["Imposto da tabela", "maior entre zero e ((base × alíquota da faixa) − parcela a deduzir)"],
         ["Redução, até R$ " + brl(r.limiteIsento), "igual ao imposto da tabela (IRRF = 0)"],
-        ["Redução, R$ " + brl(r.limiteIsento + 0.01) + " a R$ " + brl(r.limiteFim), "menor entre o imposto e (" + brl(r.a) + " − " + String(r.b).replace(".", ",") + " × remuneração tributável)"],
+        ["Redução, R$ " + brl(r.limiteIsento + 0.01) + " a R$ " + brl(r.limiteFim), "menor entre o imposto e (" + brl(r.a) + " − (" + String(r.b).replace(".", ",") + " × remuneração tributável))"],
         ["Redução, acima de R$ " + brl(r.limiteFim), "zero"],
         ["IRRF a descontar", "maior entre zero e (imposto da tabela − redução)"],
       ]} nota="A faixa da redução usa a remuneração tributável sem descontar o INSS. A faixa da tabela usa a base do IRRF." />

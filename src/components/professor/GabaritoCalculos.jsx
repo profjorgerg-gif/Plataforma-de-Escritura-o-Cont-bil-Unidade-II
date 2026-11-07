@@ -41,7 +41,7 @@ export function GabaritoEmpregado({ emp, c, p }) {
   const redTxt = c.remuneracao <= r.limiteIsento
     ? `Redução (Lei 15.270): rendimento tributável ${brl(c.remuneracao)} até ${brl(r.limiteIsento)} → zera o imposto`
     : c.remuneracao <= r.limiteFim
-      ? `Redução (Lei 15.270): ${brl(r.a)} − ${String(r.b).replace(".", ",")} × ${brl(c.remuneracao)} = ${brl(Math.max(0, r.a - r.b * c.remuneracao))}; vale o menor entre esse valor e o imposto`
+      ? `Redução (Lei 15.270): ${brl(r.a)} − (${String(r.b).replace(".", ",")} × ${brl(c.remuneracao)}) = ${brl(Math.max(0, r.a - r.b * c.remuneracao))}; vale o menor entre esse valor e o imposto`
       : `Redução (Lei 15.270): rendimento tributável ${brl(c.remuneracao)} acima de ${brl(r.limiteFim)} → sem redução`;
   return (
     <>
@@ -51,7 +51,7 @@ export function GabaritoEmpregado({ emp, c, p }) {
         {horas.length > 0 && <L t={`Hora trabalhada integrada (HTI): ${brl(c.baseIntegrada)} ÷ ${p.cargaHoraria} h`} v={hti4(c.hti)} />}
         {horas.map((h) => <L key={h[0]} t={`${h[1]}: ${h[2]} h × ${h[4] ? `(1 + ${Math.round(p.adicionalNoturno * 100)}%) × ` : ""}${h[3]} × ${hti4(c.hti)}`} v={brl(h[5])} />)}
         {horas.length > 0 && <L t="Total de horas extras" v={brl(c.horasExtras)} />}
-        {horas.length > 0 && <L t={`DSR sobre horas extras: ${brl(c.horasExtras)} ÷ ${p.diasUteisDSR} × ${p.diasDescansoDSR}`} v={brl(c.dsr)} />}
+        {horas.length > 0 && <L t={`DSR sobre horas extras: (${brl(c.horasExtras)} ÷ ${p.diasUteisDSR}) × ${p.diasDescansoDSR}`} v={brl(c.dsr)} />}
         <L forte t={`Remuneração bruta: ${brl(c.salario)} + ${brl(c.adicional)} + ${brl(c.horasExtras)} + ${brl(c.dsr)}`} v={brl(c.bruta)} />
       </Sec>
       <Sec titulo="2. Faltas injustificadas">
@@ -68,13 +68,13 @@ export function GabaritoEmpregado({ emp, c, p }) {
       <Sec titulo="3. INSS do empregado (por faixa; cada faixa truncada em 2 casas)">
         {inss.map((x, i) => <L key={i} t={x.t} v={brl(x.v)} />)}
         <L forte t="INSS do empregado" v={brl(c.inss)} />
-        <L t={`Conferência pela tabela rápida: ${brl(b)} × ${pc(faixa.aliq)} − ${brl(dedRapida)}`} v={brl(b * faixa.aliq - dedRapida)} />
+        <L t={`Conferência pela tabela rápida: (${brl(b)} × ${pc(faixa.aliq)}) − ${brl(dedRapida)}`} v={brl(b * faixa.aliq - dedRapida)} />
       </Sec>
       <Sec titulo="4. IRRF">
-        <L t={`Dedução legal: INSS ${brl(c.inss)} + ${dep} dependente(s) × ${brl(T.deducaoDependente)}`} v={brl(c.deducaoLegal)} />
+        <L t={`Dedução legal: INSS ${brl(c.inss)} + (${dep} dependente(s) × ${brl(T.deducaoDependente)})`} v={brl(c.deducaoLegal)} />
         <L t={`Comparação: simplificado ${brl(T.descontoSimplificado)} ${c.usaSimplificado ? ">" : "<"} ${brl(c.deducaoLegal)} → vale ${c.usaSimplificado ? "o simplificado" : "a dedução legal"}`} v={brl(c.deducao)} />
         <L forte t={`Base do IRRF: ${brl(c.remuneracao)} − ${brl(c.deducao)}`} v={brl(c.baseIR)} />
-        <L t={c.aliqIR > 0 ? `Imposto da tabela: ${brl(c.baseIR)} × ${pc(c.aliqIR)} − ${brl(c.parcelaIR)}` : "Imposto da tabela: base até a faixa isenta"} v={brl(c.impostoTabela)} />
+        <L t={c.aliqIR > 0 ? `Imposto da tabela: (${brl(c.baseIR)} × ${pc(c.aliqIR)}) − ${brl(c.parcelaIR)}` : "Imposto da tabela: base até a faixa isenta"} v={brl(c.impostoTabela)} />
         <L t={redTxt} v={brl(c.reducao)} />
         <L forte t={`IRRF a descontar: ${brl(c.impostoTabela)} − ${brl(c.reducao)}`} v={brl(c.irrf)} />
       </Sec>
