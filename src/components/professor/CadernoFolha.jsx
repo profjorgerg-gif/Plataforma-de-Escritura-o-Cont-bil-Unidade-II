@@ -237,6 +237,49 @@ function PaginasAluno({ aluno, empregados, cfg, folha, contas, turmaNome, turmas
   );
 }
 
+
+// Aba "Gabarito detalhado" (só professor): memória de cálculo na tela, por aluno e empregado. Usa os mesmos números do sistema.
+function GabaritoDetalhado({ aluno, empId, mostrar, empregados, cfg, folha, contas, turmaNome, listaEm }) {
+  const folhaP = useMemo(() => folhaDoAluno(folha, cfg, aluno.matricula), [folha, cfg, aluno]);
+  const f = useMemo(() => folhaEmUso(folhaP), [folhaP]);
+  const comp = nomeDoMes(f.competencia) || f.competencia;
+  const cab = (titulo, sub) => <Cab titulo={titulo} sub={sub} aluno={aluno} turmaNome={turmaNome} comp={comp} listaEm={listaEm} />;
+  const alvo = empId === "todos" ? empregados : empregados.filter((e) => e.id === empId);
+  const lanc = lancamentosDaFolha(f.provisoes);
+  const rod = "Gabarito · versão do professor, não entregar aos alunos";
+  return (
+    <>
+      {mostrar === "e2" && alvo.map((e) => {
+        const i = empregados.findIndex((x) => x.id === e.id);
+        const caso = casoDoEmpregado(aluno.matricula, e.id, f.competencia, opcoesDoEmpregado(cfg, e.id));
+        const emp = empregadoDeCampos((k) => caso[k]);
+        const c = calcularContracheque(emp, undefined, f.parametros);
+        const dsrF = f.dsr && f.parametros.dsrFixo && (f.parametros.dsrFixo.uteis !== f.parametros.diasUteisDSR || f.parametros.dsrFixo.descanso !== f.parametros.diasDescansoDSR) ? calcularContracheque(emp, undefined, { ...f.parametros, diasUteisDSR: f.parametros.dsrFixo.uteis, diasDescansoDSR: f.parametros.dsrFixo.descanso }) : null;
+        return (
+          <div className="cf-pg" key={e.id}>
+            {cab("Etapa 2 · Gabarito dos cálculos", "ficha " + (i + 1) + " de " + empregados.length)}
+            <h4>Gabarito · Ficha {i + 1} · Empregado(a): {e.nome}</h4>
+            <div className="cf-caso">{textoDoCaso(e.nome, caso, f.competencia, cfg.enunciadoObs)}</div>
+            <GabaritoEmpregado emp={emp} c={c} p={f.parametros} />
+            {dsrF && Math.abs(dsrF.bruta - c.bruta) > 0.004 && (
+              <p style={{ margin: "6px 0 0", fontSize: 11.5 }}><b>Variante aceita pelo sistema:</b> DSR {f.parametros.dsrFixo.uteis} ÷ {f.parametros.dsrFixo.descanso} → DSR {brl(dsrF.dsr)}, remuneração bruta {brl(dsrF.bruta)}, salário líquido {brl(dsrF.liquido)}.</p>
+            )}
+            <Rod esq={rod} dir={e.nome} />
+          </div>
+        );
+      })}
+      {mostrar === "e3" && (
+        <div className="cf-pg">
+          {cab("Etapa 3 · Gabarito dos cálculos", "folha do mês, provisões e lançamentos")}
+          <h3>Gabarito · Etapa 3</h3>
+          <GabaritoEtapa3 f={f} lanc={lanc} nomeConta={(cod) => nomeConta(cod, contas)} />
+          <Rod esq={rod} dir={aluno.nome} />
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function CadernoFolha({ turma, nomePadrao }) {
   const tid = turma ? turma.id : null;
   const alunos = useAlunosReaisDaTurma(tid);
@@ -249,6 +292,9 @@ export default function CadernoFolha({ turma, nomePadrao }) {
   const [horiz, setHoriz] = useState(false); // orientação da página: vertical (padrão) ou horizontal
   const [msg, setMsg] = useState("");
   const [pedido, setPedido] = useState(null);
+  const [aba, setAba] = useState("imprimir"); // imprimir | gabarito
+  const [gEmp, setGEmp] = useState("todos");
+  const [gMostrar, setGMostrar] = useState("e2");
 
   const lista = useMemo(() => (alunos || []).filter((a) => (a.nome || "").trim()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")), [alunos]);
   const cfg = ca.config || {};
@@ -266,6 +312,7 @@ export default function CadernoFolha({ turma, nomePadrao }) {
       setMsg("✓ lista atualizada com " + nova.length + " empregados (os mesmos nomes mantêm o mesmo código)");
     } catch (e) { setMsg("✗ " + (e.message || e.code)); }
   }
+  function imprimirGabarito() { setPedido({ alvos: [aluno], gab: true, n: Date.now() }); }
   function imprimir() {
     const alvos = modo === "branco" ? [null] : modo === "todos" ? lista : [aluno];
     setPedido({ alvos, n: Date.now() });
@@ -275,7 +322,7 @@ export default function CadernoFolha({ turma, nomePadrao }) {
     if (!pedido) return undefined;
     const t0 = document.title;
     const alvo = pedido.alvos.length === 1 && pedido.alvos[0] ? pedido.alvos[0].nome : pedido.alvos.length > 1 ? "turma" : "em branco";
-    document.title = "Caderno da Folha - " + alvo + (comResp ? " - professor" : "");
+    document.title = (pedido.gab ? "Gabarito detalhado - " : "Caderno da Folha - ") + alvo + (comResp || pedido.gab ? " - professor" : "");
     const fim = () => { document.title = t0; setPedido(null); };
     window.addEventListener("afterprint", fim);
     const h = setTimeout(() => window.print(), 500);
@@ -293,8 +340,48 @@ export default function CadernoFolha({ turma, nomePadrao }) {
     <>
       <style>{CSS}{horiz ? ".cf-pg{max-width:1123px}" : ""}</style>
       <div className="screen-eyebrow">materiais · etapas 2 e 3</div>
-      <h2 className="screen-title">Caderno da Folha (imprimir)</h2>
+      <h2 className="screen-title">Caderno da Folha</h2>
       <p className="screen-sub">Orientações, fichas dos empregados e lançamentos das etapas 2 e 3. Cada aluno recebe os casos dele. A lista de empregados são os nomes dos alunos da turma.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }} role="tablist" aria-label="Abas do caderno">
+        {[["imprimir", "Imprimir caderno"], ["gabarito", "Gabarito detalhado"]].map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={aba === k} className={aba === k ? "btn" : "btn secondary"} onClick={() => setAba(k)}>{t}</button>)}
+      </div>
+      {aba === "gabarito" && (
+        <>
+          <style>{CSS}</style>
+          <div className="panel"><div className="panel-body">
+            {empregados.length === 0 || lista.length === 0 ? <div className="empty-state">A lista de empregados ainda não foi publicada. Volte para a aba "Imprimir caderno" e clique em Atualizar.</div> : (
+              <>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                  <label htmlFor="gab-aluno" style={{ fontSize: 13 }}>Aluno:</label>
+                  <select id="gab-aluno" value={aluno ? aluno.matricula : ""} onChange={(e) => setMat(e.target.value)} style={{ padding: "5px 8px" }}>{lista.map((a) => <option key={a.matricula} value={a.matricula}>{a.nome}</option>)}</select>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} role="group" aria-label="Mostrar">
+                  <span style={{ fontSize: 13 }}>Mostrar:</span>
+                  <button type="button" className={gMostrar === "e2" ? "btn" : "btn secondary"} aria-pressed={gMostrar === "e2"} onClick={() => setGMostrar("e2")}>Etapa 2 · contracheque</button>
+                  <button type="button" className={gMostrar === "e3" ? "btn" : "btn secondary"} aria-pressed={gMostrar === "e3"} onClick={() => setGMostrar("e3")}>Etapa 3 · folha, provisões e lançamentos</button>
+                </div>
+                {gMostrar === "e2" && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                    <label htmlFor="gab-emp" style={{ fontSize: 13 }}>Empregado:</label>
+                    <select id="gab-emp" value={gEmp} onChange={(e) => setGEmp(e.target.value)} style={{ padding: "5px 8px" }}>
+                      <option value="todos">Todos os {empregados.length} empregados</option>
+                      {empregados.map((e, i) => <option key={e.id} value={e.id}>{i + 1} · {e.nome}</option>)}
+                    </select>
+                  </div>
+                )}
+                <button type="button" className="btn green" onClick={imprimirGabarito}>🖨 Imprimir / salvar PDF</button>
+                <p style={{ fontSize: 13, color: "var(--amber, #8a5a00)", margin: "8px 0 0" }}>Só para o professor. Traz o valor certo de cada linha, com os mesmos números que o sistema usa para conferir. Não entregue aos alunos.</p>
+              </>
+            )}
+          </div></div>
+          {aluno && empregados.length > 0 && (
+            <div style={{ marginTop: 14, overflowX: "auto" }}>
+              <GabaritoDetalhado aluno={aluno} empId={gEmp} mostrar={gMostrar} empregados={empregados} cfg={cfg} folha={ca.folha} contas={contas} turmaNome={comuns.turmaNome} listaEm={listaEm} />
+            </div>
+          )}
+        </>
+      )}
+      {aba === "imprimir" && <>
       <div className="panel"><div className="panel-body">
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
           <span><b>{empregados.length}</b> empregados · lista publicada em {listaEm} · <b>{lista.length}</b> alunos na turma</span>
@@ -335,8 +422,10 @@ export default function CadernoFolha({ turma, nomePadrao }) {
         </div>
       )}
 
+      </>}
+
       {pedido && createPortal(
-        <div id="imp-caderno-folha"><style>{CSS}{horiz ? "@page{size:A4 landscape;margin:12mm}" : ""}</style>{pedido.alvos.map((a, i) => <div key={a ? a.matricula : "b" + i}>{paginas(a)}</div>)}</div>,
+        <div id="imp-caderno-folha"><style>{CSS}{horiz && !pedido.gab ? "@page{size:A4 landscape;margin:12mm}" : ""}</style>{pedido.gab ? <GabaritoDetalhado aluno={aluno} empId={gEmp} mostrar={gMostrar} empregados={empregados} cfg={cfg} folha={ca.folha} contas={contas} turmaNome={comuns.turmaNome} listaEm={listaEm} /> : pedido.alvos.map((a, i) => <div key={a ? a.matricula : "b" + i}>{paginas(a)}</div>)}</div>,
         document.body
       )}
     </>
