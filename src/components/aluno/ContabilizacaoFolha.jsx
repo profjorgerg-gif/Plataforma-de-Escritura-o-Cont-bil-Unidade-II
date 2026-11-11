@@ -31,6 +31,21 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
     }));
   }
 
+  // exclui a linha i: as de baixo sobem e a última sai (mínimo de 2 linhas; só mexe neste lançamento)
+  function excluirLinha(key, ps, i) {
+    if (ps.length <= 2) return;
+    for (let j = i; j < ps.length - 1; j++) {
+      campos.set("lanc", key + "_" + j + "_tipo", ps[j + 1].tipo);
+      campos.set("lanc", key + "_" + j + "_conta", ps[j + 1].conta || "");
+      campos.set("lanc", key + "_" + j + "_valor", ps[j + 1].valorTxt || "");
+    }
+    const u = ps.length - 1;
+    campos.set("lanc", key + "_" + u + "_tipo", "");
+    campos.set("lanc", key + "_" + u + "_conta", "");
+    campos.set("lanc", key + "_" + u + "_valor", "");
+    campos.set("lanc", key + "_n", String(u));
+  }
+
   return (
     <>
       <div className="screen-eyebrow">etapa 3 · contabilidade avançada</div>
@@ -58,7 +73,7 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
             {mostraEnunciado && enunciados[l.key] && <div className="helper-note" style={{ margin: "10px 14px" }}><b>Enunciado.</b> {enunciados[l.key]}</div>}
             <div className="panel-body" style={{ padding: 0 }}>
               <table>
-                <thead><tr><th style={{ width: 70 }}>D / C</th><th>Conta</th><th className="num" style={{ width: 140 }}>Valor (R$)</th></tr></thead>
+                <thead><tr><th style={{ width: 70 }}>D / C</th><th>Conta</th><th className="num" style={{ width: 140 }}>Valor (R$)</th><th style={{ width: 50 }}></th></tr></thead>
                 <tbody>
                   {ps.map((p, i) => (
                     <tr key={i}>
@@ -77,6 +92,10 @@ export default function ContabilizacaoFolha({ trab, ca, esc, onLevar }) {
                         <input className="mono" inputMode="decimal" value={p.valorTxt || ""} placeholder="0,00"
                           onChange={(e) => campos.set("lanc", l.key + "_" + i + "_valor", e.target.value)}
                           style={{ width: 120, textAlign: "right", padding: "3px 6px", border: "1px solid var(--line-strong)" }} />
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <button className="btn secondary" title={ps.length <= 2 ? "O lançamento precisa de pelo menos 2 linhas" : "Excluir esta linha"} aria-label={"Excluir linha " + (i + 1)}
+                          disabled={ps.length <= 2} onClick={() => excluirLinha(l.key, ps, i)} style={{ padding: "2px 8px", fontSize: 13, color: "var(--red)" }}>✕</button>
                       </td>
                     </tr>
                   ))}
