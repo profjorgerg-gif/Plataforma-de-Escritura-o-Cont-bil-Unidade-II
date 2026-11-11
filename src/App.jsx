@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  onAuthStateChanged, signInWithPopup, signOut,
+  onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut,
 } from "firebase/auth";
 import {
   doc, getDoc, setDoc, updateDoc,
@@ -86,7 +86,18 @@ export default function App() {
   }
 
   async function entrarComGoogle() {
-    await signInWithPopup(auth, googleProvider);
+    // Sempre deixa escolher a conta (evita ficar preso a uma sessão Google antiga/esquecida).
+    googleProvider.setCustomParameters({ prompt: "select_account" });
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (e) {
+      // Janela bloqueada ou não suportada pelo navegador: tenta entrar na mesma aba.
+      if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      throw e; // a tela de acesso mostra a mensagem
+    }
     // onAuthStateChanged cuida do resto.
   }
 

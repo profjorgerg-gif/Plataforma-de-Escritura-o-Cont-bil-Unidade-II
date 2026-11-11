@@ -58,6 +58,20 @@ const CSS = `
 
 export default function TelaAcesso({ onEntrarGoogle }) {
   const [perfil, setPerfil] = useState("aluno"); // "aluno" | "professor" — só ajusta o texto
+  const [erro, setErro] = useState("");
+  const [entrando, setEntrando] = useState(false);
+  async function clicar() {
+    setErro(""); setEntrando(true);
+    try { await onEntrarGoogle(); }
+    catch (e) {
+      const c = (e && e.code) || "";
+      if (c === "auth/popup-closed-by-user" || c === "auth/cancelled-popup-request") setErro("A janela do Google foi fechada antes de terminar. Clique de novo e conclua o login.");
+      else if (c === "auth/unauthorized-domain") setErro("Este endereço não está autorizado no Firebase (Authentication › Configurações › Domínios autorizados). Avise o suporte.");
+      else if (c === "auth/network-request-failed") setErro("Sem conexão com o Google. Confira a internet e tente de novo.");
+      else setErro("Não foi possível entrar" + (c ? " (" + c + ")" : "") + ". Permita pop-ups deste site no navegador (ícone na barra de endereço) ou tente em uma janela anônima e clique de novo.");
+    }
+    setEntrando(false);
+  }
 
   return (
     <div className="ta-wrap">
@@ -117,7 +131,7 @@ export default function TelaAcesso({ onEntrarGoogle }) {
           </div>
 
           <button
-            onClick={onEntrarGoogle}
+            onClick={clicar} disabled={entrando}
             style={{
               width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
               marginTop: 20, padding: 14, minHeight: 50, borderRadius: 8, background: "#1E3229", border: `1px solid ${CORES.cardBorder}`,
@@ -130,8 +144,9 @@ export default function TelaAcesso({ onEntrarGoogle }) {
               <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
               <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
             </svg>
-            Continuar com Google
+            {entrando ? "Abrindo o Google…" : "Continuar com Google"}
           </button>
+          {erro && <div role="alert" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 8, background: "#3a1d1d", border: "1px solid #7a3535", color: "#ffd6d6", fontSize: 13.5 }}>{erro}</div>}
 
           <div style={{ marginTop: 16, fontSize: 12.5, color: CORES.sub, textAlign: "center", lineHeight: 1.5 }}>
             {perfil === "professor"
