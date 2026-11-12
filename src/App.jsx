@@ -92,7 +92,7 @@ export default function App() {
       await signInWithPopup(auth, googleProvider);
     } catch (e) {
       // Janela bloqueada ou não suportada pelo navegador: tenta entrar na mesma aba.
-      if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) {
+      if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment" || e.code === "auth/internal-error")) {
         await signInWithRedirect(auth, googleProvider);
         return;
       }
