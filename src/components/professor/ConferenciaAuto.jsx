@@ -6,7 +6,7 @@ import { conferirAluno } from "../../lib/conferenciaFila.js";
 
 // Conferência automática da Fila, aluno por aluno. Só SUGERE (✅ / ❌ / ⚪);
 // nada é aprovado ou devolvido sem o clique do professor. Usa as mesmas gravações da Fila.
-export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas }) {
+export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas, ctxFolhaDe }) {
   const [matricula, setMatricula] = useState("");
   const [troca, setTroca] = useState({}); // id -> "ok" | "no" (decisão do professor)
   const [exc, setExc] = useState({}); // id -> true/false (professor muda o "pode excluir")
@@ -28,8 +28,9 @@ export default function ConferenciaAuto({ turmaId, fila, todos, catalogo, contas
   const auto = useMemo(() => {
     if (!atual) return {};
     const todosDele = todos.filter((t) => t.aluno.matricula === matricula).map((t) => t.lancamento);
-    return conferirAluno(atual.itens, todosDele, catalogo);
-  }, [atual, todos, catalogo, matricula]);
+    return conferirAluno(atual.itens, todosDele, catalogo, ctxFolhaDe ? ctxFolhaDe(matricula) : null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atual, todos, catalogo, matricula, ctxFolhaDe]);
 
   const estadoDe = (l) => troca[l.id] || (auto[l.id] || { estado: "sem" }).estado;
   const aprovar = (atual?.itens || []).filter((l) => estadoDe(l) === "ok");

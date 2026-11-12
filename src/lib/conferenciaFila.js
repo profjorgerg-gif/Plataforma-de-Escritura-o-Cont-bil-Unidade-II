@@ -1,6 +1,7 @@
 // Conferência automática dos lançamentos da Fila (só sugere; quem decide é o professor).
 // Regras conservadoras: só marca ✅ ou ❌ quando há certeza pelo gabarito da nota.
 // O que não dá para conferir fica "sem" (⚪) e não entra nos botões em bloco.
+import { conferirLancamentoDuplo } from "./folhaAluno.js";
 const ICMS = ["2.1.8.04", "4.2.01", "1.1.2.11", "1.1.2.12"];
 const PIS = ["2.1.8.05", "1.1.2.14", "2.1.8.07"];
 const COFINS = ["2.1.8.06", "1.1.2.15", "2.1.8.08"];
@@ -210,8 +211,23 @@ function conferirUm0(l, doc, duplicado) {
   return { estado: "ok", motivo: "confere com a nota (" + bons.join(", ") + ")" };
 }
 
+// Lançamentos vindos da Contabilização da folha (origem "folha"): conferidos contra os 6 lançamentos esperados da folha DO ALUNO
+// (ou da folha antiga da turma, que também vale). ctx = { esperados, alt } de lancamentosDaFolha().
+function conferirFolha(l, ctx, duplicado) {
+  if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual desta folha", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
+  if (!ctx || !ctx.esperados) return { estado: "sem", motivo: "folha ainda não carregada: confira manualmente" };
+  const key = String(l.chave || "").split("|")[2];
+  const esp = ctx.esperados.find((e) => e.key === key) || ctx.esperados.find((e) => String(l.historico || "").includes(e.titulo));
+  if (!esp) return { estado: "sem", motivo: "não identifiquei qual lançamento da folha é este: confira" };
+  const alt = ctx.alt && ctx.alt.find((e) => e.key === esp.key);
+  const r = conferirLancamentoDuplo(l.partidas || [], esp.partidas, alt && alt.partidas);
+  if (r.ok) return { estado: "ok", motivo: "confere com a folha do aluno (contas, lado D/C e valores)" };
+  if (r.vazio) return { estado: "no", motivo: "lançamento sem contas ou sem valores", acao: "Preencha as contas e os valores do lançamento \"" + esp.titulo + "\" e reenvie. Caminho: Etapa 3 · Contabilização da folha e depois Livro diário → ✏️ Editar." };
+  return { estado: "no", motivo: esp.titulo + ": " + r.dicas.join(" "), acao: "Ajuste este lançamento (contas, lado D/C e valores) e reenvie. Os cálculos estão nas telas Folha do mês e Provisões e encargos. Caminho: Etapa 3 · Contabilização da folha e depois Livro diário → ✏️ Editar." };
+}
+
 // Confere todos os lançamentos enviados de UM aluno. `todosDoAluno` = todos os lançamentos dele.
-export function conferirAluno(enviados, todosDoAluno, catalogo) {
+export function conferirAluno(enviados, todosDoAluno, catalogo, ctxFolha) {
   const porId = (id) => (catalogo || []).find((d) => d.id === id);
   const chave = (l) => l.documento + "|" + tiposDoLancamento(l).join("+");
   const vistos = {}; // chave -> lançamento que "vale"
@@ -229,7 +245,15 @@ export function conferirAluno(enviados, todosDoAluno, catalogo) {
     return pa - pb || ms(a) - ms(b);
   });
   const res = {};
+  const folhaVista = {}; // chave da folha -> id do lançamento que "vale"
+  todosDoAluno.filter((l) => l.status === "aprovado" && l.origem === "folha" && l.chave).forEach((l) => { if (!folhaVista[l.chave]) folhaVista[l.chave] = l.id; });
   ord.forEach((l) => {
+    if (l.origem === "folha") {
+      let dupF = false;
+      if (l.chave) { if (folhaVista[l.chave] && folhaVista[l.chave] !== l.id) dupF = true; else folhaVista[l.chave] = l.id; }
+      res[l.id] = conferirFolha(l, ctxFolha, dupF);
+      return;
+    }
     const k = chave(l);
     let dup = false;
     if (l.documento && tiposDoLancamento(l).length) {

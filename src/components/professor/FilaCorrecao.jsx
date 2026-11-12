@@ -9,6 +9,9 @@ import { contaInfo, fmt } from "../../lib/contabil.js";
 import { StatusBadge } from "../shared/UI.jsx";
 import ConferenciaAuto from "./ConferenciaAuto.jsx";
 import { conferirAluno } from "../../lib/conferenciaFila.js";
+import { useCaTurma } from "../../hooks/useCa.js";
+import { folhaDoAluno, lancamentosAlt } from "../../lib/folhaAluno.js";
+import { folhaEmUso, lancamentosDaFolha } from "../../lib/folha.js";
 
 // ANÁLISE POR IA — sem Cloud Function, sem custo, sem chave secreta.
 // Em vez do sistema chamar uma API de IA (o que exigiria guardar uma chave
@@ -66,6 +69,15 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
   const alunos = useAlunosDaTurma(turmaId);
   const catalogo = useCatalogoDocumentos();
   const { todos } = useLancamentosDaTurma(turmaId, alunos);
+  const ca = useCaTurma(turmaId);
+  // lançamentos esperados da folha de cada aluno (pessoal) e da folha antiga da turma (também vale)
+  const ctxFolhaDe = (matricula) => {
+    if (ca.folha === undefined) return null;
+    try {
+      const pessoal = folhaDoAluno(ca.folha, ca.config, matricula);
+      return { esperados: lancamentosDaFolha(folhaEmUso(pessoal).provisoes), alt: lancamentosAlt(ca.folha) };
+    } catch (e) { return null; }
+  };
   // Mais antigo primeiro — quem está esperando análise há mais tempo aparece
   // no topo da fila.
   const fila = todos
@@ -85,11 +97,11 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
     fila.forEach(({ aluno, lancamento }) => { (porAluno[aluno.matricula] = porAluno[aluno.matricula] || []).push(lancamento); });
     Object.keys(porAluno).forEach((m) => {
       const todosDele = todos.filter((t) => t.aluno.matricula === m).map((t) => t.lancamento);
-      Object.assign(res, conferirAluno(porAluno[m], todosDele, catalogo));
+      Object.assign(res, conferirAluno(porAluno[m], todosDele, catalogo, ctxFolhaDe(m)));
     });
     return res;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todos, catalogo]);
+  }, [todos, catalogo, ca.folha, ca.config]);
   const estadoDe = (l) => (conf[l.id] || { estado: "sem" }).estado;
   const nOk = fila.filter(({ lancamento }) => estadoDe(lancamento) === "ok").length;
   const nNo = fila.filter(({ lancamento }) => estadoDe(lancamento) === "no").length;
@@ -232,7 +244,7 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
           </div>
         </div>
       )}
-      {mostrarAuto && <ConferenciaAuto turmaId={turmaId} fila={fila} todos={todos} catalogo={catalogo} contas={contas} />}
+      {mostrarAuto && <ConferenciaAuto turmaId={turmaId} fila={fila} todos={todos} catalogo={catalogo} contas={contas} ctxFolhaDe={ctxFolhaDe} />}
       {fila.length === 0 && <div className="panel"><div className="empty-state">Nenhum lançamento pendente no momento.</div></div>}
       {fila.map(({ aluno, lancamento: l }) => {
         const k = chave(aluno.matricula, l.id);
