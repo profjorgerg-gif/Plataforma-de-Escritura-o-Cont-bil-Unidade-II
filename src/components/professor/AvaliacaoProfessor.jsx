@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ETAPAS, etapaPorId, notaDaEtapa, limitaNota, fmtNota, faixaDaNota, DESCONTO_ATRASO, entregaEmAtraso, aplicaDesconto } from "../../lib/avaliacao.js";
+import { ETAPAS, GRUPOS_ETAPAS, etapaPorId, notaDaEtapa, limitaNota, fmtNota, faixaDaNota, DESCONTO_ATRASO, entregaEmAtraso, aplicaDesconto } from "../../lib/avaliacao.js";
 import { resumoAtividade } from "../../lib/folhaAtividade.js";
 import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
@@ -16,7 +16,7 @@ import { useRoteiroTurma, useRoteiroDosAlunos, salvarAvaliacao, useLancamentosDa
 
 const fmtD = (iso) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—");
 
-function Linha({ turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onSalvo }) {
+function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onSalvo }) {
   const [notas, setNotas] = useState(() => Object.fromEntries(etapa.criterios.map((c) => {
     const s = salva && salva.criterios && salva.criterios[c.key];
     const v = s && s.nota !== undefined ? s.nota : (sugestoes[c.key] ?? "");
@@ -45,7 +45,7 @@ function Linha({ turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onS
   }
   return (
     <div className="panel">
-      <div className="panel-head"><h3>{aluno.nome || aluno.matricula}{aluno.contaTeste ? " (teste)" : ""}</h3><span className={"tag-pill " + (f ? f.classe : "")}>{fmtNota(nota)}{f ? " · " + f.nome : ""}</span></div>
+      <div className="panel-head"><h3>{aluno.nome || aluno.matricula}{aluno.contaTeste ? " (teste)" : ""}{rotulo ? " · " + rotulo : ""}</h3><span className={"tag-pill " + (f ? f.classe : "")}>{fmtNota(nota)}{f ? " · " + f.nome : ""}</span></div>
       <div className="panel-body">
         {!etapa.semAtraso && (
           <div style={{ fontSize: 13, marginBottom: 8, color: atrasado ? "var(--red)" : "var(--ink-soft)" }}>
@@ -81,7 +81,7 @@ function Linha({ turmaId, aluno, etapa, salva, sugestoes, prazo, entregaISO, onS
 
 export default function AvaliacaoProfessor({ turma }) {
   const tid = turma ? turma.id : null;
-  const [etapaId, setEtapaId] = useState("fp");
+  const [grupoId, setGrupoId] = useState("g23");
   const alunos = useAlunosDaTurma(tid);
   const { mapa, recarregar } = useRoteiroDosAlunos(tid, alunos);
   const ca = useCaTurma(tid);
@@ -91,15 +91,15 @@ export default function AvaliacaoProfessor({ turma }) {
   const { contas } = usePlanoContas();
   const { mapa: trabCa } = useTrabalhosCaDaTurma(tid, alunos);
   const { mapa: trabAgb } = useTrabalhosAgbDaTurma(tid, alunos);
-  const precisaLanc = ["ca", "resc", "agb"].includes(etapaId);
+  const grupo = GRUPOS_ETAPAS.find((g) => g.id === grupoId) || GRUPOS_ETAPAS[1];
+  const precisaLanc = grupo.etapas.some((id) => ["ca", "resc", "agb"].includes(id));
   const lancs = useLancamentosDaTurma(tid, alunos, precisaLanc);
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
-  const etapa = etapaPorId(etapaId);
   const ordem = (alunos || []).filter((a) => !a.contaTeste).concat((alunos || []).filter((a) => a.contaTeste));
   const ids = ((ca.config && ca.config.empregados) || []).map((e) => e.id);
-  const prazo = (etapasEfetivas(rotCfg || null).find((e) => e.id === etapaId) || {}).prazo || "";
+  const prazoDe = (id) => (etapasEfetivas(rotCfg || null).find((e) => e.id === id) || {}).prazo || "";
 
-  function sugestoes(a) {
+  function sugestoes(a, etapaId) {
     if (etapaId === "fp") {
       const { competencia: comp, parametros: parFolha } = folhaEmUso(ca.folha);
       const r = resumoAtividade(((trabCa || {})[a.matricula] || {}).fp || {}, ids, ids.length, (id) => casoDoEmpregado(a.matricula, id, comp, opcoesDoEmpregado(ca.config, id)), parFolha);
@@ -116,19 +116,21 @@ export default function AvaliacaoProfessor({ turma }) {
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Avaliação das etapas (0,0 a 10,0)</h2>
       <p className="screen-sub">O sistema sugere a nota de cada critério que consegue conferir. Você revisa, ajusta e escreve o retorno. A entrega depois do prazo desconta {DESCONTO_ATRASO},0 pontos (você pode retirar o desconto). O aluno só vê depois que você marcar para mostrar. Não há média entre as etapas.</p>
-      <div className="field" style={{ maxWidth: 460 }}>
-        <label>Etapa</label>
-        <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)}>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.titulo}</option>)}</select>
+      <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }} role="tablist">
+        {GRUPOS_ETAPAS.map((g) => <button key={g.id} role="tab" aria-selected={g.id === grupo.id} className={"btn " + (g.id === grupo.id ? "" : "secondary")} onClick={() => setGrupoId(g.id)}>{g.titulo}</button>)}
       </div>
-      {etapa.semAtraso && <div className="balance-check ok" style={{ marginBottom: 12 }}>Etapa 1: digite a nota que aparece na tela Notas. Ela já traz o desconto por atraso daquela tela; por isso aqui não há desconto de {DESCONTO_ATRASO},0 pontos.</div>}
-      <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 10 }}>As sugestões automáticas conferem os números digitados pelo aluno. Pareceres e interpretações só recebem sugestão pelo preenchimento; a qualidade do texto é avaliação sua.</div>
+      {grupo.etapas.some((id) => etapaPorId(id).semAtraso) && <div className="balance-check ok" style={{ marginBottom: 12 }}>Etapa 1: digite a nota que aparece na tela Notas. Ela já traz o desconto por atraso daquela tela; por isso aqui não há desconto de {DESCONTO_ATRASO},0 pontos.</div>}
+      <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 10 }}>As sugestões automáticas conferem os números digitados pelo aluno. Pareceres e interpretações só recebem sugestão pelo preenchimento; a qualidade do texto é avaliação sua.{grupo.etapas.length > 1 ? " Cada aluno aparece uma vez por etapa do grupo, uma abaixo da outra." : ""}</div>
       {!pronto ? <div className="empty-state">Carregando dados dos alunos…</div> : ordem.map((a) => {
         const av = (mapa[a.matricula] || {});
         const ent = av.entregas || {};
-        return (
-          <Linha key={etapaId + a.matricula + JSON.stringify((av.avaliacoes || {})[etapaId] || {})} turmaId={turma.id} aluno={a} etapa={etapa}
-            salva={(av.avaliacoes || {})[etapaId]} sugestoes={sugestoes(a)} prazo={prazo} entregaISO={ent["p_" + etapaId] || ent[etapaId] || null} onSalvo={recarregar} />
-        );
+        return grupo.etapas.map((etapaId) => {
+          const etapa = etapaPorId(etapaId);
+          return (
+            <Linha key={etapaId + a.matricula + JSON.stringify((av.avaliacoes || {})[etapaId] || {})} turmaId={turma.id} aluno={a} etapa={etapa} rotulo={grupo.etapas.length > 1 ? etapa.titulo : ""}
+              salva={(av.avaliacoes || {})[etapaId]} sugestoes={sugestoes(a, etapaId)} prazo={prazoDe(etapaId)} entregaISO={ent["p_" + etapaId] || ent[etapaId] || null} onSalvo={recarregar} />
+          );
+        });
       })}
     </>
   );

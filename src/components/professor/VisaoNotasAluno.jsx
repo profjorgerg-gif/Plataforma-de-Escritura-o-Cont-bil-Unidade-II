@@ -1,5 +1,6 @@
 import { useState } from "react";
 import NotasEtapas from "../aluno/NotasEtapas.jsx";
+import { GRUPOS_ETAPAS } from "../../lib/avaliacao.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useRoteiroDosAlunos } from "../../hooks/useRoteiro.js";
 
@@ -11,6 +12,7 @@ export default function VisaoNotasAluno({ turma }) {
   const { mapa, recarregar } = useRoteiroDosAlunos(tid, alunos);
   const [mat, setMat] = useState("");
   const [previa, setPrevia] = useState(false);
+  const [grupoId, setGrupoId] = useState("todas");
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (!alunos || !mapa) return <div className="empty-state">Carregando…</div>;
   const ordem = [...alunos].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
@@ -18,8 +20,10 @@ export default function VisaoNotasAluno({ turma }) {
   if (!aluno) return <div className="empty-state">Nenhum aluno na turma.</div>;
   const av = ((mapa[aluno.matricula] || {}).avaliacoes) || {};
   const todas = Object.entries(av).map(([etapaId, v]) => ({ etapaId, ...v }));
-  const visiveis = todas.filter((a) => a.liberada === true);
-  const naoLib = todas.filter((a) => a.liberada !== true);
+  const gr = GRUPOS_ETAPAS.find((g) => g.id === grupoId);
+  const noGrupo = (a) => !gr || gr.etapas.includes(a.etapaId);
+  const visiveis = todas.filter((a) => a.liberada === true && noGrupo(a));
+  const naoLib = todas.filter((a) => a.liberada !== true && noGrupo(a));
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
@@ -34,8 +38,11 @@ export default function VisaoNotasAluno({ turma }) {
         <button className="btn secondary" onClick={recarregar}>Atualizar</button>
         <span style={{ fontSize: 13, color: "var(--ink-faint)" }}>{visiveis.length} liberada(s) · {naoLib.length} ainda não liberada(s)</span>
       </div></div>
+      <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        {[{ id: "todas", titulo: "Todas as etapas" }, ...GRUPOS_ETAPAS].map((g) => <button key={g.id} className={"btn " + (g.id === grupoId ? "" : "secondary")} onClick={() => setGrupoId(g.id)}>{g.titulo}</button>)}
+      </div>
       {previa && naoLib.length > 0 && <div className="balance-check bad" style={{ marginBottom: 12 }}>Prévia: {naoLib.map((a) => a.etapaId).join(", ")} ainda não aparece(m) para o aluno. Libere em Avaliação das etapas.</div>}
-      <NotasEtapas key={aluno.matricula + previa} avaliacoes={previa ? todas : visiveis} />
+      <NotasEtapas key={aluno.matricula + previa + grupoId} avaliacoes={previa ? todas.filter(noGrupo) : visiveis} />
     </>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { serverTimestamp } from "firebase/firestore";
 import { criarChamadoNumerado } from "../../lib/chamados.js";
 import DashboardCiclo from "./DashboardCiclo.jsx";
-import { ETAPAS as ETAPAS_BASE, notaDaEtapa, fmtNota, limitaNota } from "../../lib/avaliacao.js";
+import { GRUPOS_ETAPAS, ETAPAS as ETAPAS_BASE, notaDaEtapa, fmtNota, limitaNota } from "../../lib/avaliacao.js";
 import { resumoAtividade, situacaoEmpregado, PASSOS_CONTRACHEQUE } from "../../lib/folhaAtividade.js";
 import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
@@ -43,9 +43,9 @@ function notasDoAluno(etapa, sug, salva) {
 }
 
 export default function DashboardEtapas({ turma, onSelecionarAluno }) {
-  const [aba, setAba] = useState("f1");
+  const [aba, setAba] = useState("g1");
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
-  const abas = [{ id: "geral", t: "Visão geral", s: "todas as etapas" }, ...ETAPAS.map((e) => ({ id: e.id, t: "Etapa " + e.n, s: ROTULOS[e.id] }))];
+  const abas = [{ id: "geral", t: "Visão geral", s: "todas as etapas" }, ...GRUPOS_ETAPAS.map((g) => ({ id: g.id, t: g.titulo.split(" · ")[0], s: g.titulo.split(" · ")[1] }))];
   return (
     <>
       <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }} role="tablist">
@@ -56,7 +56,7 @@ export default function DashboardEtapas({ turma, onSelecionarAluno }) {
           </button>
         ))}
       </div>
-      {aba === "f1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} />}
+      {aba === "g1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} />}
     </>
   );
 }
@@ -193,7 +193,8 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
     );
   }
 
-  const etapa = ETAPAS.find((e) => e.id === aba);
+  const grupo = GRUPOS_ETAPAS.find((g) => g.id === aba);
+  const renderEtapa = (etapa) => {
   const sp = situacaoPrazo(etapa.id, rotCfg || null);
   const fechada = sp.fechada;
   const linhas = ordem.map((a) => linhaDe(a, etapa));
@@ -212,7 +213,6 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
         <span className={"tag-pill " + (fechada ? "" : "ok")}>{fechada ? "fechada em " + prazoTxt : "aberta · prazo " + prazoTxt}</span>{" "}
         {fechada ? "A nota é final depois da sua avaliação; enquanto isso, é a nota parcial com o que o sistema já confere." : "A nota é parcial até o fechamento da etapa."} Turma: {turma.nome}.
       </p>
-      {aviso}{painelOrient}
       <div className="kpi-row">
         <div className="kpi"><div className="kpi-v">{iniciaram} de {linhas.length}</div><div className="kpi-l">alunos que iniciaram</div></div>
         <div className="kpi"><div className="kpi-v">{avaliados} de {linhas.length}</div><div className="kpi-l">já avaliados por você</div></div>
@@ -242,4 +242,6 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
       </div>
     </>
   );
+  };
+  return <>{aviso}{painelOrient}{grupo.etapas.map((id) => <div key={id}>{renderEtapa(ETAPAS.find((e) => e.id === id))}</div>)}</>;
 }

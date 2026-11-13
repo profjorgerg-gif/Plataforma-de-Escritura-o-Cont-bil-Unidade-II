@@ -39,6 +39,13 @@ export const ETAPAS = [
 // Sem reserva e recuperação (decisão do professor em 12/10/2026). Mantido vazio: as telas que usam este texto simplesmente não mostram nada.
 export const RESERVA_TEXTO = "";
 
+// Grupos iguais ao menu do projeto (13/11/2026): Etapa 1 · Etapas 2–3 · Etapa 4 · Etapas 5–6
+export const GRUPOS_ETAPAS = [
+  { id: "g1", titulo: "Etapa 1 · Escrituração", etapas: ["f1"] },
+  { id: "g23", titulo: "Etapas 2–3 · CA", etapas: ["fp", "ca"] },
+  { id: "g4", titulo: "Etapa 4 · Rescisão", etapas: ["resc"] },
+  { id: "g56", titulo: "Etapas 5–6 · AGB", etapas: ["agb", "comp"] },
+];
 export const etapaPorId = (id) => ETAPAS.find((e) => e.id === id) || null;
 
 export const FAIXAS = [
