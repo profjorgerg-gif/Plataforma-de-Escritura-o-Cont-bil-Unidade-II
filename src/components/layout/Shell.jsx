@@ -102,6 +102,7 @@ import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
 import FormulasFolha from "../shared/FormulasFolha.jsx";
+import VisaoNotasAluno from "../professor/VisaoNotasAluno.jsx";
 import ContabilizacaoFolhaConsulta from "../shared/ContabilizacaoFolhaConsulta.jsx";
 import Laboratorio2027 from "../professor/Laboratorio2027.jsx";
 import { GuiaEtapa2, GuiaEtapa3, GuiaEtapa4, GuiaEtapas56 } from "../shared/GuiaPorEtapa.jsx";
@@ -1025,6 +1026,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           { key: "etapa1", label: "Notas · Etapa 1", render: () => <Notas turma={turmaSelecionada} /> },
           { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
           { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
+          { key: "visaoaluno", label: "Como o aluno vê", render: () => <VisaoNotasAluno turma={turmaSelecionada} /> },
           { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
         ]} />
       );
