@@ -100,7 +100,7 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
                       {p.k === "irrf" && c.reducao > TOLERANCIA_PEDAGOGICA && digitos.irrf !== null && digitos.irrf !== undefined && Math.abs(digitos.irrf - c.impostoTabela) <= TOLERANCIA_PEDAGOGICA && Math.abs(digitos.irrf - c.irrf) > TOLERANCIA_PEDAGOGICA && (
                         <div style={{ color: "var(--red)", marginTop: 4 }}>Parece que faltou subtrair a redução da Lei 15.270/2025: IRRF = imposto da tabela − redução.</div>
                       )}</td>
-                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} alternativas={(() => { const a = somaPropria(p.k, digitos); const l = a === null ? [] : [a]; if (SINAL_NEGATIVO.includes(p.k)) l.push(-p.v(c), ...(a === null ? [] : [-a])); return l.length ? l : undefined; })()} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
+                    <td className="num"><MeuCalculo largura={110} valor={get("m_" + p.k)} esperado={p.v(c)} alternativas={SINAL_NEGATIVO.includes(p.k) ? [-p.v(c)] : undefined} tolerancia={TOLERANCIA_PEDAGOGICA} onChange={(x) => set("m_" + p.k, x)} /></td>
                   </tr>
                 ))}
               </tbody>

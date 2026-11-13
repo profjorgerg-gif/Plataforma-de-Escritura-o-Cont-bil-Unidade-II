@@ -103,8 +103,8 @@ export function passoOk(ps, dig, c) {
   if (Math.abs(d - ps.v(c)) <= TOLERANCIA_PEDAGOGICA) return true;
   // linhas "(−)": o aluno que digita com sinal negativo (ex.: −420,84) não erra o cálculo
   if (SINAL_NEGATIVO.includes(ps.k) && d < 0 && Math.abs(Math.abs(d) - ps.v(c)) <= TOLERANCIA_PEDAGOGICA) return true;
-  const a = somaPropria(ps.k, dig);
-  return a !== null && (Math.abs(d - a) <= 0.015 || (SINAL_NEGATIVO.includes(ps.k) && d < 0 && Math.abs(Math.abs(d) - a) <= 0.015));
+  // Totais (proventos, descontos, líquido) só valem se baterem com o valor correto: o erro de uma linha de cima não é "perdoado" no total.
+  return false;
 }
 export const TOLERANCIA_PEDAGOGICA = 0.5; // critério pedagógico (arredondamento); não vale para erro de base, alíquota, faixa ou teto
 export const CAMPOS_EMPREGADO = ["salario", "adTipo", "adPct", "he50", "he100", "hen50", "hen100", "faltas", "sem", "dep", "filhos", "vt", "vtCusto"];
