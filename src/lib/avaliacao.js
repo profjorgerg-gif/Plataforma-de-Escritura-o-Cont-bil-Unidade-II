@@ -8,9 +8,8 @@ export const ETAPAS = [
     criterios: [{ key: "nota", nome: "Nota da etapa 1 (a mesma da tela Notas: completude, qualidade técnica e autonomia, já com o desconto por atraso daquela tela)", peso: 100, tipo: "manual" }] },
   { id: "fp", titulo: "Folha de pagamento", aulas: 8, prazoPadrao: "2026-10-23", descricao: "Calcular contracheques: proventos, descontos e salário líquido.", entrega: "Contracheques conferidos",
     criterios: [
-      { key: "calculos", nome: "Cálculos conferidos", peso: 60, tipo: "auto" },
-      { key: "quantidade", nome: "Quantidade de contracheques", peso: 20, tipo: "auto" },
-      { key: "resumo", nome: "Resumo ou parecer sobre a folha", peso: 20, tipo: "manual" },
+      { key: "calculos", nome: "Cálculos conferidos", peso: 75, tipo: "auto" },
+      { key: "quantidade", nome: "Quantidade de contracheques", peso: 25, tipo: "auto" },
     ] },
   { id: "ca", titulo: "Folha, provisões e contabilização", aulas: 12, prazoPadrao: "2026-11-05", descricao: "Folha do mês, provisões e encargos, contabilização, efeitos nas demonstrações e parecer.", entrega: "Cálculos, lançamentos e parecer da folha",
     criterios: [

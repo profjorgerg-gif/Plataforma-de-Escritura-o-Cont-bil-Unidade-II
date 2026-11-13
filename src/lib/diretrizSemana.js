@@ -58,7 +58,7 @@ export const SEMANAS = [
       "A tolerância de R$ 0,50 vale só para arredondamento, nunca para erro de base, alíquota, faixa ou teto",
     ],
     antes: ["Contracheques conferidos", "Resumo escrito", "Entregar clicado"],
-    regras: "Critérios: cálculos conferidos 60%, quantidade de contracheques 20%, resumo 20%. Entregar depois de 23/10 desconta 2,0 pontos.",
+    regras: "Critérios: cálculos conferidos 75% e quantidade de contracheques 25% (notas automáticas). Entregar depois de 23/10 desconta 2,0 pontos.",
     proxima: "Etapa 3 · Folha, provisões e contabilização · prazo 05/11 (só abre com a atividade da folha aprovada).",
   },
   {
