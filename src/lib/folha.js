@@ -111,6 +111,7 @@ export function conferirLancamento(partidasAluno, esperadas, tol = 0.5) {
   esperadas.forEach((e) => {
     const ach = preenchidas.filter((p) => p.conta === e.conta && p.tipo === e.tipo);
     const v = r2(ach.reduce((s, p) => s + (Number(p.valor) || 0), 0));
+    if (ach.length === 0 && Math.abs(Number(e.valor) || 0) < 0.005) return; // linha esperada com valor zero (ex.: terceiros 0%): o aluno pode lançar 0,00 ou omitir
     if (ach.length === 0) faltaConta = true;
     else if (Math.abs(v - e.valor) > tol) valorErrado = true;
   });
