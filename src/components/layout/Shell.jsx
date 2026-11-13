@@ -984,7 +984,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       { key: "folha", label: "Folha e encargos", render: () => <TabelaFolhaEncargos /> },
       { key: "resc", label: "Rescisão", render: () => <TabelaRescisao /> },
       { key: "formulas", label: "Fórmulas da folha", render: () => <FormulasFolha /> },
-      ...(papel === "professor" || papel === "admin" ? [{ key: "contabfolha", label: "Contabilização da folha", render: () => <ContabilizacaoFolhaConsulta contas={esc.contas} /> }] : []),
+      { key: "contabfolha", label: "Contabilização da folha", render: () => <ContabilizacaoFolhaConsulta contas={esc.contas} /> },
       { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={papel} /> },
       { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
     ];

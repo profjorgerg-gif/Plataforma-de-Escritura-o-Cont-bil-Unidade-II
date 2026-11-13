@@ -43,8 +43,8 @@ export default function ContabilizacaoFolhaConsulta({ contas }) {
     <div>
       <div className="screen-eyebrow">consulta · folha de pagamento</div>
       <h2 className="screen-title">Contabilização da folha e das provisões</h2>
-      <p className="screen-sub">Os 6 lançamentos do mês, com as contas do Plano de contas. Use para orientar os alunos na Etapa 3. Os valores variam com a folha de cada turma; aqui aparece a conta e de onde vem o valor.</p>
-      {faltam.length > 0 && <div className="balance-check bad" style={{ marginBottom: 14 }}>Estas contas ainda não estão no Plano de contas desta base: {faltam.join(", ")}. Sem elas o aluno não consegue concluir os lançamentos.</div>}
+      <p className="screen-sub">Os 6 lançamentos do mês, com as contas do Plano de contas. Consulta para a Etapa 3 (professor e alunos). Os valores variam com a folha de cada turma; aqui aparece a conta e de onde vem o valor.</p>
+      {faltam.length > 0 && <div className="balance-check bad" style={{ marginBottom: 14 }}>Estas contas ainda não estão no Plano de contas desta base: {faltam.join(", ")}. Avise o professor: sem elas não dá para concluir os lançamentos.</div>}
       {LANC.map((l) => (
         <div key={l.n} style={box}>
           <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{l.n}. {l.titulo}</h3>
