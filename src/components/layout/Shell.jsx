@@ -102,6 +102,7 @@ import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
 import FormulasFolha from "../shared/FormulasFolha.jsx";
+import ContabilizacaoFolhaConsulta from "../shared/ContabilizacaoFolhaConsulta.jsx";
 import Laboratorio2027 from "../professor/Laboratorio2027.jsx";
 import { GuiaEtapa2, GuiaEtapa3, GuiaEtapa4, GuiaEtapas56 } from "../shared/GuiaPorEtapa.jsx";
 import { TabelaFolhaEncargos, TabelaRescisao } from "../shared/TabelasFolhaRescisao.jsx";
@@ -983,6 +984,7 @@ export default function Shell({ usuario, perfil, onSair }) {
       { key: "folha", label: "Folha e encargos", render: () => <TabelaFolhaEncargos /> },
       { key: "resc", label: "Rescisão", render: () => <TabelaRescisao /> },
       { key: "formulas", label: "Fórmulas da folha", render: () => <FormulasFolha /> },
+      ...(papel === "professor" || papel === "admin" ? [{ key: "contabfolha", label: "Contabilização da folha", render: () => <ContabilizacaoFolhaConsulta contas={esc.contas} /> }] : []),
       { key: "plano", label: "Plano de contas", render: () => <PlanoContas contas={esc.contas} papel={papel} /> },
       { key: "cfop", label: "Consulta CFOP/NCM", render: () => <ConsultaFiscal /> },
     ];
