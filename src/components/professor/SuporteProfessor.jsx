@@ -296,6 +296,13 @@ export default function SuporteProfessor({ turma, chamadoFoco = null }) {
             {(sel.mensagens || []).map((m, i) => <Bolha key={i} m={m} />)}
             {!ehPend && <div className="field"><textarea rows={2} style={{ width: "100%" }} placeholder="Responder ao aluno…" value={texto} onChange={(e) => setTexto(e.target.value)} /></div>}
             {ehPend && <ResolverPendencias key={sel.id} turmaId={turmaId} chamado={sel} documentos={documentos} />}
+            {!ehPend && sel.documentoNumero && /duplicad/i.test(((sel.mensagens || []).find((m) => m.autor === "aluno") || {}).texto || "") && (
+              <div className="no-print" style={{ marginBottom: 10 }}>
+                <b>Lançamento duplicado relatado pelo aluno</b>
+                <ResolverPendencias key={"dup" + sel.id} turmaId={turmaId} fechada documentos={documentos}
+                  texto={"1) Nº " + sel.documentoNumero + " — Lançamento duplicado"} matricula={sel.matricula || sel.alunoMatricula} />
+              </div>
+            )}
             {ehPend && <div className="helper-note">Pendência só sua: o aluno não vê este chamado. Quando resolver, marque como resolvido.</div>}
             {!ehPend && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
               {RESPOSTAS_RAPIDAS.map((r, i) => <button key={i} className="btn secondary" style={{ fontSize: 12 }} onClick={() => setTexto(r)}>{r.length > 38 ? r.slice(0, 38) + "…" : r}</button>)}
