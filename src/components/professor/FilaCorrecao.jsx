@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { doc, updateDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
@@ -78,6 +78,17 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
       return { esperados: lancamentosDaFolha(folhaEmUso(pessoal).provisoes), alt: lancamentosAlt(ca.folha) };
     } catch (e) { return null; }
   };
+  // Autocorreção (chamado Nº 0053, 13/11/2026): lançamento devolvido como "duplicado" (a orientação manda excluir pelo botão)
+  // mas sem a liberação "podeExcluir" — o aluno via a orientação e não tinha o botão. Libera sozinho, uma vez por lançamento.
+  const liberados = useRef(new Set());
+  useEffect(() => {
+    todos.forEach(({ aluno, lancamento: l }) => {
+      if (l.status !== "correcao" || l.podeExcluir === true || liberados.current.has(l.id)) return;
+      if (!/^Motivo:\s*duplicado/i.test(l.obsCorrecao || "")) return;
+      liberados.current.add(l.id);
+      updateDoc(doc(db, "turmas", turmaId, "alunos", aluno.matricula, "lancamentos", l.id), { podeExcluir: true }).catch(() => liberados.current.delete(l.id));
+    });
+  }, [todos, turmaId]);
   // Mais antigo primeiro — quem está esperando análise há mais tempo aparece
   // no topo da fila.
   const fila = todos
