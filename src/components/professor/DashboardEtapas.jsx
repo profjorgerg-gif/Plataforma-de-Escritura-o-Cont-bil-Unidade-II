@@ -16,6 +16,7 @@ import { useCaTurma, useTrabalhosCaDaTurma } from "../../hooks/useCa.js";
 import { useAgbTurma, useTrabalhosAgbDaTurma } from "../../hooks/useAgb.js";
 import { useRescisaoTurma } from "../../hooks/useRescisao.js";
 import { usePlanoContas } from "../../hooks/usePlanoContas.js";
+import { useNotaEtapa1 } from "../../hooks/useNotaEtapa1.js";
 import { useRoteiroTurma, useRoteiroDosAlunos, useLancamentosDaTurma } from "../../hooks/useRoteiro.js";
 
 // Dashboard do ciclo por etapas (pedido do professor, 13/11/2026).
@@ -73,11 +74,12 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
   const { mapa: trabCa } = useTrabalhosCaDaTurma(tid, alunos);
   const { mapa: trabAgb } = useTrabalhosAgbDaTurma(tid, alunos);
   const lancs = useLancamentosDaTurma(tid, alunos, true);
+  const n1 = useNotaEtapa1(turma, alunos);
   const [orient, setOrient] = useState(null); // { aluno, etapa, texto }
   const [msg, setMsg] = useState("");
   const [ocupado, setOcupado] = useState(false);
 
-  const pronto = alunos && mapa && trabCa && trabAgb && lancs && contas && ca.config !== undefined && agb.anterior !== undefined;
+  const pronto = alunos && n1 && mapa && trabCa && trabAgb && lancs && contas && ca.config !== undefined && agb.anterior !== undefined;
   if (!pronto) return <div className="empty-state">Carregando dados dos alunos…</div>;
 
   const idsEmp = ((ca.config && ca.config.empregados) || []).map((e) => e.id);
@@ -163,7 +165,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
   const aviso = msg && <div className="balance-check ok" style={{ marginBottom: 12 }}>{msg}</div>;
 
   if (aba === "geral") {
-    const dados = ordem.map((a) => ({ a, por: Object.fromEntries(ETAPAS.map((e) => { const l = linhaDe(a, e); return [e.id, l.final !== null ? { v: l.final, fim: true } : { v: l.parcial, fim: false }]; })) }));
+    const dados = ordem.map((a) => ({ a, por: Object.fromEntries(ETAPAS.map((e) => { if (e.id === "f1") { const x = n1[a.matricula] || {}; return [e.id, { v: x.v === undefined ? null : x.v, fim: !!x.final }]; } const l = linhaDe(a, e); return [e.id, l.final !== null ? { v: l.final, fim: true } : { v: l.parcial, fim: false }]; })) }));
     const medias = dados.map((d) => { const v = ETAPAS.map((e) => d.por[e.id].v).filter((x) => x !== null && x !== undefined); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; });
     const mt = medias.filter((x) => x !== null);
     const fechadas = ETAPAS.filter((e) => situacaoPrazo(e.id, rotCfg || null).fechada).length;
