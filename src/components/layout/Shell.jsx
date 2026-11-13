@@ -33,6 +33,7 @@ import BalancoPatrimonial from "../aluno/BalancoPatrimonial.jsx";
 import Painel from "../professor/Painel.jsx";
 import Notas from "../professor/Notas.jsx";
 import DashboardCiclo from "../professor/DashboardCiclo.jsx";
+import DashboardEtapas from "../professor/DashboardEtapas.jsx";
 import RelatorioOrientacao from "../professor/RelatorioOrientacao.jsx";
 import ModelosMensagens from "../professor/ModelosMensagens.jsx";
 import SuporteAluno from "../aluno/SuporteAluno.jsx";
@@ -1022,7 +1023,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           { key: "etapa1", label: "Notas · Etapa 1", render: () => <Notas turma={turmaSelecionada} /> },
           { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
           { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
-          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
+          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
         ]} />
       );
     }
@@ -1237,7 +1238,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "notas") {
     tela = <Notas turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
-    tela = <DashboardCiclo turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} />;
+    tela = <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} />;
   } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
