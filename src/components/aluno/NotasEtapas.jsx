@@ -14,7 +14,7 @@ export default function NotasEtapas({ avaliacoes }) {
         const e = etapaPorId(a.etapaId); const f = faixaDaNota(a.nota);
         return (
           <div className="panel" key={a.etapaId}>
-            <div className="panel-head"><h3>{e.titulo}</h3><span className={"tag-pill " + (f ? f.classe : "")}>{fmtNota(a.nota)} · {f ? f.nome : "—"}</span></div>
+            <div className="panel-head"><h3>{e.titulo}{a.previaAuto ? " · prévia automática (ainda não avaliada)" : ""}</h3><span className={"tag-pill " + (f ? f.classe : "")}>{fmtNota(a.nota)} · {f ? f.nome : "—"}</span></div>
             <div className="panel-body">
               <table>
                 <thead><tr><th>Critério</th><th className="num">Peso</th><th className="num">Nota</th><th>Retorno</th></tr></thead>

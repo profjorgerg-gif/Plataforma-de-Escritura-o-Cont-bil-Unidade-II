@@ -1,6 +1,7 @@
 import { useState } from "react";
 import NotasEtapas from "../aluno/NotasEtapas.jsx";
-import { GRUPOS_ETAPAS } from "../../lib/avaliacao.js";
+import { GRUPOS_ETAPAS, ETAPAS, notaDaEtapa } from "../../lib/avaliacao.js";
+import { useSugestoesAvaliacao } from "../../hooks/useSugestoesAvaliacao.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useRoteiroDosAlunos } from "../../hooks/useRoteiro.js";
 
@@ -10,8 +11,9 @@ export default function VisaoNotasAluno({ turma }) {
   const tid = turma && turma.id;
   const alunos = useAlunosDaTurma(tid);
   const { mapa, recarregar } = useRoteiroDosAlunos(tid, alunos);
+  const sg = useSugestoesAvaliacao(tid, alunos);
   const [mat, setMat] = useState("");
-  const [previa, setPrevia] = useState(false);
+  const [previa, setPrevia] = useState(true);
   const [grupoId, setGrupoId] = useState("todas");
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (!alunos || !mapa) return <div className="empty-state">Carregando…</div>;
@@ -19,11 +21,22 @@ export default function VisaoNotasAluno({ turma }) {
   const aluno = ordem.find((a) => a.matricula === mat) || ordem[0];
   if (!aluno) return <div className="empty-state">Nenhum aluno na turma.</div>;
   const av = ((mapa[aluno.matricula] || {}).avaliacoes) || {};
-  const todas = Object.entries(av).map(([etapaId, v]) => ({ etapaId, ...v }));
+  const salvas = Object.entries(av).map(([etapaId, v]) => ({ etapaId, ...v }));
+  // prévia: onde o professor ainda não avaliou, mostra o que o sistema já confere (sugestão automática), marcado como prévia
+  const auto = !sg.pronto ? [] : ETAPAS.filter((e) => e.id !== "f1" && !salvas.some((x) => x.etapaId === e.id)).map((e) => {
+    const sug = sg.sugestoes(aluno, e.id) || {};
+    const crit = Object.fromEntries(e.criterios.map((c) => [c.key, { nota: sug[c.key] === undefined ? null : sug[c.key], comentario: "" }]));
+    const disp = e.criterios.filter((c) => crit[c.key].nota !== null);
+    const peso = disp.reduce((t, c) => t + c.peso, 0);
+    const parcial = peso > 0 ? Math.round(disp.reduce((t, c) => t + Number(crit[c.key].nota) * c.peso, 0) / peso * 10) / 10 : null;
+    return { etapaId: e.id, liberada: false, previaAuto: true, criterios: crit, nota: parcial === null ? null : parcial };
+  }).filter((x) => x.nota !== null);
+  const todas = [...salvas, ...auto].sort((x, y) => ETAPAS.findIndex((e) => e.id === x.etapaId) - ETAPAS.findIndex((e) => e.id === y.etapaId));
   const gr = GRUPOS_ETAPAS.find((g) => g.id === grupoId);
   const noGrupo = (a) => !gr || gr.etapas.includes(a.etapaId);
   const visiveis = todas.filter((a) => a.liberada === true && noGrupo(a));
   const naoLib = todas.filter((a) => a.liberada !== true && noGrupo(a));
+  const semNada = previa && todas.filter(noGrupo).length === 0;
   return (
     <>
       <div className="screen-eyebrow">avaliação</div>
@@ -42,6 +55,8 @@ export default function VisaoNotasAluno({ turma }) {
         {[{ id: "todas", titulo: "Todas as etapas" }, ...GRUPOS_ETAPAS].map((g) => <button key={g.id} className={"btn " + (g.id === grupoId ? "" : "secondary")} onClick={() => setGrupoId(g.id)}>{g.titulo}</button>)}
       </div>
       {previa && naoLib.length > 0 && <div className="balance-check bad" style={{ marginBottom: 12 }}>Prévia: {naoLib.map((a) => a.etapaId).join(", ")} ainda não aparece(m) para o aluno. Libere em Avaliação das etapas.</div>}
+      {semNada && <div className="helper-note" style={{ marginBottom: 12 }}>{grupoId === "g1" ? "Etapa 1: o aluno vê esta nota em “Minha nota”, não em “Notas e retornos”. Aqui ela só entra depois que você salvar a avaliação da Etapa 1." : "Este aluno ainda não tem nota nem conferência automática neste grupo."}</div>}
+      {!previa && visiveis.length === 0 && <div className="helper-note" style={{ marginBottom: 12 }}>Nenhuma nota liberada para este aluno neste grupo. Marque “Incluir notas ainda não liberadas (prévia)” para ver o que o sistema já confere.</div>}
       <NotasEtapas key={aluno.matricula + previa + grupoId} avaliacoes={previa ? todas.filter(noGrupo) : visiveis} />
     </>
   );
