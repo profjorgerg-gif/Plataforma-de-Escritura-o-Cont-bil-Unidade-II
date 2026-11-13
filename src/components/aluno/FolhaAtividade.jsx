@@ -56,10 +56,11 @@ export default function FolhaAtividade({ trab, ca, matricula }) {
       <EstadoGravacao estado={trab.estado} salvoEm={trab.salvoEm} erroMsg={trab.erroMsg} onSalvar={trab.salvarAgora} />
       <div className="panel"><div className="panel-body">
         <div style={{ marginBottom: 8 }}><b>{res.concluidos}</b> de {res.minimo} contracheques conferidos · um por empregado ({empregados.length} na lista) {res.pronto ? <span className="tag-pill ok">pronto para análise do professor</span> : <span className="tag-pill warn">em andamento</span>}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-faint)", marginBottom: 6 }}>✓ confere · ✗ há linha com erro · ○ faltam linhas · sem sinal: ainda não começou</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {empregados.map((e) => {
             const s = situacaoEmpregado(fp, e.id, undefined, baseDe(e.id), parametros);
-            return <button key={e.id} className={"btn" + (e.id === emp.id ? "" : " secondary")} style={{ padding: "4px 10px", fontSize: 12.5 }} onClick={() => setSel(e.id)}>{e.nome}{s.concluido ? " ✓" : s.iniciado ? " …" : ""}</button>;
+            return <button key={e.id} className={"btn" + (e.id === emp.id ? "" : " secondary")} style={{ padding: "4px 10px", fontSize: 12.5 }} onClick={() => setSel(e.id)}>{e.nome}{s.concluido ? <b style={{ color: "var(--green, #2e7d32)" }}> ✓</b> : s.iniciado ? ((s.passos || []).some((p) => p.digitado && !p.ok) ? <b style={{ color: "var(--red)" }} title="há linhas com erro"> ✗</b> : <span title="faltam linhas"> ○</span>) : null}</button>;
           })}
         </div>
       </div></div>
