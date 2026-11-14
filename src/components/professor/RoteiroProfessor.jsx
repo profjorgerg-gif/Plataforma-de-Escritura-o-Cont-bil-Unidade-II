@@ -50,6 +50,7 @@ function Situacao({ turma, config }) {
   const [retorno, setRetorno] = useState("");
   const [msg, setMsg] = useState("");
   const [bulk, setBulk] = useState("");
+  const [confTodas, setConfTodas] = useState(false);
   if (!alunos || !mapa) return <div className="empty-state">Carregando…</div>;
   const lista = etapasEfetivas(config);
   const ordem = alunos.filter((a) => !a.contaTeste).concat(alunos.filter((a) => a.contaTeste));
@@ -65,6 +66,24 @@ function Situacao({ turma, config }) {
       }
       if (acao === "ajustar") await salvarEstadoEtapa(turma.id, a.matricula, e.id, { status: "ajustar", retorno });
       setMsg("✓ salvo"); setRetorno(""); recarregar();
+    } catch (er) { setMsg("✗ não salvou: " + (er.message || er.code)); }
+  }
+  // Libera TODAS as etapas de uma vez para todas as contas. Não mexe em etapa já aprovada ou com pedido de ajuste (o status delas é preservado).
+  async function liberarTodasEtapas() {
+    setMsg("liberando…");
+    try {
+      let n = 0;
+      for (let k = 0; k < ordem.length; k += 200) {
+        const b = writeBatch(db);
+        ordem.slice(k, k + 200).forEach((a) => {
+          const reg = ((((mapa[a.matricula] || {}).estado) || {}).etapas) || {};
+          const novas = {};
+          lista.forEach((e) => { const st = (reg[e.id] || {}).status; if (st !== "aprovada" && st !== "ajustar" && st !== "liberada") { novas[e.id] = { status: "liberada", em: new Date().toISOString() }; n++; } });
+          if (Object.keys(novas).length) b.set(doc(db, "turmas", turma.id, "alunos", a.matricula, "roteiro", "estado"), { etapas: novas }, { merge: true });
+        });
+        await b.commit();
+      }
+      setConfTodas(false); setMsg("✓ " + n + " liberação(ões) feita(s): todas as etapas abertas para " + ordem.length + " contas"); recarregar();
     } catch (er) { setMsg("✗ não salvou: " + (er.message || er.code)); }
   }
   async function liberarParaTodos() {
@@ -133,6 +152,13 @@ function Situacao({ turma, config }) {
           </table>
         </div>
       </div>
+      <div className="panel"><div className="panel-body">
+        <b>Liberar todas as etapas (1 a {lista.length}) para todos</b>
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", margin: "4px 0 8px" }}>Abre todas as etapas ainda bloqueadas, para cada aluno ir avançando no seu ritmo. Etapas já aprovadas ou com pedido de ajuste não são alteradas. Quem entrar na turma depois precisa de um novo clique.</div>
+        {!confTodas ? <button className="btn green" onClick={() => setConfTodas(true)}>Liberar todas as etapas para todos</button> : (
+          <div className="btn-row"><button className="btn green" onClick={liberarTodasEtapas}>Confirmar: liberar todas</button><button className="btn secondary" onClick={() => setConfTodas(false)}>Cancelar</button></div>
+        )}
+      </div></div>
       <div className="panel"><div className="panel-body">
         <b>Liberar uma etapa para todos de uma vez</b>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
