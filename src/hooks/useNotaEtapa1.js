@@ -2,7 +2,7 @@ import { useLancamentosDaTurma } from "./useLancamentosDaTurma.js";
 import { useDocumentosDaTurma } from "./useDocumentosDaTurma.js";
 import { useProgressoTurma } from "./useProgressoTurma.js";
 import { usePlanoContas } from "./usePlanoContas.js";
-import { descontoEfetivo, completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica } from "../lib/contabil.js";
+import { completudeCiclo, autonomiaCorrecoes, notaFinalPonderada, qualidadeTecnicaAutomatica } from "../lib/contabil.js";
 
 // Nota da Etapa 1 de cada aluno, calculada como na tela Notas (completude + qualidade técnica + autonomia − desconto). SÓ LEITURA.
 // final = true quando o professor já digitou a qualidade técnica; senão usa a sugestão automática (nota parcial).
@@ -17,7 +17,7 @@ export function useNotaEtapa1(turma, alunos) {
     const lancs = todos.filter((t) => t.aluno.matricula === a.matricula).map((t) => t.lancamento);
     const comp = completudeCiclo(documentos, prog.digitacoesPorMatricula[a.matricula], prog.analisesPorMatricula[a.matricula], prog.classificacoesPorMatricula[a.matricula], lancs);
     const aut = autonomiaCorrecoes(lancs);
-    const desc = descontoEfetivo(a, turma);
+    const desc = a.descontoManual ? (Number(a.desconto) || 0) : 0; // sem desconto automático de atraso (decisão do professor, 13/11/2026); só o desconto lançado à mão
     const temNota = a.nota !== null && a.nota !== undefined && a.nota !== "";
     let q = temNota ? a.nota : null;
     if (!temNota) {
