@@ -24,7 +24,8 @@ export function useNotaEtapa1(turma, alunos) {
       const qa = qualidadeTecnicaAutomatica({ documentos, lancamentos: lancs, analises: prog.analisesPorMatricula[a.matricula], classificacoes: prog.classificacoesPorMatricula[a.matricula], contas: contas || [] });
       q = qa && qa.notaSugerida !== undefined ? qa.notaSugerida : null;
     }
-    const v = notaFinalPonderada({ completudePct: comp, qualidadeNota: q, autonomiaPct: aut === null ? 0 : aut, // sem nenhum lançamento aprovado não há autonomia a creditar (antes dava 2,0 de graça) desconto: desc });
+    // sem nenhum lançamento aprovado não há autonomia a creditar (antes dava 2,0 de graça)
+    const v = notaFinalPonderada({ completudePct: comp, qualidadeNota: q, autonomiaPct: aut === null ? 0 : aut, desconto: desc });
     out[a.matricula] = { v: v === null ? null : Math.round(v * 10) / 10, final: temNota, liberada: !!a.notaLiberada };
   });
   return out;
