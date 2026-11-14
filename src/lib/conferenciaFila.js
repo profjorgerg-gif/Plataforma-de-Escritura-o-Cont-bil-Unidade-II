@@ -2,6 +2,7 @@
 // Regras conservadoras: só marca ✅ ou ❌ quando há certeza pelo gabarito da nota.
 // O que não dá para conferir fica "sem" (⚪) e não entra nos botões em bloco.
 import { conferirLancamentoDuplo } from "./folhaAluno.js";
+import { conferirLancamento as conferirLancResc } from "./rescisao.js";
 const ICMS = ["2.1.8.04", "4.2.01", "1.1.2.11", "1.1.2.12"];
 const PIS = ["2.1.8.05", "1.1.2.14", "2.1.8.07"];
 const COFINS = ["2.1.8.06", "1.1.2.15", "2.1.8.08"];
@@ -226,6 +227,21 @@ function conferirFolha(l, ctx, duplicado) {
   return { estado: "no", motivo: esp.titulo + ": " + r.dicas.join(" "), acao: "Ajuste este lançamento (contas, lado D/C e valores) e reenvie. Os cálculos estão nas telas Folha do mês e Provisões e encargos. Caminho: Etapa 3 · Contabilização da folha e depois Livro diário → ✏️ Editar." };
 }
 
+// Lançamentos vindos da Contabilização da rescisão (origem "resc", chave "resc|nome|key"): conferidos contra os lançamentos
+// esperados da rescisão do caso da turma (ctx.resc.esperados = lancamentosDaRescisao(calcularRescisao(caso))). 13/11/2026.
+function conferirResc(l, ctx, duplicado) {
+  if (duplicado) return { estado: "no", motivo: "duplicado: já existe lançamento igual desta rescisão", acao: "Este lançamento não deve existir. Exclua-o pelo botão no Livro Diário.", podeExcluir: true };
+  const esperados = ctx && ctx.resc && ctx.resc.esperados;
+  if (!esperados) return { estado: "sem", motivo: "caso da rescisão ainda não carregado: confira manualmente" };
+  const key = String(l.chave || "").split("|")[2];
+  const esp = esperados.find((e) => e.key === key) || esperados.find((e) => String(l.historico || "").includes(e.titulo));
+  if (!esp) return { estado: "sem", motivo: "não identifiquei qual lançamento da rescisão é este: confira" };
+  const r = conferirLancResc(l.partidas || [], esp.partidas);
+  if (r.ok) return { estado: "ok", motivo: "confere com o cálculo da rescisão (contas, lado D/C e valores)" };
+  if (r.vazio) return { estado: "no", motivo: "lançamento sem contas ou sem valores", acao: "Preencha as contas e os valores do lançamento \"" + esp.titulo + "\" e reenvie. Caminho: Etapa 4 · Rescisão → Contabilização e Livro diário." };
+  return { estado: "no", motivo: esp.titulo + ": " + (r.dicas || []).join(" "), acao: "Ajuste este lançamento (contas, lado D/C e valores) e reenvie. Os valores vêm do Cálculo das verbas e das Incidências. Caminho: Etapa 4 · Rescisão → Contabilização e Livro diário." };
+}
+
 // Confere todos os lançamentos enviados de UM aluno. `todosDoAluno` = todos os lançamentos dele.
 export function conferirAluno(enviados, todosDoAluno, catalogo, ctxFolha) {
   const porId = (id) => (catalogo || []).find((d) => d.id === id);
@@ -246,12 +262,12 @@ export function conferirAluno(enviados, todosDoAluno, catalogo, ctxFolha) {
   });
   const res = {};
   const folhaVista = {}; // chave da folha -> id do lançamento que "vale"
-  todosDoAluno.filter((l) => l.status === "aprovado" && l.origem === "folha" && l.chave).forEach((l) => { if (!folhaVista[l.chave]) folhaVista[l.chave] = l.id; });
+  todosDoAluno.filter((l) => l.status === "aprovado" && (l.origem === "folha" || l.origem === "resc") && l.chave).forEach((l) => { if (!folhaVista[l.chave]) folhaVista[l.chave] = l.id; });
   ord.forEach((l) => {
-    if (l.origem === "folha") {
+    if (l.origem === "folha" || l.origem === "resc") {
       let dupF = false;
       if (l.chave) { if (folhaVista[l.chave] && folhaVista[l.chave] !== l.id) dupF = true; else folhaVista[l.chave] = l.id; }
-      res[l.id] = conferirFolha(l, ctxFolha, dupF);
+      res[l.id] = l.origem === "resc" ? conferirResc(l, ctxFolha, dupF) : conferirFolha(l, ctxFolha, dupF);
       return;
     }
     const k = chave(l);

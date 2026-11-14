@@ -10,6 +10,8 @@ import { StatusBadge } from "../shared/UI.jsx";
 import ConferenciaAuto from "./ConferenciaAuto.jsx";
 import { conferirAluno } from "../../lib/conferenciaFila.js";
 import { useCaTurma } from "../../hooks/useCa.js";
+import { useRescisaoTurma } from "../../hooks/useRescisao.js";
+import { calcularRescisao, lancamentosDaRescisao } from "../../lib/rescisao.js";
 import { folhaDoAluno, lancamentosAlt } from "../../lib/folhaAluno.js";
 import { folhaEmUso, lancamentosDaFolha } from "../../lib/folha.js";
 
@@ -70,13 +72,18 @@ export default function FilaCorrecao({ turmaId, foco = null, onVerTodos = null }
   const catalogo = useCatalogoDocumentos();
   const { todos } = useLancamentosDaTurma(turmaId, alunos);
   const ca = useCaTurma(turmaId);
+  const resc = useRescisaoTurma(turmaId);
   // lançamentos esperados da folha de cada aluno (pessoal) e da folha antiga da turma (também vale)
   const ctxFolhaDe = (matricula) => {
-    if (ca.folha === undefined) return null;
-    try {
-      const pessoal = folhaDoAluno(ca.folha, ca.config, matricula);
-      return { esperados: lancamentosDaFolha(folhaEmUso(pessoal).provisoes), alt: lancamentosAlt(ca.folha) };
-    } catch (e) { return null; }
+    const out = {};
+    if (ca.folha !== undefined) {
+      try {
+        const pessoal = folhaDoAluno(ca.folha, ca.config, matricula);
+        out.esperados = lancamentosDaFolha(folhaEmUso(pessoal).provisoes); out.alt = lancamentosAlt(ca.folha);
+      } catch (e) { /* sem folha */ }
+    }
+    if (resc.caso !== undefined) { try { out.resc = { esperados: lancamentosDaRescisao(calcularRescisao(resc.caso)) }; } catch (e) { /* sem caso */ } }
+    return out;
   };
   // Mais antigo primeiro — quem está esperando análise há mais tempo aparece
   // no topo da fila.
