@@ -102,6 +102,7 @@ import DemonstracoesAlunos from "../professor/DemonstracoesAlunos.jsx";
 import GuiaLancamentos from "../shared/GuiaLancamentos.jsx";
 import TabelasInssIrrf from "../shared/TabelasInssIrrf.jsx";
 import FormulasFolha from "../shared/FormulasFolha.jsx";
+import AutoContasNovas from "../professor/AutoContasNovas.jsx";
 import VisaoNotasAluno from "../professor/VisaoNotasAluno.jsx";
 import ContabilizacaoFolhaConsulta from "../shared/ContabilizacaoFolhaConsulta.jsx";
 import Laboratorio2027 from "../professor/Laboratorio2027.jsx";
@@ -1338,6 +1339,7 @@ export default function Shell({ usuario, perfil, onSair }) {
 
   return (
     <div className="app">
+      {ehProfessorOuAdmin && !emTeste && <AutoContasNovas />}
       <div className={"sidebar-backdrop" + (menuAberto ? " open" : "")} onClick={() => setMenuAberto(false)} />
       <div className={"sidebar" + (menuAberto ? " open" : "")}>
         <div className="sidebar-head">
