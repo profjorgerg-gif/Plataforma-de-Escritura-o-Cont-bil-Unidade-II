@@ -26,7 +26,7 @@ export function useNotaEtapa1(turma, alunos) {
     }
     // sem nenhum lançamento aprovado não há autonomia a creditar (antes dava 2,0 de graça)
     const v = notaFinalPonderada({ completudePct: comp, qualidadeNota: q, autonomiaPct: aut === null ? 0 : aut, desconto: desc });
-    out[a.matricula] = { v: v === null ? null : Math.round(v * 10) / 10, final: temNota, liberada: !!a.notaLiberada };
+    out[a.matricula] = { v: v === null ? null : Math.round(v * 10) / 10, final: temNota, liberada: !!a.notaLiberada, p: typeof comp === "number" && !isNaN(comp) ? Math.max(0, Math.min(100, Math.round(comp))) : 0 };
   });
   return out;
 }

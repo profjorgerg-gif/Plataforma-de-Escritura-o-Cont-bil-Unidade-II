@@ -2,14 +2,14 @@ import { useState } from "react";
 import { serverTimestamp } from "firebase/firestore";
 import { criarChamadoNumerado } from "../../lib/chamados.js";
 import DashboardCiclo from "./DashboardCiclo.jsx";
-import { GRUPOS_ETAPAS, ETAPAS as ETAPAS_BASE, notaDaEtapa, fmtNota, limitaNota } from "../../lib/avaliacao.js";
+import { GRUPOS_ETAPAS, ETAPAS as ETAPAS_BASE, notaDaEtapa, fmtNota, limitaNota, entregaEmAtraso } from "../../lib/avaliacao.js";
 import { resumoAtividade, situacaoEmpregado, PASSOS_CONTRACHEQUE } from "../../lib/folhaAtividade.js";
 import { casoDoEmpregado, opcoesDoEmpregado } from "../../lib/enunciadosCA.js";
 import { folhaEmUso } from "../../lib/folha.js";
 import { folhaDoAluno } from "../../lib/folhaAluno.js";
 import { sugestaoEtapa } from "../../lib/notasAuto.js";
 import { situacaoPrazo } from "../../lib/fechamento.js";
-import { etapasEfetivas } from "../../lib/roteiro.js";
+import { etapasEfetivas, situacaoEtapa } from "../../lib/roteiro.js";
 import { orientacaoEtapa, NOTA_OK } from "../../lib/orientacaoEtapas.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, useTrabalhosCaDaTurma } from "../../hooks/useCa.js";
@@ -57,12 +57,12 @@ export default function DashboardEtapas({ turma, onSelecionarAluno }) {
           </button>
         ))}
       </div>
-      {aba === "g1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} />}
+      {aba === "g1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} onIrAba={setAba} />}
     </>
   );
 }
 
-function PainelEtapas({ turma, aba, onSelecionarAluno }) {
+function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
   const tid = turma.id;
   const alunos = useAlunosDaTurma(tid);
   const ca = useCaTurma(tid);
@@ -78,6 +78,10 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
   const [orient, setOrient] = useState(null); // { aluno, etapa, texto }
   const [msg, setMsg] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [modoVg, setModoVg] = useState("nota"); // visão geral: o que mostrar nas células (nota | sit | prog)
+  const [ordemVg, setOrdemVg] = useState("nome");
+  const [soAtencao, setSoAtencao] = useState(false);
+  const [confTodos, setConfTodos] = useState(false);
 
   const pronto = alunos && n1 && mapa && trabCa && trabAgb && lancs && contas && ca.config !== undefined && agb.anterior !== undefined;
   if (!pronto) return <div className="empty-state">Carregando dados dos alunos…</div>;
@@ -134,7 +138,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
     setOcupado(true); setMsg("");
     try {
       const r = await criarChamadoNumerado(tid, {
-        matricula: orient.aluno.matricula, alunoNome: orient.aluno.nome || "", assunto: "Orientação do professor · Etapa " + orient.etapa.n,
+        matricula: orient.aluno.matricula, alunoNome: orient.aluno.nome || "", assunto: "Orientação do professor · " + (orient.etapa ? "Etapa " + orient.etapa.n : "Etapas 1 a 6"),
         documentoId: null, documentoNumero: null, status: "respondido", iniciadoPor: "professor",
         mensagens: [{ autor: "professor", texto: orient.texto.trim(), em: new Date().toISOString() }],
         naoLidoProfessor: false, naoLidoAluno: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
@@ -152,7 +156,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
   const painelOrient = orient && (
     <div className="panel" style={{ borderColor: "var(--amber)", borderWidth: 2, marginBottom: 12 }}>
       <div className="panel-body">
-        <b>Orientação de {orient.aluno.nome} · Etapa {orient.etapa.n}</b> Vai para o Suporte dele como mensagem. Você pode editar o texto antes.
+        <b>Orientação de {orient.aluno.nome} · {orient.etapa ? "Etapa " + orient.etapa.n : "todas as etapas"}</b> Vai para o Suporte dele como mensagem. Você pode editar o texto antes.
         <textarea style={{ width: "100%", minHeight: 200, marginTop: 8 }} value={orient.texto} onChange={(e) => setOrient({ ...orient, texto: e.target.value })} />
         <div className="btn-row" style={{ marginTop: 8 }}>
           <button className="btn" disabled={ocupado || !orient.texto.trim()} onClick={enviar}>{ocupado ? "Enviando…" : "Enviar pelo Suporte"}</button>
@@ -165,32 +169,205 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
   const aviso = msg && <div className="balance-check ok" style={{ marginBottom: 12 }}>{msg}</div>;
 
   if (aba === "geral") {
-    const dados = ordem.map((a) => ({ a, por: Object.fromEntries(ETAPAS.map((e) => { if (e.id === "f1") { const x = n1[a.matricula] || {}; return [e.id, { v: x.v === undefined ? null : x.v, fim: !!x.final }]; } const l = linhaDe(a, e); return [e.id, l.final !== null ? { v: l.final, fim: true } : { v: l.parcial, fim: false }]; })) }));
-    const medias = dados.map((d) => { const v = ETAPAS.map((e) => d.por[e.id].v).filter((x) => x !== null && x !== undefined); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; });
-    const mt = medias.filter((x) => x !== null);
-    const fechadas = 0; // prazo é só referência: nenhuma etapa fecha
+    // Visão geral completa (modelo aprovado em 25/11/2026): situação, nota, % e aviso de entrega fora do prazo, por aluno e etapa.
+    const lista = etapasEfetivas(rotCfg || null);
+    const SIT = { fim: "Avaliada", aval: "Aguarda você", and: "Em andamento", nao: "Não iniciou", ajus: "Ajustar", bloq: "Bloqueada" };
+    const venc = Object.fromEntries(ETAPAS.map((e) => [e.id, !!situacaoPrazo(e.id, rotCfg || null).vencido]));
+    const dados = ordem.map((a) => {
+      const r = mapa[a.matricula] || { estado: {}, entregas: {} };
+      const cels = ETAPAS.map((e) => {
+        const i = lista.findIndex((x) => x.id === e.id);
+        const sit = i >= 0 ? situacaoEtapa(lista, i, r.estado, r.entregas) : { cod: "bloqueada" };
+        const ent = (r.entregas || {})[e.id];
+        const fora = !!(ent && prazos[e.id] && entregaEmAtraso(prazos[e.id], ent));
+        let v = null, final = false, p = 0;
+        if (e.id === "f1") { const x = n1[a.matricula] || {}; v = x.v === undefined ? null : x.v; final = !!x.final; p = typeof x.p === "number" ? x.p : 0; }
+        else { const l = linhaDe(a, e); v = l.final !== null ? l.final : l.parcial; final = l.final !== null; p = Math.round((v || 0) * 10); }
+        let s;
+        if (final) s = "fim";
+        else if (sit.cod === "ajustar") s = "ajus";
+        else if (sit.cod === "entregue" || sit.cod === "aprovada") s = "aval";
+        else if (v !== null && v > 0) s = "and";
+        else if (sit.cod === "bloqueada") s = "bloq";
+        else s = "nao";
+        return { e, s, v, p, fora };
+      });
+      const itens = [];
+      cels.forEach((c) => {
+        if (c.s === "nao" && venc[c.e.id]) itens.push({ t: "nao", txt: "não iniciou a Etapa " + c.e.n });
+        if (c.s === "ajus") itens.push({ t: "ajus", txt: "Etapa " + c.e.n + " voltou para ajuste" });
+        if (c.fora) itens.push({ t: "late", txt: "Etapa " + c.e.n + " entregue fora do prazo" });
+        if (c.s === "aval") itens.push({ t: "aval", txt: "Etapa " + c.e.n + " aguarda sua avaliação" });
+      });
+      const vs = cels.filter((c) => c.v !== null && c.v !== undefined && c.s !== "nao" && c.s !== "bloq").map((c) => c.v);
+      return { a, cels, itens, media: vs.length ? vs.reduce((s, x) => s + x, 0) / vs.length : null };
+    });
+    const nCel = (i, k) => dados.filter((d) => d.cels[i].s === k).length;
+
+    // orientação geral do aluno: junta o que falta em cada etapa (Etapa 1 em uma linha; 2 a 6 pelas regras de cada etapa)
+    function orientacaoGeral(d) {
+      const nome = (d.a.nome || "").split(" ")[0] || "Olá";
+      const L = [nome + ", segue a sua orientação geral do projeto (etapas 1 a 6).", ""];
+      let n = 0;
+      d.cels.forEach((c) => {
+        const itens = [];
+        if (c.e.id === "f1") {
+          if (c.s === "nao" || c.s === "and") itens.push({ criterio: "Escrituração em andamento", orientacao: "Conclua os documentos pendentes (digitação, análise fiscal, classificação e lançamento) e envie os lançamentos ao Livro diário.", onde: "Etapa 1 · Escrituração" });
+        } else if (c.s !== "bloq") {
+          const l = linhaDe(d.a, c.e);
+          orientacaoEtapa({ etapa: c.e, aluno: d.a, sug: l.sug, extra: c.e.id === "fp" ? extraFp(d.a) : [], fechada: false, nota: null }).itens.forEach((x) => itens.push(x));
+        }
+        if (c.s === "ajus") itens.unshift({ criterio: "Etapa devolvida para ajuste", orientacao: "Leia o retorno do professor no Meu roteiro por etapas, ajuste e reenvie.", onde: "Meu roteiro por etapas" });
+        if (!itens.length) return;
+        L.push("ETAPA " + c.e.n + " — " + c.e.titulo);
+        itens.forEach((x, i) => { n++; L.push((i + 1) + ") " + x.criterio + (x.nota !== null && x.nota !== undefined ? " (nota " + fmtNota(x.nota) + ")" : "")); L.push("   O que fazer: " + x.orientacao); if (x.onde) L.push("   Onde: " + x.onde); });
+        L.push("");
+      });
+      if (!n) L.push("Nenhuma pendência encontrada nos itens que o sistema confere. Continue assim!", "");
+      L.push("Qualquer dúvida, responda esta mensagem.", "Prof. Jorge");
+      return { texto: L.join("\n"), n };
+    }
+    function abrirGeral(d) { const o = orientacaoGeral(d); setMsg(""); setOrient({ aluno: d.a, etapa: null, texto: o.texto, n: o.n }); }
+    async function orientarTodos() {
+      const alvo = dados.filter((d) => d.itens.length);
+      setConfTodos(false); setOcupado(true); setMsg("");
+      let ok = 0;
+      try {
+        for (const d of alvo) {
+          await criarChamadoNumerado(tid, {
+            matricula: d.a.matricula, alunoNome: d.a.nome || "", assunto: "Orientação do professor · Etapas 1 a 6",
+            documentoId: null, documentoNumero: null, status: "respondido", iniciadoPor: "professor",
+            mensagens: [{ autor: "professor", texto: orientacaoGeral(d).texto.trim(), em: new Date().toISOString() }],
+            naoLidoProfessor: false, naoLidoAluno: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
+          });
+          ok++;
+        }
+        setMsg("Orientações enviadas pelo Suporte para " + ok + " aluno(s).");
+      } catch (e) { setMsg("Enviadas " + ok + " de " + alvo.length + ". Parou por erro: " + (e.message || e)); }
+      setOcupado(false);
+    }
+
+    const peso = { nao: 3, ajus: 2, late: 1, aval: 1 };
+    const comAtencao = dados.filter((d) => d.itens.length);
+    const ranking = [...comAtencao].sort((x, y) => y.itens.reduce((s, i) => s + peso[i.t], 0) - x.itens.reduce((s, i) => s + peso[i.t], 0)).slice(0, 6);
+    let linhas = soAtencao ? comAtencao : dados;
+    linhas = [...linhas].sort((x, y) => (ordemVg === "nome" ? 0 : (x.media === null ? -1 : x.media) - (y.media === null ? -1 : y.media)));
+    const nAval = dados.reduce((s, d) => s + d.cels.filter((c) => c.s === "aval").length, 0);
+    const nFora = dados.reduce((s, d) => s + d.cels.filter((c) => c.fora).length, 0);
+    const nAjus = dados.reduce((s, d) => s + d.cels.filter((c) => c.s === "ajus").length, 0);
+    const nParados = dados.filter((d) => d.cels.every((c) => c.s === "nao" || c.s === "bloq")).length;
+    const fmtPrazo = (iso) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "sem prazo");
+    const irEtapa = (e) => { const g = GRUPOS_ETAPAS.find((x) => x.etapas.includes(e.id)); if (g && onIrAba) onIrAba(g.id); };
+
     return (
       <>
         <div className="screen-eyebrow">dashboard do ciclo</div>
-        <h2 className="screen-title">Visão geral por etapa — {turma.nome}</h2>
-        <p className="screen-sub">Nota de cada aluno em cada etapa. Em <i>itálico</i> é nota parcial (etapa aberta ou ainda sem a sua avaliação); em negrito é a nota avaliada por você. A média usa só as etapas que já têm nota.</p>
+        <h2 className="screen-title">Visão geral — todas as etapas</h2>
+        <p className="screen-sub">{turma.nome}. Quem está onde, quem precisa de você e o que passou do prazo de referência. Clique em uma célula para abrir a aba da etapa.</p>
         {aviso}
-        <div className="kpi-row">
-          <div className="kpi"><div className="kpi-v">{fechadas} de {ETAPAS.length}</div><div className="kpi-l">etapas com prazo vencido</div></div>
-          <div className="kpi"><div className="kpi-v">{mt.length ? fmtNota(mt.reduce((s, x) => s + x, 0) / mt.length) : "—"}</div><div className="kpi-l">média parcial da turma</div></div>
-          <div className="kpi"><div className="kpi-v">{medias.filter((x) => x !== null && x < 5).length}</div><div className="kpi-l">alunos com média abaixo de 5,0</div></div>
+        {painelOrient}
+
+        <div className="vg-etapas">
+          {ETAPAS.map((e, i) => {
+            const cs = dados.map((d) => d.cels[i]);
+            const ini = cs.filter((c) => c.s !== "nao" && c.s !== "bloq").length;
+            const vals = cs.filter((c) => c.s !== "nao" && c.s !== "bloq" && c.v !== null).map((c) => c.v);
+            const med = vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null;
+            return (
+              <div className="vg-et" key={e.id}>
+                <button className="vg-etit" onClick={() => irEtapa(e)}><span className="mono">E{e.n}</span> {ROTULOS[e.id]}</button>
+                <div className="vg-bar" title="avaliadas / aguardam você / ajustar / em andamento / não iniciaram">
+                  {["fim", "aval", "ajus", "and", "nao"].map((k) => <i key={k} className={"vg-s-" + k} style={{ width: (dados.length ? nCel(i, k) / dados.length * 100 : 0) + "%" }} />)}
+                </div>
+                <div className="vg-kv"><span>iniciaram</span><b>{ini} de {dados.length}</b></div>
+                <div className="vg-kv"><span>média</span><b>{med === null ? "—" : fmtNota(Math.round(med * 10) / 10)}</b></div>
+                <div className="vg-kv"><span>aguardam você</span><b>{nCel(i, "aval")}</b></div>
+                <div className="vg-kv"><span>fora do prazo</span><b>{cs.filter((c) => c.fora).length}</b></div>
+                <div className={"vg-prazo mono" + (venc[e.id] ? " venc" : "")}>prazo {fmtPrazo(prazos[e.id])}{venc[e.id] ? " · vencido, segue aberta" : ""}</div>
+              </div>
+            );
+          })}
         </div>
-        <div className="panel"><div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead><tr><th>Aluno</th>{ETAPAS.map((e) => <th key={e.id} className="num" title={ROTULOS[e.id]}>E{e.n}</th>)}<th className="num">Média parcial</th></tr></thead>
-            <tbody>{dados.map((d, i) => (
-              <tr key={d.a.matricula}>
-                <td><button className="btn secondary" style={{ padding: "2px 8px" }} onClick={() => onSelecionarAluno && onSelecionarAluno(d.a)}>{d.a.nome}</button></td>
-                {ETAPAS.map((e) => <td key={e.id} className="num mono" style={{ fontWeight: d.por[e.id].fim ? 700 : 400, fontStyle: d.por[e.id].fim ? "normal" : "italic" }}>{dec(d.por[e.id].v)}</td>)}
-                <td className="num mono"><b>{dec(medias[i] === null ? null : Math.round(medias[i] * 10) / 10)}</b></td>
-              </tr>))}</tbody>
-          </table>
-        </div></div>
+
+        <div className="vg-main">
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Aluno por etapa</h3>
+              <div className="vg-tools no-print">
+                <span className="vg-seg">{[["nota", "Nota"], ["sit", "Situação"], ["prog", "% feito"]].map(([k, t]) => <button key={k} className={modoVg === k ? "on" : ""} onClick={() => setModoVg(k)}>{t}</button>)}</span>
+                <label className="vg-chk"><input type="checkbox" checked={soAtencao} onChange={(e) => setSoAtencao(e.target.checked)} /> só quem precisa de atenção</label>
+                <span className="vg-seg">{[["nome", "A–Z"], ["media", "Menor média"]].map(([k, t]) => <button key={k} className={ordemVg === k ? "on" : ""} onClick={() => setOrdemVg(k)}>{t}</button>)}</span>
+              </div>
+            </div>
+            <div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>
+              <table className="vg-tab">
+                <thead><tr><th>Aluno</th>{ETAPAS.map((e) => <th key={e.id} className="c" title={ROTULOS[e.id]}>E{e.n}<br />{fmtPrazo(prazos[e.id])}</th>)}<th className="c">Média</th><th className="c">Atenção</th><th></th></tr></thead>
+                <tbody>
+                  {linhas.map((d) => (
+                    <tr key={d.a.matricula}>
+                      <td className="vg-nome"><button className="btn secondary" style={{ padding: "2px 8px" }} onClick={() => onSelecionarAluno && onSelecionarAluno(d.a)}>{d.a.nome}</button></td>
+                      {d.cels.map((c) => (
+                        <td key={c.e.id}>
+                          <button className={"vg-cell vg-s-" + c.s} onClick={() => irEtapa(c.e)} title={SIT[c.s] + (c.fora ? " · entregue fora do prazo" : "")}>
+                            {c.s === "bloq" ? <span className="vg-l">Bloqueada</span>
+                              : modoVg === "sit" ? <span className="vg-l"><b>{SIT[c.s]}</b>{c.fora ? " ⏰" : ""}</span>
+                              : modoVg === "prog" ? <><span className="vg-v mono">{c.p}%{c.fora ? " ⏰" : ""}</span><span className="vg-mini"><i style={{ width: c.p + "%" }} /></span></>
+                              : c.s === "nao" ? <><span className="vg-v mono">—</span><span className="vg-l">não iniciou</span></>
+                              : <><span className={"vg-v mono" + (c.s === "fim" ? "" : " parc")}>{dec(c.v)}{c.fora ? " ⏰" : ""}</span><span className="vg-l">{c.s === "fim" ? "avaliada" : c.s === "aval" ? "aguarda você" : c.s === "ajus" ? "ajustar" : "parcial"}</span></>}
+                          </button>
+                        </td>
+                      ))}
+                      <td className="c mono"><b>{d.media === null ? "—" : dec(Math.round(d.media * 10) / 10)}</b></td>
+                      <td className="c">{d.itens.length ? <span className="tag-pill bad">{d.itens.length}</span> : <span className="tag-pill ok">ok</span>}</td>
+                      <td><button className={"btn" + (d.itens.length ? "" : " secondary")} style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => abrirGeral(d)}>Orientação</button></td>
+                    </tr>
+                  ))}
+                  {!linhas.length && <tr><td colSpan={ETAPAS.length + 4} style={{ padding: 18 }}>Ninguém precisa de atenção neste momento.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div className="vg-leg">
+              {["fim", "aval", "and", "nao", "ajus", "bloq"].map((k) => <span key={k}><i className={"vg-dot vg-s-" + k} />{SIT[k]}</span>)}
+              <span>⏰ entregue fora do prazo de referência</span><span><i>itálico</i> = nota parcial</span>
+              <span>% feito: Etapa 1 = documentos concluídos; Etapas 2 a 6 = pontos já conferidos pelo sistema (nota parcial × 10)</span>
+            </div>
+          </div>
+
+          <div className="vg-aside">
+            <div className="panel">
+              <div className="panel-head"><h3>Para você agora</h3></div>
+              <div className="vg-cnt">
+                <div><b>{nAval}</b><span>etapas aguardam sua avaliação</span></div>
+                <div><b>{nFora}</b><span>entregues fora do prazo</span></div>
+                <div><b>{nAjus}</b><span>devolvidas para ajuste</span></div>
+                <div><b>{nParados}</b><span>sem nenhuma etapa iniciada</span></div>
+              </div>
+            </div>
+            <div className="panel">
+              <div className="panel-head"><h3>Precisam de atenção</h3>
+                {!confTodos && <button className="btn" disabled={ocupado || comAtencao.length === 0} onClick={() => setConfTodos(true)}>Orientar todos ({comAtencao.length})</button>}
+              </div>
+              {confTodos && (
+                <div className="panel-body" style={{ fontSize: 13 }}>
+                  Vai enviar uma orientação pelo Suporte a <b>{comAtencao.length} aluno(s)</b>, com o que falta em cada etapa. Confirma?
+                  <div className="btn-row" style={{ marginTop: 8 }}>
+                    <button className="btn" disabled={ocupado} onClick={orientarTodos}>Enviar agora</button>
+                    <button className="btn secondary" onClick={() => setConfTodos(false)}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+              <ul className="vg-att">
+                {ranking.map((d) => (
+                  <li key={d.a.matricula}>
+                    <div className="vg-t"><span>{d.a.nome}</span><span className="tag-pill bad">{d.itens.length}</span></div>
+                    <div className="vg-d">{d.itens.slice(0, 3).map((i) => i.txt).join("; ")}{d.itens.length > 3 ? "; …" : ""}</div>
+                  </li>
+                ))}
+                {!ranking.length && <li className="vg-d">Ninguém precisa de atenção agora.</li>}
+              </ul>
+            </div>
+          </div>
+        </div>
       </>
     );
   }

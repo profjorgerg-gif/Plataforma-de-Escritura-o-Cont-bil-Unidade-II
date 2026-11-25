@@ -460,3 +460,54 @@
   .diretriz-semanas, .diretriz-barra, .diretriz-nav, .helper-note{display:none !important;}
   .diretriz-quadro{border:none; padding:0;}
 }
+
+/* Visão geral do ciclo (25/11/2026): matriz aluno × etapa com situação, nota, % e aviso de entrega fora do prazo */
+.vg-etapas{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.vg-et{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.vg-etit{all:unset;cursor:pointer;font-weight:600;font-size:13px;line-height:1.25;color:var(--ink)}
+.vg-etit:hover{text-decoration:underline}
+.vg-bar{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--paper)}
+.vg-bar i{display:block;height:100%}
+.vg-kv{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft)}
+.vg-kv b{color:var(--ink);font-weight:500}
+.vg-prazo{font-size:11px;color:var(--ink-faint)}
+.vg-prazo.venc{color:var(--amber)}
+.vg-main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.vg-aside{display:flex;flex-direction:column;gap:12px}
+.vg-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.vg-seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.vg-seg button{font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);border:0;border-right:1px solid var(--line);padding:5px 10px;cursor:pointer}
+.vg-seg button:last-child{border-right:0}
+.vg-seg button.on{background:var(--green);color:#fff}
+.vg-chk{font-size:12.5px;display:flex;gap:6px;align-items:center;color:var(--ink-soft)}
+.vg-tab{min-width:760px}
+.vg-tab th.c,.vg-tab td.c{text-align:center}
+.vg-nome{white-space:nowrap}
+.vg-cell{font:inherit;width:100%;min-width:72px;border:1px solid transparent;border-radius:4px;padding:5px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15}
+.vg-cell:hover{border-color:currentColor}
+.vg-v{font-size:13px;font-weight:500}
+.vg-v.parc{font-style:italic;font-weight:400}
+.vg-l{font-size:10.5px}
+.vg-mini{width:100%;height:4px;border-radius:2px;background:rgba(127,127,127,.25);overflow:hidden}
+.vg-mini i{display:block;height:100%;background:currentColor}
+.vg-s-fim{background:var(--green-pale);color:var(--green)}
+.vg-s-aval{background:var(--blue-pale);color:var(--blue)}
+.vg-s-and{background:var(--amber-pale);color:var(--amber)}
+.vg-s-nao{background:var(--red-pale);color:var(--red)}
+.vg-s-ajus{background:var(--paper);color:var(--red);border-color:var(--red)}
+.vg-s-bloq{background:var(--paper);color:var(--ink-faint)}
+.vg-bar .vg-s-fim{background:var(--green)}.vg-bar .vg-s-aval{background:var(--blue)}.vg-bar .vg-s-and{background:var(--amber)}.vg-bar .vg-s-nao{background:var(--red)}.vg-bar .vg-s-ajus{background:var(--ink-soft)}
+.vg-leg{display:flex;gap:12px;flex-wrap:wrap;padding:10px 12px;font-size:12px;color:var(--ink-soft)}
+.vg-leg span{display:inline-flex;align-items:center}
+.vg-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;border:1px solid var(--line)}
+.vg-cnt{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
+.vg-cnt div{border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.vg-cnt b{display:block;font-size:20px;font-weight:500}
+.vg-cnt span{font-size:12px;color:var(--ink-soft)}
+.vg-att{list-style:none;margin:0;padding:0}
+.vg-att li{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+.vg-att li:last-child{border-bottom:0}
+.vg-t{display:flex;justify-content:space-between;gap:8px;font-weight:500}
+.vg-d{font-size:12.5px;color:var(--ink-soft)}
+@media (max-width:1000px){.vg-etapas{grid-template-columns:repeat(3,minmax(0,1fr))}.vg-main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.vg-etapas{grid-template-columns:repeat(2,minmax(0,1fr))}}
