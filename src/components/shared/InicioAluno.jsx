@@ -87,7 +87,7 @@ export default function InicioAluno({ etapas, mostrarPi, onIr, nome }) {
 
       <div className="helper-note">
         Cada etapa é liberada pelo professor depois de analisar a anterior. Etapas bloqueadas aparecem no menu para você ver o caminho, e abrem quando forem liberadas.
-        Entregue pelo botão <b>Entregar</b> em “Meu roteiro por etapas”: entrega depois do prazo desconta {DESCONTO_ATRASO.toFixed(1).replace(".", ",")} pontos.
+        Entregue pelo botão <b>Entregar</b> em “Meu roteiro por etapas”: o prazo é só referência: se entregar depois, o professor apenas é informado.
         As notas vão de 0,0 a 10,0, com retorno escrito sobre o que ajustar. {RESERVA_TEXTO}
       </div>
     </>

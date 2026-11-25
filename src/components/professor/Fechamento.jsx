@@ -39,7 +39,7 @@ export default function Fechamento({ turma, onIr }) {
 
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   if (cfg === undefined) return <div className="empty-state">Carregando…</div>;
-  if (cfg === null) return <div className="empty-state">O roteiro por etapas desta turma ainda não foi configurado. Preencha e salve os prazos em <b>Etapas, prazos e liberação</b>; o bloqueio só vale depois disso.</div>;
+  if (cfg === null) return <div className="empty-state">O roteiro por etapas desta turma ainda não foi configurado. Preencha e salve os prazos em <b>Etapas, prazos e liberação</b> (são só referência).</div>;
 
   const lista = etapasEfetivas(cfg);
   const etapa = lista.find((e) => e.id === etapaId) || lista[0];
@@ -49,7 +49,7 @@ export default function Fechamento({ turma, onIr }) {
 
   async function prorrogar() {
     if (!novoPrazo) return;
-    if (!window.confirm("Mudar o prazo da etapa " + etapa.titulo + " para " + fmtData(novoPrazo) + "? Vale para toda a turma e a etapa reabre se o novo prazo for futuro.")) return;
+    if (!window.confirm("Mudar o prazo da etapa " + etapa.titulo + " para " + fmtData(novoPrazo) + "? Vale para toda a turma (o prazo é só referência).")) return;
     try {
       const salvas = cfg.etapas || [];
       const etapas = ETAPAS.map((e) => {
@@ -78,7 +78,7 @@ export default function Fechamento({ turma, onIr }) {
     <>
       <div className="screen-eyebrow">fechamento</div>
       <h2 className="screen-title">Fechamento da etapa</h2>
-      <p className="screen-sub">Depois do prazo, o aluno só consulta. Aqui você corrige a etapa, emite o relatório de pendências e orientações, resolve o que depende de você, emite de novo para conferir e atribui a nota.</p>
+      <p className="screen-sub">O prazo é só referência: o aluno pode fazer e entregar depois dele. Aqui você corrige a etapa, emite o relatório de pendências e orientações, resolve o que depende de você, emite de novo para conferir e atribui a nota.</p>
 
       <div className="panel">
         <div className="panel-body">
@@ -89,13 +89,12 @@ export default function Fechamento({ turma, onIr }) {
             </select>
           </div>
           <p style={{ margin: "8px 0" }}>
-            {sit.fechada
-              ? <b style={{ color: "var(--red)" }}>🔒 Etapa encerrada em {fmtData(etapa.prazo)}. Os alunos só consultam.</b>
-              : <b style={{ color: "var(--green)" }}>Etapa aberta. Fecha ao fim de {fmtData(etapa.prazo)}{dias !== null ? " (falta(m) " + Math.max(0, dias) + " dia(s))" : ""}.</b>}
+            {sit.vencido
+              ? <b style={{ color: "var(--amber, #a15c00)" }}>Prazo de referência vencido em {fmtData(etapa.prazo)}. A etapa continua aberta: o aluno pode fazer e entregar, e você é avisado da entrega fora do prazo.</b>
+              : <b style={{ color: "var(--green)" }}>Etapa aberta. Prazo de referência: {fmtData(etapa.prazo)}{dias !== null ? " (falta(m) " + Math.max(0, dias) + " dia(s))" : ""}.</b>}
           </p>
           <div className="helper-note" style={{ marginBottom: 8 }}>
-            Trava no Firestore (impede gravar mesmo fora da tela): {regra === undefined ? "verificando…" : regraOk ? <b>ativa e igual aos prazos</b> : <b style={{ color: "var(--red)" }}>ainda não sincronizada (abra esta tela com a turma selecionada e aguarde alguns segundos)</b>}.
-            {" "}Para as etapas 2 a 4, a trava no Firestore só vale depois do prazo da última etapa de cada grupo (4 e 6); antes disso o bloqueio é pela tela.
+            Trava por prazo no Firestore: {regra === undefined ? "verificando…" : regraOk ? <b>nenhuma (os prazos são só referência)</b> : <b style={{ color: "var(--red)" }}>limites antigos ainda gravados; abra esta tela com a turma selecionada e aguarde alguns segundos que o sistema apaga</b>}.
           </div>
           <div className="field" style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
             <div><label>Prorrogar o prazo da turma</label><input type="date" value={novoPrazo} onChange={(e) => setNovoPrazo(e.target.value)} /></div>

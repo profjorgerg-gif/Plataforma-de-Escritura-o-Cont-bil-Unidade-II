@@ -6,20 +6,20 @@ import { etapasEfetivas } from "./roteiro.js";
 export const fimDoPrazo = (prazo) => (prazo ? new Date(prazo + "T23:59:59.999-03:00") : null);
 
 // { fechada, prazo, limite } para uma etapa; config = roteiro/config da turma (null = não configurado = nunca fecha)
+// DECISÃO 25/11/2026: o prazo é só REFERÊNCIA. Nada fecha: o aluno pode fazer e entregar depois do prazo e o professor
+// apenas é informado (vencido = true). Por isso "fechada" é sempre false.
 export function situacaoPrazo(etapaId, config, agora = new Date()) {
-  if (!config) return { fechada: false, prazo: "", limite: null, configurado: false };
+  if (!config) return { fechada: false, vencido: false, prazo: "", limite: null, configurado: false };
   const e = etapasEfetivas(config).find((x) => x.id === etapaId);
-  if (!e || !e.prazo) return { fechada: false, prazo: "", limite: null, configurado: true };
+  if (!e || !e.prazo) return { fechada: false, vencido: false, prazo: "", limite: null, configurado: true };
   const limite = fimDoPrazo(e.prazo);
-  return { fechada: agora.getTime() > limite.getTime(), prazo: e.prazo, limite, configurado: true };
+  return { fechada: false, vencido: agora.getTime() > limite.getTime(), prazo: e.prazo, limite, configurado: true };
 }
 
 // Limites por etapa, para gravar em roteiro/fechamento (as regras do Firestore leem este documento)
+// Desde 25/11/2026 devolve sempre vazio: sem limite gravado, as regras do Firestore não recusam nada por prazo.
 export function limitesDasEtapas(config) {
-  const out = {};
-  if (!config) return out;
-  etapasEfetivas(config).forEach((e) => { if (e.prazo) out[e.id] = fimDoPrazo(e.prazo); });
-  return out;
+  return {};
 }
 export const mesmosLimites = (atual, novos) => {
   const a = atual || {};

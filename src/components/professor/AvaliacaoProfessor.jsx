@@ -26,7 +26,7 @@ function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entrega
   const [geral, setGeral] = useState((salva && salva.comentario) || "");
   const [lib, setLib] = useState(!!(salva && salva.liberada));
   const atrasado = !etapa.semAtraso && entregaEmAtraso(prazo, entregaISO);
-  const [descontar, setDescontar] = useState(salva && salva.desconto !== undefined ? salva.desconto > 0 : atrasado);
+  const [descontar, setDescontar] = useState(salva && salva.desconto !== undefined ? salva.desconto > 0 : false); // sem desconto automático: o atraso só é informado
   const [msg, setMsg] = useState("");
   const valores = Object.fromEntries(etapa.criterios.map((c) => [c.key, limitaNota(notas[c.key])]));
   const notaCrit = notaDaEtapa(etapa, valores);
@@ -49,7 +49,7 @@ function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entrega
       <div className="panel-body">
         {!etapa.semAtraso && (
           <div style={{ fontSize: 13, marginBottom: 8, color: atrasado ? "var(--red)" : "var(--ink-soft)" }}>
-            Prazo: {prazo ? fmtD(prazo + "T12:00:00") : "não definido"} · Primeira entrega: {entregaISO ? fmtD(entregaISO) : "ainda não entregou"}{atrasado ? " · ATRASADA" : ""}
+            Prazo: {prazo ? fmtD(prazo + "T12:00:00") : "não definido"} · Primeira entrega: {entregaISO ? fmtD(entregaISO) : "ainda não entregou"}{atrasado ? " · ENTREGUE FORA DO PRAZO (sem desconto automático)" : ""}
           </div>
         )}
         <table>
@@ -67,7 +67,7 @@ function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entrega
         </table>
         <div style={{ marginTop: 8, fontSize: 13.5 }}>
           {sugNota !== null && <><span style={{ color: "var(--ink-faint)" }}>Nota sugerida pelo sistema: <b>{fmtNota(sugNota)}</b></span> · </>}Nota pelos critérios: <b>{fmtNota(notaCrit)}</b>
-          {!etapa.semAtraso && <> · <label><input type="checkbox" checked={descontar} onChange={(e) => setDescontar(e.target.checked)} /> descontar {DESCONTO_ATRASO},0 pontos por entrega em atraso</label></>}
+          {!etapa.semAtraso && <> · <label><input type="checkbox" checked={descontar} onChange={(e) => setDescontar(e.target.checked)} /> descontar {DESCONTO_ATRASO},0 pontos por entrega fora do prazo (opcional)</label></>}
           {desconto > 0 && <> → nota da etapa <b>{fmtNota(nota)}</b></>}
         </div>
         <div className="field" style={{ marginTop: 8 }}><label>Parecer técnico (o aluno vê junto com a nota liberada)</label><textarea rows={8} value={geral} onChange={(e) => setGeral(e.target.value)} placeholder="Clique em “Gerar parecer” e ajuste o texto." />
@@ -115,7 +115,7 @@ export default function AvaliacaoProfessor({ turma }) {
     <>
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Avaliação das etapas (0,0 a 10,0)</h2>
-      <p className="screen-sub">O sistema sugere a nota de cada critério que consegue conferir. Você revisa, ajusta e escreve o retorno. A entrega depois do prazo desconta {DESCONTO_ATRASO},0 pontos (você pode retirar o desconto). O aluno só vê depois que você marcar para mostrar. Não há média entre as etapas.</p>
+      <p className="screen-sub">O sistema sugere a nota de cada critério que consegue conferir. Você revisa, ajusta e escreve o retorno. O prazo é só referência: entrega fora do prazo é apenas sinalizada, sem desconto automático (se quiser, marque o desconto de {DESCONTO_ATRASO},0 pontos). O aluno só vê depois que você marcar para mostrar. Não há média entre as etapas.</p>
       <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }} role="tablist">
         {GRUPOS_ETAPAS.map((g) => <button key={g.id} role="tab" aria-selected={g.id === grupo.id} className={"btn " + (g.id === grupo.id ? "" : "secondary")} onClick={() => setGrupoId(g.id)}>{g.titulo}</button>)}
       </div>

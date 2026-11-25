@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.js";
-import { ETAPAS, RESERVA_TEXTO } from "../../lib/avaliacao.js";
+import { ETAPAS, RESERVA_TEXTO, entregaEmAtraso } from "../../lib/avaliacao.js";
 import { etapasEfetivas, situacaoEtapa } from "../../lib/roteiro.js";
 import { useAlunosDaTurma } from "../../hooks/useAlunosDaTurma.js";
 import { useCaTurma, salvarConfigCa } from "../../hooks/useCa.js";
@@ -112,7 +112,7 @@ function Situacao({ turma, config }) {
             <div className="panel" key={e.id}>
               <div className="panel-head"><h3>Etapa {i + 1} · {e.titulo}</h3><span className={"tag-pill " + classe(s.classe)}>{s.rotulo}</span></div>
               <div className="panel-body">
-                {r.entregas[e.id] && <div style={{ fontSize: 13, marginBottom: 6 }}>Entregue em {new Date(r.entregas[e.id]).toLocaleString("pt-BR")}.</div>}
+                {r.entregas[e.id] && <div style={{ fontSize: 13, marginBottom: 6 }}>Entregue em {new Date(r.entregas[e.id]).toLocaleString("pt-BR")}.{e.prazo && entregaEmAtraso(e.prazo, r.entregas[e.id]) && <b style={{ color: "var(--red)" }}> ⏰ Fora do prazo de referência ({new Date(e.prazo + "T12:00:00").toLocaleDateString("pt-BR")}).</b>}</div>}
                 {s.reg.retorno && <div style={{ fontSize: 13, marginBottom: 6 }}>Último retorno: {s.reg.retorno}</div>}
                 <div className="btn-row">
                   {s.cod === "bloqueada" && <button className="btn secondary" onClick={() => agir(sel, i, "liberar")}>Liberar esta etapa</button>}
@@ -135,6 +135,7 @@ function Situacao({ turma, config }) {
       <div className="panel">
         <div className="panel-head"><h3>Situação da turma — {turma.nome}</h3><button className="btn secondary" onClick={recarregar}>Atualizar</button></div>
         <div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>
+          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", padding: "8px 12px" }}>⏰ = entregue depois do prazo de referência. Os prazos não bloqueiam ninguém: o aluno pode entregar e você apenas é informado.</div>
           <table>
             <thead><tr><th>Aluno</th>{lista.map((e, i) => <th key={e.id} title={e.titulo}>E{i + 1}</th>)}<th></th></tr></thead>
             <tbody>
@@ -143,7 +144,7 @@ function Situacao({ turma, config }) {
                 return (
                   <tr key={a.matricula}>
                     <td>{a.nome || a.matricula}{a.contaTeste ? " (teste)" : ""}</td>
-                    {lista.map((e, i) => { const s = situacaoEtapa(lista, i, r.estado, r.entregas); return <td key={e.id}><span className={"tag-pill " + classe(s.classe)}>{ROT[s.cod]}</span></td>; })}
+                    {lista.map((e, i) => { const s = situacaoEtapa(lista, i, r.estado, r.entregas); const fora = r.entregas && r.entregas[e.id] && e.prazo && entregaEmAtraso(e.prazo, r.entregas[e.id]); return <td key={e.id}><span className={"tag-pill " + classe(s.classe)}>{ROT[s.cod]}</span>{fora && <span title="Entregue fora do prazo de referência" style={{ marginLeft: 4 }}>⏰</span>}</td>; })}
                     <td><button className="btn secondary" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => { setSel(a); setRetorno(""); setMsg(""); }}>Abrir</button></td>
                   </tr>
                 );

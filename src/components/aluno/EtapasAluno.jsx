@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RESERVA_TEXTO, DESCONTO_ATRASO } from "../../lib/avaliacao.js";
+import { RESERVA_TEXTO, entregaEmAtraso } from "../../lib/avaliacao.js";
 import { etapasEfetivas, situacaoEtapa, etapaAtual } from "../../lib/roteiro.js";
 import { Abas, Carregando } from "../shared/AgbUI.jsx";
 
@@ -28,7 +28,7 @@ export default function EtapasAluno({ config, rot, nomeAluno }) {
       {aba === "etapas" ? (
         <>
           <div className="balance-check ok" style={{ marginBottom: 14 }}>Você está na <b>etapa {atual + 1}</b>: {lista[atual].titulo}.</div>
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>Entrega depois do prazo desconta {DESCONTO_ATRASO},0 pontos da nota da etapa (a etapa 1 tem a regra própria de atraso). {RESERVA_TEXTO}</div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>O prazo é uma referência: você pode fazer e entregar depois dele, e o professor será informado. {RESERVA_TEXTO}</div>
           {msg && <div className="no-print" style={{ marginBottom: 10, fontSize: 13.5 }}>{msg}</div>}
           {lista.map((e, i) => {
             const s = situacaoEtapa(lista, i, rot.estado, rot.entregas);
@@ -37,14 +37,14 @@ export default function EtapasAluno({ config, rot, nomeAluno }) {
                 <div className="panel-head"><h3>Etapa {i + 1} · {e.titulo}</h3><span className={"tag-pill " + classe(s.classe)}>{s.rotulo}</span></div>
                 <div className="panel-body">
                   <div>{e.descricao}</div>
-                  <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}><b>Aulas previstas:</b> {e.aulas} · <b>Entrega:</b> {e.entrega} · <b>Prazo:</b> {e.prazo ? fmtData(e.prazo + "T12:00:00") : "a definir pelo professor"}</div>
+                  <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}><b>Aulas previstas:</b> {e.aulas} · <b>Entrega:</b> {e.entrega} · <b>Prazo de referência:</b> {e.prazo ? fmtData(e.prazo + "T12:00:00") : "a definir pelo professor"}</div>
                   {s.reg.retorno && <div style={{ marginTop: 8, padding: "6px 10px", background: "var(--paper)", fontSize: 13 }}><b>Retorno do professor:</b> {s.reg.retorno}</div>}
                   {(s.cod === "liberada" || s.cod === "ajustar") && (
                     <div className="no-print" style={{ marginTop: 10 }}>
                       <button className="btn green" onClick={() => entregar(e.id)}>{s.cod === "ajustar" ? "Reenviar ao professor" : "Marcar como entregue"}</button>
                     </div>
                   )}
-                  {s.cod === "entregue" && <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginTop: 6 }}>Entregue em {fmtData(rot.entregas[e.id])}.</div>}
+                  {s.cod === "entregue" && <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginTop: 6 }}>Entregue em {fmtData(rot.entregas[e.id])}{e.prazo && entregaEmAtraso(e.prazo, rot.entregas[e.id]) ? " (depois do prazo de referência; o professor foi informado)" : ""}.</div>}
                 </div>
               </div>
             );

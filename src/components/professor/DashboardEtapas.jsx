@@ -168,7 +168,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
     const dados = ordem.map((a) => ({ a, por: Object.fromEntries(ETAPAS.map((e) => { if (e.id === "f1") { const x = n1[a.matricula] || {}; return [e.id, { v: x.v === undefined ? null : x.v, fim: !!x.final }]; } const l = linhaDe(a, e); return [e.id, l.final !== null ? { v: l.final, fim: true } : { v: l.parcial, fim: false }]; })) }));
     const medias = dados.map((d) => { const v = ETAPAS.map((e) => d.por[e.id].v).filter((x) => x !== null && x !== undefined); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; });
     const mt = medias.filter((x) => x !== null);
-    const fechadas = ETAPAS.filter((e) => situacaoPrazo(e.id, rotCfg || null).fechada).length;
+    const fechadas = 0; // prazo é só referência: nenhuma etapa fecha
     return (
       <>
         <div className="screen-eyebrow">dashboard do ciclo</div>
@@ -212,8 +212,8 @@ function PainelEtapas({ turma, aba, onSelecionarAluno }) {
       <div className="screen-eyebrow">dashboard do ciclo</div>
       <h2 className="screen-title">Etapa {etapa.n} · {etapa.titulo}</h2>
       <p className="screen-sub">
-        <span className={"tag-pill " + (fechada ? "" : "ok")}>{fechada ? "fechada em " + prazoTxt : "aberta · prazo " + prazoTxt}</span>{" "}
-        {fechada ? "A nota é final depois da sua avaliação; enquanto isso, é a nota parcial com o que o sistema já confere." : "A nota é parcial até o fechamento da etapa."} Turma: {turma.nome}.
+        <span className={"tag-pill " + (fechada ? "" : "ok")}>{sp.vencido ? "aberta · prazo de referência vencido em " + prazoTxt : "aberta · prazo " + prazoTxt}</span>{" "}
+        {fechada ? "A nota é final depois da sua avaliação; enquanto isso, é a nota parcial com o que o sistema já confere." : "A nota é parcial até a sua avaliação."} Turma: {turma.nome}.
       </p>
       <div className="kpi-row">
         <div className="kpi"><div className="kpi-v">{iniciaram} de {linhas.length}</div><div className="kpi-l">alunos que iniciaram</div></div>
