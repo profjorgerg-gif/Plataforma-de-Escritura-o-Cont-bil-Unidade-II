@@ -173,7 +173,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
     const lista = etapasEfetivas(rotCfg || null);
     const SIT = { fim: "Avaliada", aval: "Aguarda você", and: "Em andamento", nao: "Não iniciou", ajus: "Ajustar", bloq: "Bloqueada" };
     const venc = Object.fromEntries(ETAPAS.map((e) => [e.id, !!situacaoPrazo(e.id, rotCfg || null).vencido]));
-    const dados = ordem.map((a) => {
+    const dados = ordem.filter((a) => !a.contaTeste).map((a) => { // a conta de teste do professor não entra na visão geral
       const r = mapa[a.matricula] || { estado: {}, entregas: {} };
       const cels = ETAPAS.map((e) => {
         const i = lista.findIndex((x) => x.id === e.id);
@@ -283,7 +283,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
                 <div className="vg-kv"><span>média</span><b>{med === null ? "—" : fmtNota(Math.round(med * 10) / 10)}</b></div>
                 <div className="vg-kv"><span>aguardam você</span><b>{nCel(i, "aval")}</b></div>
                 <div className="vg-kv"><span>fora do prazo</span><b>{cs.filter((c) => c.fora).length}</b></div>
-                <div className={"vg-prazo mono" + (venc[e.id] ? " venc" : "")}>prazo {fmtPrazo(prazos[e.id])}{venc[e.id] ? " · vencido, segue aberta" : ""}</div>
+                <div className={"vg-prazo mono" + (venc[e.id] ? " venc" : "")}>prazo {fmtPrazo(prazos[e.id])}{venc[e.id] ? " · vencido" : ""}</div>
               </div>
             );
           })}
@@ -328,7 +328,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
             </div>
             <div className="vg-leg">
               {["fim", "aval", "and", "nao", "ajus", "bloq"].map((k) => <span key={k}><i className={"vg-dot vg-s-" + k} />{SIT[k]}</span>)}
-              <span>⏰ entregue fora do prazo de referência</span><span><i>itálico</i> = nota parcial</span>
+              <span>⏰ entregue fora do prazo de referência (etapa vencida segue aberta)</span><span><i>itálico</i> = nota parcial</span>
               <span>% feito: Etapa 1 = documentos concluídos; Etapas 2 a 6 = pontos já conferidos pelo sistema (nota parcial × 10)</span>
             </div>
           </div>

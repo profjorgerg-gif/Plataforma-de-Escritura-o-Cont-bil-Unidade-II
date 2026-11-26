@@ -472,8 +472,8 @@
 .vg-kv b{color:var(--ink);font-weight:500}
 .vg-prazo{font-size:11px;color:var(--ink-faint)}
 .vg-prazo.venc{color:var(--amber)}
-.vg-main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
-.vg-aside{display:flex;flex-direction:column;gap:12px}
+.vg-main{display:block}
+.vg-aside{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px;align-items:start}
 .vg-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .vg-seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .vg-seg button{font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);border:0;border-right:1px solid var(--line);padding:5px 10px;cursor:pointer}
@@ -509,5 +509,5 @@
 .vg-att li:last-child{border-bottom:0}
 .vg-t{display:flex;justify-content:space-between;gap:8px;font-weight:500}
 .vg-d{font-size:12.5px;color:var(--ink-soft)}
-@media (max-width:1000px){.vg-etapas{grid-template-columns:repeat(3,minmax(0,1fr))}.vg-main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1000px){.vg-etapas{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:560px){.vg-etapas{grid-template-columns:repeat(2,minmax(0,1fr))}}
