@@ -44,7 +44,7 @@ function notasDoAluno(etapa, sug, salva) {
   return { vals, parcial, completa, final, cobertura: peso };
 }
 
-export default function DashboardEtapas({ turma, onSelecionarAluno }) {
+export default function DashboardEtapas({ turma, onSelecionarAluno, onIr }) {
   const [aba, setAba] = useState("g1");
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
   const abas = [{ id: "geral", t: "Visão geral", s: "todas as etapas" }, ...GRUPOS_ETAPAS.map((g) => ({ id: g.id, t: g.titulo.split(" · ")[0], s: g.titulo.split(" · ")[1] }))];
@@ -58,12 +58,12 @@ export default function DashboardEtapas({ turma, onSelecionarAluno }) {
           </button>
         ))}
       </div>
-      {aba === "g1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} onIrAba={setAba} />}
+      {aba === "g1" ? <DashboardCiclo turma={turma} onSelecionarAluno={onSelecionarAluno} /> : <PainelEtapas turma={turma} aba={aba} onSelecionarAluno={onSelecionarAluno} onIrAba={setAba} onIr={onIr} />}
     </>
   );
 }
 
-function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
+function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
   const tid = turma.id;
   const alunos = useAlunosDaTurma(tid);
   const ca = useCaTurma(tid);
@@ -83,6 +83,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
   const [ordemVg, setOrdemVg] = useState("nome");
   const [soAtencao, setSoAtencao] = useState(false);
   const [confTodos, setConfTodos] = useState(false);
+  const [focoVg, setFocoVg] = useState(null); // célula "aguarda você" aberta: { m: matrícula, id: etapa }
 
   const pronto = alunos && n1 && mapa && trabCa && trabAgb && lancs && contas && ca.config !== undefined && agb.anterior !== undefined;
   if (!pronto) return <div className="empty-state">Carregando dados dos alunos…</div>;
@@ -191,7 +192,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
         else if (v !== null && v > 0) s = "and";
         else if (sit.cod === "bloqueada") s = "bloq";
         else s = "nao";
-        return { e, s, v, p, fora };
+        return { e, s, v, p, fora, ent };
       });
       const itens = [];
       cels.forEach((c) => {
@@ -290,6 +291,44 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
           })}
         </div>
 
+        {(() => {
+          const fd = focoVg && dados.find((d) => d.a.matricula === focoVg.m);
+          const fc = fd && fd.cels.find((c) => c.e.id === focoVg.id);
+          if (!fc || fc.s !== "aval") return null;
+          const e = fc.e;
+          const ONDE_VER = { fp: ["Notas e avaliação → Conferência da folha (etapa 2)", null], ca: ["Etapa 3 · CA (turma)", "ca-prof"], resc: ["Etapa 4 · Rescisão (turma)", "resc-prof"], agb: ["Etapas 5–6 · AGB (turma)", "agb-prof"], comp: ["Etapas 5–6 · AGB (turma)", "agb-prof"] };
+          const ver = ONDE_VER[e.id];
+          const entTxt = fc.ent ? new Date(fc.ent).toLocaleDateString("pt-BR") : null;
+          return (
+            <div className="panel vg-foco">
+              <div className="panel-head"><h3>{fd.a.nome} · Etapa {e.n} ({ROTULOS[e.id]}) aguarda você</h3><button className="btn secondary" onClick={() => setFocoVg(null)}>Fechar</button></div>
+              <div className="panel-body" style={{ fontSize: 13.5 }}>
+                {entTxt ? <div>Entregue em {entTxt}{fc.fora ? " ⏰ (fora do prazo de referência; sem desconto automático)" : ""}.</div> : <div>O aluno ainda não marcou a entrega, mas a etapa já está em análise.</div>}
+                {e.id === "f1" ? (
+                  <ol className="vg-passos">
+                    <li><b>O que fazer:</b> digitar a qualidade técnica (nota do professor) do aluno. O sistema já calculou completude e autonomia.<br /><b>Onde:</b> Notas e avaliação → Notas · Etapa 1.</li>
+                    <li><b>Depois:</b> marcar a nota como liberada para o aluno ver.</li>
+                  </ol>
+                ) : (
+                  <ol className="vg-passos">
+                    <li><b>1) Conferir o trabalho</b> (o que o sistema não confere: pareceres e interpretações).<br /><b>Onde:</b> {ver ? ver[0] : "Etapa " + e.n}.</li>
+                    <li><b>2) Dar a nota 0 a 10</b> e escrever o retorno. O sistema já sugere a nota dos itens que confere.<br /><b>Onde:</b> Notas e avaliação → Avaliação das etapas (0 a 10) → aba do grupo da Etapa {e.n}.</li>
+                    <li><b>3) Aprovar</b> (libera a próxima) <b>ou pedir ajuste</b> ao aluno.<br /><b>Onde:</b> Etapas, prazos e liberação → Liberar etapas e situação dos alunos → {fd.a.nome.split(" ")[0]}.</li>
+                  </ol>
+                )}
+                <div className="btn-row">
+                  {e.id === "f1"
+                    ? <button className="btn" onClick={() => onIr && onIr("notas")}>Ir para Notas · Etapa 1</button>
+                    : <button className="btn" onClick={() => onIr && onIr("aval-prof")}>Ir para Avaliação das etapas</button>}
+                  {e.id !== "f1" && ver && ver[1] && <button className="btn secondary" onClick={() => onIr && onIr(ver[1])}>Ver o trabalho da turma</button>}
+                  {e.id !== "f1" && <button className="btn secondary" onClick={() => onIr && onIr("roteiro-lib")}>Aprovar ou pedir ajuste</button>}
+                  <button className="btn secondary" onClick={() => irEtapa(e)}>Ver a etapa no dashboard</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="vg-main">
           <div className="panel">
             <div className="panel-head">
@@ -309,12 +348,12 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba }) {
                       <td className="vg-nome"><button className="btn secondary" style={{ padding: "2px 8px" }} onClick={() => onSelecionarAluno && onSelecionarAluno(d.a)}>{d.a.nome}</button></td>
                       {d.cels.map((c) => (
                         <td key={c.e.id}>
-                          <button className={"vg-cell vg-s-" + c.s} onClick={() => irEtapa(c.e)} title={SIT[c.s] + (c.fora ? " · entregue fora do prazo" : "")}>
+                          <button className={"vg-cell vg-s-" + c.s} onClick={() => (c.s === "aval" ? setFocoVg({ m: d.a.matricula, id: c.e.id }) : irEtapa(c.e))} title={c.s === "aval" ? "Aguarda você: clique para ver o que fazer e onde" : SIT[c.s] + (c.fora ? " · entregue fora do prazo" : "")}>
                             {c.s === "bloq" ? <span className="vg-l">Bloqueada</span>
                               : modoVg === "sit" ? <span className="vg-l"><b>{SIT[c.s]}</b>{c.fora ? " ⏰" : ""}</span>
                               : modoVg === "prog" ? <><span className="vg-v mono">{c.p}%{c.fora ? " ⏰" : ""}</span><span className="vg-mini"><i style={{ width: c.p + "%" }} /></span></>
                               : c.s === "nao" ? <><span className="vg-v mono">—</span><span className="vg-l">não iniciou</span></>
-                              : <><span className={"vg-v mono" + (c.s === "fim" ? "" : " parc")}>{dec(c.v)}{c.fora ? " ⏰" : ""}</span><span className="vg-l">{c.s === "fim" ? "avaliada" : c.s === "aval" ? "aguarda você" : c.s === "ajus" ? "ajustar" : "parcial"}</span></>}
+                              : <><span className={"vg-v mono" + (c.s === "fim" ? "" : " parc")}>{dec(c.v)}{c.fora ? " ⏰" : ""}</span><span className="vg-l">{c.s === "fim" ? "avaliada" : c.s === "aval" ? "aguarda você ›" : c.s === "ajus" ? "ajustar" : "parcial"}</span></>}
                           </button>
                         </td>
                       ))}

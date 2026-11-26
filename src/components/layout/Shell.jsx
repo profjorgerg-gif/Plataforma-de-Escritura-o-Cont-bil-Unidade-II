@@ -1028,7 +1028,7 @@ export default function Shell({ usuario, perfil, onSair }) {
           { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
           { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
           { key: "visaoaluno", label: "Como o aluno vê", render: () => <VisaoNotasAluno turma={turmaSelecionada} /> },
-          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} /> },
+          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k) => setScreen(k)} /> },
         ]} />
       );
     }
@@ -1243,7 +1243,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "notas") {
     tela = <Notas turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
-    tela = <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} />;
+    tela = <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k) => setScreen(k)} />;
   } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
