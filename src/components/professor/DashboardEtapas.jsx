@@ -317,10 +317,10 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
                 )}
                 <div className="btn-row">
                   {e.id === "f1"
-                    ? <button className="btn" onClick={() => onIr && onIr("notas")}>Ir para Notas · Etapa 1</button>
-                    : <button className="btn" onClick={() => onIr && onIr("aval-prof")}>Ir para Avaliação das etapas</button>}
-                  {e.id !== "f1" && ver && ver[1] && <button className="btn secondary" onClick={() => onIr && onIr(ver[1])}>Ver o trabalho da turma</button>}
-                  {e.id !== "f1" && <button className="btn secondary" onClick={() => onIr && onIr("roteiro-lib")}>Aprovar ou pedir ajuste</button>}
+                    ? <button className="btn" onClick={() => onIr && onIr("notas", { matricula: fd.a.matricula, etapaId: e.id })}>Ir para Notas · Etapa 1 ({fd.a.nome.split(" ")[0]})</button>
+                    : <button className="btn" onClick={() => onIr && onIr("aval-prof", { matricula: fd.a.matricula, etapaId: e.id })}>Corrigir {fd.a.nome.split(" ")[0]} · Etapa {e.n} agora</button>}
+                  {e.id !== "f1" && ver && ver[1] && <button className="btn secondary" onClick={() => onIr && onIr(ver[1], { matricula: fd.a.matricula, etapaId: e.id })}>Ver o trabalho da turma</button>}
+                  {e.id !== "f1" && <button className="btn secondary" onClick={() => onIr && onIr("roteiro-lib", { matricula: fd.a.matricula, etapaId: e.id })}>Aprovar ou pedir ajuste</button>}
                   <button className="btn secondary" onClick={() => irEtapa(e)}>Ver a etapa no dashboard</button>
                 </div>
               </div>

@@ -44,7 +44,7 @@ function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entrega
     } catch (e) { setMsg("✗ não salvou: " + (e.message || e.code)); }
   }
   return (
-    <div className="panel">
+    <div className="panel" data-aluno={aluno.matricula}>
       <div className="panel-head"><h3>{aluno.nome || aluno.matricula}{aluno.contaTeste ? " (teste)" : ""}{rotulo ? " · " + rotulo : ""}</h3><span className={"tag-pill " + (f ? f.classe : "")}>{fmtNota(nota)}{f ? " · " + f.nome : ""}</span></div>
       <div className="panel-body">
         {!etapa.semAtraso && (
@@ -79,9 +79,12 @@ function Linha({ rotulo, turmaId, aluno, etapa, salva, sugestoes, prazo, entrega
   );
 }
 
-export default function AvaliacaoProfessor({ turma }) {
+export default function AvaliacaoProfessor({ turma, foco }) {
   const tid = turma ? turma.id : null;
-  const [grupoId, setGrupoId] = useState("g23");
+  // foco = { matricula, etapaId }: vindo do Dashboard ("aguarda você"), abre direto o aluno e a etapa a corrigir.
+  const grupoDoFoco = foco && foco.etapaId ? (GRUPOS_ETAPAS.find((g) => g.etapas.includes(foco.etapaId)) || {}).id : null;
+  const [grupoId, setGrupoId] = useState(grupoDoFoco || "g23");
+  const [soFoco, setSoFoco] = useState(!!(foco && foco.matricula && foco.etapaId));
   const alunos = useAlunosDaTurma(tid);
   const { mapa, recarregar } = useRoteiroDosAlunos(tid, alunos);
   const ca = useCaTurma(tid);
@@ -95,7 +98,9 @@ export default function AvaliacaoProfessor({ turma }) {
   const precisaLanc = grupo.etapas.some((id) => ["ca", "resc", "agb"].includes(id));
   const lancs = useLancamentosDaTurma(tid, alunos, precisaLanc);
   if (!turma) return <div className="empty-state">Crie ou selecione uma turma em "Turmas" primeiro.</div>;
-  const ordem = (alunos || []).filter((a) => !a.contaTeste).concat((alunos || []).filter((a) => a.contaTeste));
+  const todosOrdem = (alunos || []).filter((a) => !a.contaTeste).concat((alunos || []).filter((a) => a.contaTeste));
+  const ordem = soFoco ? todosOrdem.filter((a) => a.matricula === foco.matricula) : todosOrdem;
+  const focoNome = soFoco ? ((todosOrdem.find((a) => a.matricula === foco.matricula) || {}).nome || "") : "";
   const ids = ((ca.config && ca.config.empregados) || []).map((e) => e.id);
   const prazoDe = (id) => (etapasEfetivas(rotCfg || null).find((e) => e.id === id) || {}).prazo || "";
 
@@ -116,15 +121,21 @@ export default function AvaliacaoProfessor({ turma }) {
       <div className="screen-eyebrow">avaliação</div>
       <h2 className="screen-title">Avaliação das etapas (0,0 a 10,0)</h2>
       <p className="screen-sub">O sistema sugere a nota de cada critério que consegue conferir. Você revisa, ajusta e escreve o retorno. O prazo é só referência: entrega fora do prazo é apenas sinalizada, sem desconto automático (se quiser, marque o desconto de {DESCONTO_ATRASO},0 pontos). O aluno só vê depois que você marcar para mostrar. Não há média entre as etapas.</p>
+      {soFoco && (
+        <div className="balance-check ok" style={{ marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span>Corrigindo agora: <b>{focoNome}</b> · <b>{(etapaPorId(foco.etapaId) || {}).titulo || foco.etapaId}</b>. Dê as notas, escreva o retorno e salve.</span>
+          <button className="btn secondary" onClick={() => setSoFoco(false)}>Ver todos os alunos</button>
+        </div>
+      )}
       <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }} role="tablist">
-        {GRUPOS_ETAPAS.map((g) => <button key={g.id} role="tab" aria-selected={g.id === grupo.id} className={"btn " + (g.id === grupo.id ? "" : "secondary")} onClick={() => setGrupoId(g.id)}>{g.titulo}</button>)}
+        {GRUPOS_ETAPAS.map((g) => <button key={g.id} role="tab" aria-selected={g.id === grupo.id} className={"btn " + (g.id === grupo.id ? "" : "secondary")} onClick={() => { setGrupoId(g.id); setSoFoco(false); }}>{g.titulo}</button>)}
       </div>
       {grupo.etapas.some((id) => etapaPorId(id).semAtraso) && <div className="balance-check ok" style={{ marginBottom: 12 }}>Etapa 1: digite a nota que aparece na tela Notas. Ela já traz o desconto por atraso daquela tela; por isso aqui não há desconto de {DESCONTO_ATRASO},0 pontos.</div>}
       <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 10 }}>As sugestões automáticas conferem os números digitados pelo aluno. Pareceres e interpretações só recebem sugestão pelo preenchimento; a qualidade do texto é avaliação sua.{grupo.etapas.length > 1 ? " Cada aluno aparece uma vez por etapa do grupo, uma abaixo da outra." : ""}</div>
       {!pronto ? <div className="empty-state">Carregando dados dos alunos…</div> : ordem.map((a) => {
         const av = (mapa[a.matricula] || {});
         const ent = av.entregas || {};
-        return grupo.etapas.map((etapaId) => {
+        return grupo.etapas.filter((id) => !soFoco || id === foco.etapaId).map((etapaId) => {
           const etapa = etapaPorId(etapaId);
           return (
             <Linha key={etapaId + a.matricula + JSON.stringify((av.avaliacoes || {})[etapaId] || {})} turmaId={turma.id} aluno={a} etapa={etapa} rotulo={grupo.etapas.length > 1 ? etapa.titulo : ""}

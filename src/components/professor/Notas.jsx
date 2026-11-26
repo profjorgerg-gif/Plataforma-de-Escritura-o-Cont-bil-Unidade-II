@@ -177,7 +177,7 @@ export default function Notas({ turma }) {
                 };
                 return (
                   <Fragment key={a.matricula}>
-                  <tr>
+                  <tr data-aluno={a.matricula}>
                     <td>{a.nome}</td>
                     <td><span className="mono">{fmtData(prazo)}</span>{a.prazoIndividual && <span className="tag-pill" style={{ marginLeft: 6 }}>individual</span>}</td>
                     <td className="mono">{fmtData(a.dataEntrega)}</td>

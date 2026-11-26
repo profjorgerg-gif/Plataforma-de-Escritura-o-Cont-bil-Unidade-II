@@ -142,7 +142,7 @@ function Situacao({ turma, config }) {
               {ordem.map((a) => {
                 const r = mapa[a.matricula] || { estado: {}, entregas: {} };
                 return (
-                  <tr key={a.matricula}>
+                  <tr key={a.matricula} data-aluno={a.matricula}>
                     <td>{a.nome || a.matricula}{a.contaTeste ? " (teste)" : ""}</td>
                     {lista.map((e, i) => { const s = situacaoEtapa(lista, i, r.estado, r.entregas); const fora = r.entregas && r.entregas[e.id] && e.prazo && entregaEmAtraso(e.prazo, r.entregas[e.id]); return <td key={e.id}><span className={"tag-pill " + classe(s.classe)}>{ROT[s.cod]}</span>{fora && <span title="Entregue fora do prazo de referência" style={{ marginLeft: 4 }}>⏰</span>}</td>; })}
                     <td><button className="btn secondary" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => { setSel(a); setRetorno(""); setMsg(""); }}>Abrir</button></td>

@@ -750,6 +750,18 @@ export default function Shell({ usuario, perfil, onSair }) {
     setPilhaTelas((p) => [...p, screen].slice(-30));
     setScreenRaw(nova);
   }
+  // Foco vindo do Dashboard (aluno + etapa): rola até a linha ou o quadro do aluno e destaca por alguns segundos.
+  useEffect(() => {
+    if (!foco || !foco.matricula) return undefined;
+    let tent = 0;
+    const t = setInterval(() => {
+      tent++;
+      const el = document.querySelector('[data-aluno="' + String(foco.matricula).replace(/"/g, "") + '"]');
+      if (el) { clearInterval(t); el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("vg-realce"); setTimeout(() => el.classList.remove("vg-realce"), 4000); }
+      else if (tent > 25) clearInterval(t);
+    }, 300);
+    return () => clearInterval(t);
+  }, [foco]);
   function irComFoco(tela, f) {
     if (mesaLigada()) { mesa.abrir(tela, { tela, ...f }); return; }
     setScreen(tela); setFoco({ tela, ...f });
@@ -1025,10 +1037,10 @@ export default function Shell({ usuario, perfil, onSair }) {
       return (
         <TelaComAbas key={screen} inicial={aba || "etapa1"} abas={[
           { key: "etapa1", label: "Notas · Etapa 1", render: () => <Notas turma={turmaSelecionada} /> },
-          { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor turma={turmaSelecionada} /> },
+          { key: "etapas", label: "Avaliação das etapas (0 a 10)", render: () => <AvaliacaoProfessor key={foco && foco.matricula ? "f" + foco.matricula + foco.etapaId : "todos"} turma={turmaSelecionada} foco={foco && foco.tela === "aval-prof" ? foco : null} /> },
           { key: "folha", label: "Conferência da folha (etapa 2)", render: () => <ConferenciaFolha turma={turmaSelecionada} /> },
           { key: "visaoaluno", label: "Como o aluno vê", render: () => <VisaoNotasAluno turma={turmaSelecionada} /> },
-          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k) => setScreen(k)} /> },
+          { key: "dashboard", label: "Dashboard do ciclo", render: () => <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k, f) => (f ? irComFoco(k, f) : setScreen(k))} /> },
         ]} />
       );
     }
@@ -1243,7 +1255,7 @@ export default function Shell({ usuario, perfil, onSair }) {
   } else if (ehProfessorOuAdmin && screen === "notas") {
     tela = <Notas turma={turmaSelecionada} />;
   } else if (ehProfessorOuAdmin && screen === "dashboard-ciclo") {
-    tela = <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k) => setScreen(k)} />;
+    tela = <DashboardEtapas turma={turmaSelecionada} onSelecionarAluno={selecionarAlunoEVerHistorico} onIr={(k, f) => (f ? irComFoco(k, f) : setScreen(k))} />;
   } else if (ehProfessorOuAdmin && screen === "turmas") {
     tela = (
       <Turmas
