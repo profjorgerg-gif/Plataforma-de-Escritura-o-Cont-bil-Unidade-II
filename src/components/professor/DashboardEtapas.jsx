@@ -25,7 +25,6 @@ import { useRoteiroTurma, useRoteiroDosAlunos, useLancamentosDaTurma } from "../
 const ETAPAS = ETAPAS_BASE.map((e, i) => ({ ...e, n: i + 1 }));
 const ROTULOS = { f1: "Escrituração", fp: "Folha de pagamento", ca: "Folha, provisões e contabilização", resc: "Rescisão trabalhista", agb: "Análise gerencial de balanços", comp: "Análise comparativa" };
 
-const CURTOS = { f1: "Escrituração", fp: "Folha de pagamento", ca: "Folha, provisões e contab.", resc: "Rescisão", agb: "Análise de balanços", comp: "Análise comparativa" };
 const dec = (v) => (v === null || v === undefined ? "—" : fmtNota(v));
 
 // Nota parcial: média dos critérios que já têm nota (a avaliação salva vale mais que a sugestão automática).
@@ -341,7 +340,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
             </div>
             <div className="panel-body" style={{ padding: 0, overflowX: "auto" }}>
               <table className="vg-tab">
-                <thead><tr><th>Aluno</th>{ETAPAS.map((e) => <th key={e.id} className="c vg-th" title={ROTULOS[e.id]}>E{e.n}<span className="vg-thn">{CURTOS[e.id]}</span>{fmtPrazo(prazos[e.id])}</th>)}<th className="c">Média</th><th className="c">Atenção</th><th></th></tr></thead>
+                <thead><tr><th>Aluno</th>{ETAPAS.map((e) => <th key={e.id} className="c" title={ROTULOS[e.id]}>E{e.n}<br />{fmtPrazo(prazos[e.id])}</th>)}<th className="c">Média</th><th className="c">Atenção</th><th></th></tr></thead>
                 <tbody>
                   {linhas.map((d) => (
                     <tr key={d.a.matricula}>
