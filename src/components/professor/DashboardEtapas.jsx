@@ -169,6 +169,13 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
   );
   const aviso = msg && <div className="balance-check ok" style={{ marginBottom: 12 }}>{msg}</div>;
 
+  // Sem o período anterior da turma, o aluno não consegue fazer a análise horizontal (Etapa 5). Chamado 0088 (27/11/2026).
+  const avisoAnterior = agb && agb.anterior === null ? (
+    <div className="balance-check bad" style={{ marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <span><b>Período anterior da turma não cadastrado.</b> Na Etapa 5 os alunos veem "o professor ainda não cadastrou o período anterior" e não conseguem fazer a análise horizontal (AH) nem interpretá-la.</span>
+      <button className="btn" onClick={() => onIr && onIr("agb-prof")}>Cadastrar agora (Gerar período anterior)</button>
+    </div>
+  ) : null;
   if (aba === "geral") {
     // Visão geral completa (modelo aprovado em 25/11/2026): situação, nota, % e aviso de entrega fora do prazo, por aluno e etapa.
     const lista = etapasEfetivas(rotCfg || null);
@@ -266,6 +273,7 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
         <h2 className="screen-title">Visão geral — todas as etapas</h2>
         <p className="screen-sub">{turma.nome}. Quem está onde, quem precisa de você e o que passou do prazo de referência. Clique em uma célula para abrir a aba da etapa.</p>
         {aviso}
+        {avisoAnterior}
         {painelOrient}
 
         <div className="vg-etapas">
@@ -461,5 +469,5 @@ function PainelEtapas({ turma, aba, onSelecionarAluno, onIrAba, onIr }) {
     </>
   );
   };
-  return <>{aviso}{painelOrient}{grupo.etapas.map((id) => <div key={id}>{renderEtapa(ETAPAS.find((e) => e.id === id))}</div>)}</>;
+  return <>{aviso}{grupo.etapas.includes("agb") && avisoAnterior}{painelOrient}{grupo.etapas.map((id) => <div key={id}>{renderEtapa(ETAPAS.find((e) => e.id === id))}</div>)}</>;
 }
