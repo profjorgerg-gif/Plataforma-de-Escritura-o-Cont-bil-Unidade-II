@@ -141,6 +141,20 @@ function doc1(){
   const f=c=>`<td><span class="m" style="background:var(${COR[c][0]});color:var(${COR[c][1]})">${COR[c][2]}</span></td>`;
   return `<div class="card"><h3>Etapa 1 · Entrada × Saída por documento</h3><p class="small soft">Do Dashboard do ciclo atual: para cada documento liberado, as 4 fases da Etapa 1 (exemplo de um aluno).</p><div class="tw"><table><thead><tr><th>Documento</th><th>Digitação</th><th>Análise fiscal</th><th>Classificação</th><th>Lançamento</th></tr></thead><tbody>${D.map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(f).join('')}</tr>`).join('')}</tbody></table></div></div>`;
 }
+// ---------- Corrigir: fila com correção exata ----------
+const fl={sel:null,msg:''};
+const FILA=[['Aluno B','Etapa 4 · Incidências','aguarda você'],['Aluno E','Etapa 1 · Balanço patrimonial','aguarda você'],['Aluno C','Etapa 3 · Folha do mês','entregue ⏰']];
+function fila(){
+  let h=`<div class="card">${FILA.map((r,i)=>`<div class="row"><span><b>${r[0]}</b> · ${r[1]} ${pill('warn',r[2])}</span><button class="btn" data-fl="sel:${i}">Corrigir agora</button></div>`).join('')}<p class="small soft" style="margin-top:8px">Hoje a correção está espalhada entre Fila, Avaliação das etapas, Notas e Dashboard. Aqui é uma só fila.</p></div>`;
+  if(fl.msg)h+=`<div class="aviso" style="background:var(--ok-bg);color:var(--ok)">${fl.msg}</div>`;
+  if(fl.sel!==null){const r=FILA[fl.sel];
+    h+=`<div class="card hero"><h3>${r[0]} · ${r[1]}</h3><div class="cmp">
+      <div class="card"><h3>O que o aluno entregou</h3><p class="small">Lançamento: D Despesa com Salários 4.500,00 · C Salários a Pagar 3.920,00 · C INSS a Recolher 580,00</p><p class="small soft">Enviado em 24/11 ⏰ (prazo de referência 18/11)</p></div>
+      <div class="card"><h3>Conferência automática</h3><p class="small">${pill('ok','Partidas dobradas fecham')} ${pill('warn','INSS difere do gabarito em 12,40')}</p></div></div>
+      <label class="small soft">Nota</label> <input value="8,0" style="width:70px"> <label class="small soft">Retorno ao aluno</label><br><textarea rows="2" style="width:100%;margin:4px 0">Revise o INSS: use a tabela progressiva da Etapa 3.</textarea>
+      <div class="row" style="border:0"><span><label class="small"><input type="checkbox"> Descontar atraso (opcional)</label></span><span><button class="btn" data-fl="ok">Salvar nota e aprovar</button> <button class="btn sec" data-fl="aj">Pedir ajuste</button></span></div></div>`;}
+  return h;
+}
 function prof(){
   const t=tela.prof;
   let side=`<div class="side"><div class="id">Prof. Jorge · Turma 2026.2</div>`;
@@ -164,11 +178,11 @@ function prof(){
     else if(x.a==='aluno')m+=`<div class="card"><h3>Histórico do aluno</h3><p class="small soft">Escolha um aluno: entregas, retornos, orientações enviadas e chamados num só lugar (hoje: Alunos › Histórico, Registro e Relatório).</p></div>`;
     else m+=`<div class="card"><h3>Uma etapa, todos os alunos</h3><p class="small soft">Hoje ficam em "Etapa 1", "Etapas 2–3", "Etapa 4" e "Etapas 5–6". Todas com o mesmo formato: Alunos · Gabarito · Material.</p></div>`;
   }else if(t==='corrigir'){
-    const x=abas('corrigir',[['fila','Fila'],['aval','Avaliação das etapas'],['notas','Notas'],['suporte','Suporte']]);
+    const x=abas('corrigir',[['fila','Fila de correção'],['notas','Notas por etapa'],['suporte','Suporte']]);
     m=`<h2>Corrigir</h2>${x.html}`;
-    if(x.a==='fila'||x.a==='aval')m+=`<div class="card">${[['Aluno B','Etapa 4 · Incidências','aguarda você'],['Aluno E','Etapa 1 · Balanço patrimonial','aguarda você'],['Aluno C','Etapa 3 · Folha do mês','entregue ⏰']].map(r=>`<div class="row"><span><b>${r[0]}</b> · ${r[1]} ${pill('warn',r[2])}</span><button class="btn">Corrigir agora</button></div>`).join('')}<p class="small soft" style="margin-top:8px">Um botão leva direto ao aluno e à etapa exata, sem passar por outras telas. Fila, avaliação e notas ficam na mesma tela, em abas.</p></div>`;
-    else if(x.a==='notas')m+=`<div class="card"><p>Notas da Etapa 1 e das etapas 2 a 6 juntas, uma coluna por etapa.</p></div>`;
-    else m+=`<div class="card"><p>2 chamados abertos. Responder, orientar e marcar como resolvido.</p></div>`;
+    if(x.a==='fila')m+=fila();
+    else if(x.a==='notas')m+=`<div class="card tw"><p class="small soft">Notas da Etapa 1 e das etapas 2 a 6 na mesma tabela (exemplo). Editar a nota abre a mesma correção.</p><table><thead><tr><th>Aluno</th>${ETAPAS.map(e=>`<th>E${e.n}</th>`).join('')}<th>Média</th></tr></thead><tbody>${[['Aluno A','8,5','9,0','—','—','—','—','8,8'],['Aluno B','7,0','8,0','—','ajustar','—','—','7,5'],['Aluno C','9,0','9,5','—','—','—','—','9,3']].map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(c=>`<td>${c==='ajustar'?pill('warn','Ajustar'):c}</td>`).join('')}</tr>`).join('')}</tbody></table><p class="small soft" style="margin-top:8px">⏰ Entrega depois do prazo de referência é só sinalizada; o desconto é opcional e fica a seu critério.</p></div>`;
+    else m+=`<div class="card"><h3>Chamados</h3>${[['0091','Aluno C','Dúvida no INSS da Etapa 3','novo'],['0092','Aluno A','Não encontro o período anterior','novo'],['0088','Aluno B','Análise horizontal sem período anterior','resolvido']].map(r=>`<div class="row"><span>#${r[0]} · <b>${r[1]}</b> · ${r[2]} ${pill(r[3]==='novo'?'bad':'ok',r[3])}</span><button class="btn sec">${r[3]==='novo'?'Responder':'Ver'}</button></div>`).join('')}<p class="small soft" style="margin-top:8px">Responder inclui "Enviar orientação" pelo próprio sistema, com modelos de mensagem.</p></div>`;
   }else if(t==='planejar'){
     const x=abas('planejar',[['etapas','Etapas e prazos'],['lib','Liberação'],['turmas','Turmas'],['crono','Cronograma'],['dir','Diretriz da semana']]);
     m=`<h2>Planejar</h2>${x.html}`;
@@ -179,8 +193,14 @@ function prof(){
       <p class="small soft">Mudanças: "Prazo e pontualidade" (prazo e penalidade da Etapa 1) sai de Turmas e vai para <b>Etapas e prazos</b>, a única fonte de prazos, com a penalidade como opção. "Manutenção do primeiro acesso" vai para <b>Materiais e manutenção</b>. "Ver como o aluno" passa a ser um botão na lista de alunos.</p>`;
     else m+=`<div class="card"><p class="soft small">Aba "${x.a}": mesmo conteúdo de hoje, agora dentro de Planejar.</p></div>`;
   }else{
-    m=`<h2>Materiais e manutenção</h2><p class="soft small">Fora do caminho do dia a dia.</p><div class="grid">
-    ${[['🖨 Cadernos','PI, Escrituração, Folha, RCT, AGB, AP, cabeçalhos, planos, descrições'],['📒 Guias e tabelas','Guia de lançamentos, Plano de contas, INSS/IRRF, manuais'],['✉ Modelos de mensagem','Orientações prontas'],['🧪 Laboratório 2027.1','Protótipo só do professor'],['⚠ Manutenção','Modo de teste, refazer nota do aluno']].map(c=>`<div class="card"><h3>${c[0]}</h3><p class="small soft">${c[1]}</p></div>`).join('')}</div>`;
+    const x=abas('materiais',[['cad','Cadernos'],['guias','Guias e tabelas'],['msg','Modelos de mensagem'],['man','Manutenção'],['lab','Laboratório 2027.1']]);
+    m=`<h2>Materiais e manutenção</h2><p class="soft small">Fora do caminho do dia a dia.</p>${x.html}`;
+    const lista=(a)=>`<div class="card">${a.map(r=>`<div class="row"><span>${r[0]} ${r[1]?`<span class="soft small">${r[1]}</span>`:''}</span><button class="btn sec">${r[2]||'Abrir'}</button></div>`).join('')}</div>`;
+    if(x.a==='cad')m+=lista([['Caderno PI','', 'Imprimir'],['Caderno da Escrituração','','Imprimir'],['Caderno da Folha','','Imprimir'],['Caderno da RCT','','Imprimir'],['Caderno AGB','','Imprimir'],['Caderno AP','','Imprimir'],['Cabeçalho dos cadernos','imagem oficial CEDUP/SC'],['Planos semestrais','','Imprimir'],['Descrições para a escola','','Imprimir']]);
+    else if(x.a==='guias')m+=lista([['Guia de lançamentos','Etapa 1 e etapas 2–6'],['Plano de contas',''],['Consulta CFOP/NCM',''],['Tabelas INSS e IRRF',''],['Manual do professor · do aluno · de operação',''],['Roteiro do Aluno','']]);
+    else if(x.a==='msg')m+=lista([['Modelos de mensagens','orientações prontas por etapa e por situação']]);
+    else if(x.a==='man')m+=`<div class="aviso">⚠ Estas ações mexem nos dados. Ficam aqui, longe do trabalho diário.</div>`+lista([['Modo de teste',''],['Refazer nota do aluno','mexe nos dados'],['Primeiro acesso dos alunos','sincronizar matrículas (hoje em Turmas)'],['Roteiro de testes','']]);
+    else m+=lista([['Laboratório 2027.1','órgão fiscal didático e esta aba de protótipos']]);
   }
   return `<div class="app">${side}<div class="main">${m}</div></div>`;
 }
@@ -206,7 +226,11 @@ function render(){
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.vg){const v=b.dataset.vg;
+  if(b.dataset.fl){const v=b.dataset.fl;
+    if(v.startsWith('sel:')){fl.sel=+v.slice(4);fl.msg='';}
+    else if(v==='ok'){fl.msg='Nota salva e etapa aprovada (exemplo). O aluno vê a nota e o retorno.';fl.sel=null;}
+    else if(v==='aj'){fl.msg='Pedido de ajuste enviado ao aluno (exemplo).';fl.sel=null;}}
+  else if(b.dataset.vg){const v=b.dataset.vg;
     if(v==='so')vg.so=!vg.so;else if(v==='ord')vg.ord=vg.ord==='atencao'?'nome':'atencao';
     else if(v==='ot'){vg.conf=true;vg.msg='';}else if(v==='ot-no')vg.conf=false;
     else if(v==='ot-ok'){vg.conf=false;vg.msg='Orientações enviadas (exemplo): cada aluno recebe o que falta em cada etapa.';}
