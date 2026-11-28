@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protótipo de navegação PI</title>
+
+<style>
+/* Layout: seletor Aluno/Professor no topo; abaixo, o menu proposto à esquerda e a tela à direita; aba "Mapa" mostra onde foi cada tela atual. */
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2733;--soft:#5d6b7a;--line:#dde2e8;--brand:#0f4c81;--brand-bg:#e6eff8;--ok:#1d7a46;--ok-bg:#e3f4ea;--warn:#a35c00;--warn-bg:#fff1dc;--bad:#b3261e;--bad-bg:#fde7e5;--gray-bg:#eceff3;--side:#0f2a43;--side-ink:#dbe7f3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--card:#18212b;--ink:#e6ecf2;--soft:#9aa9b8;--line:#2a3643;--brand:#6db1f0;--brand-bg:#1c3144;--ok:#5fcf8b;--ok-bg:#16301f;--warn:#f0b35c;--warn-bg:#3a2a10;--bad:#ff8a80;--bad-bg:#3b1815;--gray-bg:#222d39;--side:#0b1520;--side-ink:#c9d8e6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10161d;--card:#18212b;--ink:#e6ecf2;--soft:#9aa9b8;--line:#2a3643;--brand:#6db1f0;--brand-bg:#1c3144;--ok:#5fcf8b;--ok-bg:#16301f;--warn:#f0b35c;--warn-bg:#3a2a10;--bad:#ff8a80;--bad-bg:#3b1815;--gray-bg:#222d39;--side:#0b1520;--side-ink:#c9d8e6;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 Inter,system-ui,Segoe UI,Arial,sans-serif;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:19px;margin:0 0 2px}h2{font-size:17px;margin:0 0 6px}h3{font-size:14px;margin:0 0 6px}
+p{margin:0 0 8px}.soft{color:var(--soft)}.small{font-size:12.5px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button,.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit}
+.seg button.on,.tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.aviso{background:var(--warn-bg);color:var(--warn);border:1px solid var(--line);padding:8px 12px;border-radius:6px;margin-bottom:10px;font-size:13px}
+.app{display:grid;grid-template-columns:230px minmax(0,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card);min-height:520px}
+@media(max-width:720px){.app{grid-template-columns:1fr}}
+.side{background:var(--side);color:var(--side-ink);padding:10px 8px}
+.side .id{font-size:12px;opacity:.75;padding:4px 8px 10px}
+.mi{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;padding:8px 10px;border-radius:6px;cursor:pointer;font:inherit}
+.mi:hover{background:rgba(255,255,255,.08)}.mi.on{background:rgba(255,255,255,.18);font-weight:600}
+.mi .b{float:right;background:var(--bad);color:#fff;border-radius:9px;padding:0 7px;font-size:11.5px}
+.sub{margin:2px 0 6px 12px;border-left:1px solid rgba(255,255,255,.2)}
+.sub .mi{padding:5px 10px;font-size:13px}
+.main{padding:16px;min-width:0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 12px}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--card)}
+.hero{background:var(--brand-bg);border-color:transparent}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font:inherit}
+.btn.sec{background:var(--card);color:var(--brand);border:1px solid var(--brand)}
+.pill{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)}.p-warn{background:var(--warn-bg);color:var(--warn)}.p-bad{background:var(--bad-bg);color:var(--bad)}.p-gray{background:var(--gray-bg);color:var(--soft)}.p-brand{background:var(--brand-bg);color:var(--brand)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
+.num{font-size:26px;font-weight:700;line-height:1.1}
+.step{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+.dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:none}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.cmp ul{margin:0;padding-left:18px}.cmp li{margin:2px 0}
+.x{color:var(--bad)}.g{color:var(--ok)}
+.m{width:26px;height:20px;border-radius:4px;display:inline-block;text-align:center;font-size:11px;line-height:20px}
+</style>
+
+<div class="top">
+  <div><h1>Protótipo de navegação · Projeto Interdisciplinar</h1><div class="soft small">Modelo clicável, com dados de exemplo. Nada disto está no sistema: os alunos da turma atual continuam com o menu de hoje.</div></div>
+  <div class="seg" id="papel"><button data-p="aluno" class="on">Aluno</button><button data-p="prof">Professor</button></div>
+</div>
+<div class="tabs" id="modo"><button class="tab on" data-m="prop">Proposta (clique nas telas)</button><button class="tab" data-m="hoje">Como é hoje</button><button class="tab" data-m="mapa">Onde foi cada tela</button></div>
+<div id="corpo"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const pill=(c,t)=>`<span class="pill p-${c}">${t}</span>`;
+let papel='aluno',modo='prop',tela={aluno:'inicio',prof:'hoje'},aba={},aberta='e3';
+
+// ---------- ALUNO ----------
+const ETAPAS=[
+ {id:'e1',n:1,t:'Escrituração',d:'CI',st:['ok','Aprovada'],nota:'8,5',ret:'Parabéns, balancete fechou.',itens:['Empresa didática','Documentos fiscais','Digitação e análise fiscal','Classificação contábil','Livro diário','Livro razão','Balancete','ARE','DRE','Balanço patrimonial'],feito:10},
+ {id:'e2',n:2,t:'Folha de pagamento',d:'CA',st:['ok','Aprovada'],nota:'9,0',ret:'—',itens:['Atividade · Elaborar a folha'],feito:1},
+ {id:'e3',n:3,t:'Folha, provisões e contabilização',d:'CA',st:['brand','Em andamento'],nota:'—',ret:'—',itens:['Folha do mês','Provisões e encargos','Contabilização','Efeitos nas demonstrações','Parecer técnico'],feito:1},
+ {id:'e4',n:4,t:'Rescisão trabalhista',d:'CA',st:['warn','Ajustar'],nota:'—',ret:'Revise o cálculo do aviso prévio (Incidências).',itens:['Caso e direitos','Cálculo das verbas','Incidências','Contabilização','Documentos e prazos','Conferência final'],feito:3},
+ {id:'e5',n:5,t:'Análise gerencial de balanços',d:'AGB',st:['gray','Bloqueada'],nota:'—',ret:'—',itens:['Análise vertical e horizontal','Indicadores','Capital de giro','Parecer e relatório final'],feito:0},
+ {id:'e6',n:6,t:'Análise comparativa',d:'AGB',st:['gray','Bloqueada'],nota:'—',ret:'—',itens:['Exercícios comparativos','Comparativo entre empresas'],feito:0},
+];
+const MENU_ALUNO=[['inicio','🏠 Início'],['etapas','📚 Minhas etapas'],['notas','📝 Notas e retornos'],['ajuda','❓ Ajuda']];
+
+function aluno(){
+  const t=tela.aluno;
+  let side=`<div class="side"><div class="id">Aluno(a) exemplo · Turma 2026.2</div>`;
+  MENU_ALUNO.forEach(([k,l])=>{side+=`<button class="mi ${t===k?'on':''}" data-t="${k}">${l}</button>`;
+    if(k==='etapas'&&t==='etapas'){side+='<div class="sub">'+ETAPAS.map(e=>`<button class="mi ${aberta===e.id?'on':''}" data-e="${e.id}">${e.n} · ${e.t.split(',')[0]}</button>`).join('')+'</div>'}});
+  side+='</div>';
+  let m='';
+  if(t==='inicio'){
+    const e=ETAPAS[2];
+    m=`<h2>Olá! Veja onde você está</h2>
+    <div class="card hero"><div class="small soft">Etapa atual</div><h3>Etapa 3 · ${e.t} (CA)</h3>
+      <p>Próximo passo: <b>Provisões e encargos</b> · você já fez 1 de 5 telas desta etapa.</p>
+      <button class="btn" data-go="etapas">Continuar de onde parei</button></div>
+    <div class="card"><h3>Precisa da sua atenção</h3>
+      <div class="row"><span>Etapa 4 · Rescisão: o professor pediu ajuste</span><button class="btn sec" data-go="etapas" data-e="e4">Ver o retorno</button></div></div>
+    <div class="card"><h3>As 6 etapas</h3>${ETAPAS.map(x=>`<div class="row"><span>${x.n} · ${x.t} <span class="soft small">(${x.d})</span></span>${pill(...x.st)}</div>`).join('')}
+    <p class="small soft" style="margin-top:8px">Prazo de referência da Etapa 3: 18/12 (só referência: você pode entregar depois e o professor é apenas avisado).</p></div>`;
+  }else if(t==='etapas'){
+    const e=ETAPAS.find(x=>x.id===aberta);
+    const bloq=e.st[1]==='Bloqueada';
+    m=`<h2>Etapa ${e.n} · ${e.t}</h2><p class="soft small">${e.d} · ${pill(...e.st)} · ${e.feito} de ${e.itens.length} telas feitas</p>`;
+    if(bloq)m+=`<div class="card"><b>Etapa ainda não liberada.</b><br>O professor libera quando a turma chegar aqui. Você será avisado no Início.</div>`;
+    else{
+      m+=`<div class="card">`+e.itens.map((n,i)=>{const f=i<e.feito,p=i===e.feito;return `<div class="step"><span class="dot" style="background:var(${f?'--ok-bg':p?'--brand-bg':'--gray-bg'});color:var(${f?'--ok':p?'--brand':'--soft'})">${f?'✓':i+1}</span><span style="flex:1">${n}</span>${f?pill('ok','Feita'):p?'<button class="btn">Abrir agora</button>':pill('gray','Depois')}</div>`}).join('')+`</div>`;
+      if(e.ret!=='—')m+=`<div class="card"><h3>Retorno do professor</h3><p>${e.ret}</p></div>`;
+    }
+    m+=`<p class="small soft">Dica: as etapas ficam sempre aqui. Cada etapa mostra as telas na ordem e qual é a próxima.</p>`;
+  }else if(t==='notas'){
+    m=`<h2>Notas e retornos</h2><p class="soft small">Todas as notas num só lugar, inclusive a da Etapa 1 (antes ficava em "Minha nota").</p>
+    <div class="card tw"><table><thead><tr><th>Etapa</th><th>Situação</th><th>Nota</th><th>Retorno do professor</th></tr></thead><tbody>${ETAPAS.map(e=>`<tr><td>${e.n} · ${e.t}</td><td>${pill(...e.st)}</td><td>${e.nota}</td><td>${e.ret}</td></tr>`).join('')}</tbody></table></div>
+    <div class="card"><h3>Meu progresso</h3><div style="background:var(--gray-bg);border-radius:6px;height:12px"><div style="width:38%;height:12px;border-radius:6px;background:var(--brand)"></div></div><p class="small soft" style="margin-top:6px">15 de 28 telas concluídas · 2 etapas aprovadas</p></div>`;
+  }else{
+    m=`<h2>Ajuda</h2><p class="soft small">Tudo o que serve de consulta em qualquer etapa.</p><div class="grid">
+    ${[['📒 Guia de lançamentos','Como lançar cada operação'],['📊 Tabelas','Plano de contas, CFOP/NCM, INSS e IRRF'],['📘 Manual do aluno','Como usar a plataforma'],['💬 Suporte','Fale com o professor','2 novas']].map(c=>`<div class="card"><h3>${c[0]}</h3><p class="small soft">${c[1]}</p>${c[2]?pill('bad',c[2]):''}</div>`).join('')}</div>`;
+  }
+  return `<div class="app">${side}<div class="main">${m}</div></div>`;
+}
+
+// ---------- PROFESSOR ----------
+const MENU_PROF=[['hoje','🏠 Hoje',3],['acompanhar','📈 Acompanhar'],['corrigir','✅ Corrigir',5],['planejar','🗓 Planejar'],['materiais','📎 Materiais e manutenção']];
+const ALUNOS=[['Aluno A',['fim','fim','and','nao','bloq','bloq']],['Aluno B',['fim','fim','aval','ajus','bloq','bloq']],['Aluno C',['fim','fim','fim','and','bloq','bloq']],['Aluno D',['fim','and','nao','bloq','bloq','bloq']],['Aluno E',['aval','nao','bloq','bloq','bloq','bloq']]];
+const COR={fim:['--ok-bg','--ok','✓'],aval:['--brand-bg','--brand','A'],and:['--gray-bg','--soft','…'],nao:['--bad-bg','--bad','!'],ajus:['--warn-bg','--warn','↺'],bloq:['--gray-bg','--soft','·']};
+function abas(k,lista){const a=aba[k]||lista[0][0];return {a,html:`<div class="tabs">${lista.map(([id,l])=>`<button class="tab ${a===id?'on':''}" data-a="${k}|${id}">${l}</button>`).join('')}</div>`}}
+function prof(){
+  const t=tela.prof;
+  let side=`<div class="side"><div class="id">Prof. Jorge · Turma 2026.2</div>`;
+  MENU_PROF.forEach(([k,l,b])=>{side+=`<button class="mi ${t===k?'on':''}" data-t="${k}">${l}${b?`<span class="b">${b}</span>`:''}</button>`});
+  side+='</div>';
+  let m='';
+  if(t==='hoje'){
+    m=`<h2>Hoje na turma</h2><div class="grid">
+      <div class="card"><div class="num">5</div><div>para corrigir</div><button class="btn sec" data-go="corrigir" style="margin-top:6px">Corrigir agora</button></div>
+      <div class="card"><div class="num">2</div><div>chamados de suporte</div><button class="btn sec" data-go="corrigir" data-a="corrigir|suporte" style="margin-top:6px">Responder</button></div>
+      <div class="card"><div class="num">3</div><div>entregas após o prazo de referência ⏰</div><button class="btn sec" data-go="acompanhar" style="margin-top:6px">Ver quem</button></div>
+      <div class="card"><div class="num">1</div><div>aluno sem período anterior (AGB)</div><button class="btn sec" data-go="planejar" style="margin-top:6px">Cadastrar</button></div></div>
+      <div class="card"><h3>Quem precisa de você agora</h3>
+      ${[['Aluno B','Etapa 4 · Rescisão aguarda correção','Corrigir esta entrega'],['Aluno E','Etapa 1 · Nota aguarda avaliação','Corrigir esta entrega'],['Aluno D','Etapa 3 · não iniciou (prazo de referência passou)','Enviar orientação']].map(r=>`<div class="row"><span><b>${r[0]}</b> · ${r[1]}</span><button class="btn" data-go="corrigir">${r[2]}</button></div>`).join('')}</div>
+      <p class="small soft">Reúne Sala de aula, Painel da turma e "Hoje" em uma única tela inicial.</p>`;
+  }else if(t==='acompanhar'){
+    const x=abas('acompanhar',[['geral','Visão geral das 6 etapas'],['aluno','Por aluno'],['etapa','Por etapa']]);
+    m=`<h2>Acompanhar</h2>${x.html}`;
+    if(x.a==='geral')m+=`<div class="card tw"><table><thead><tr><th>Aluno</th>${[1,2,3,4,5,6].map(n=>`<th>E${n}</th>`).join('')}</tr></thead><tbody>${ALUNOS.map(([n,s])=>`<tr><td>${n}</td>${s.map(c=>`<td><span class="m" style="background:var(${COR[c][0]});color:var(${COR[c][1]})">${COR[c][2]}</span></td>`).join('')}</tr>`).join('')}</tbody></table>
+      <p class="small soft" style="margin-top:8px">✓ concluída · A aguarda avaliação · … em andamento · ! não iniciada após a referência · ↺ ajustar · · bloqueada. Clicar na célula leva à correção exata.</p></div>`;
+    else if(x.a==='aluno')m+=`<div class="card"><h3>Histórico do aluno</h3><p class="small soft">Escolha um aluno: entregas, retornos, orientações enviadas e chamados num só lugar (hoje: Alunos › Histórico, Registro e Relatório).</p></div>`;
+    else m+=`<div class="card"><h3>Uma etapa, todos os alunos</h3><p class="small soft">Hoje ficam em "Etapa 1", "Etapas 2–3", "Etapa 4" e "Etapas 5–6". Todas com o mesmo formato: Alunos · Gabarito · Material.</p></div>`;
+  }else if(t==='corrigir'){
+    const x=abas('corrigir',[['fila','Fila'],['aval','Avaliação das etapas'],['notas','Notas'],['suporte','Suporte']]);
+    m=`<h2>Corrigir</h2>${x.html}`;
+    if(x.a==='fila'||x.a==='aval')m+=`<div class="card">${[['Aluno B','Etapa 4 · Incidências','aguarda você'],['Aluno E','Etapa 1 · Balanço patrimonial','aguarda você'],['Aluno C','Etapa 3 · Folha do mês','entregue ⏰']].map(r=>`<div class="row"><span><b>${r[0]}</b> · ${r[1]} ${pill('warn',r[2])}</span><button class="btn">Corrigir agora</button></div>`).join('')}<p class="small soft" style="margin-top:8px">Um botão leva direto ao aluno e à etapa exata, sem passar por outras telas. Fila, avaliação e notas ficam na mesma tela, em abas.</p></div>`;
+    else if(x.a==='notas')m+=`<div class="card"><p>Notas da Etapa 1 e das etapas 2 a 6 juntas, uma coluna por etapa.</p></div>`;
+    else m+=`<div class="card"><p>2 chamados abertos. Responder, orientar e marcar como resolvido.</p></div>`;
+  }else if(t==='planejar'){
+    const x=abas('planejar',[['etapas','Etapas e prazos'],['lib','Liberação'],['turmas','Turmas'],['crono','Cronograma'],['dir','Diretriz da semana']]);
+    m=`<h2>Planejar</h2>${x.html}`;
+    if(x.a==='etapas')m+=`<div class="card tw"><table><thead><tr><th>Etapa</th><th>Prazo de referência</th><th>Liberada</th></tr></thead><tbody>${ETAPAS.map((e,i)=>`<tr><td>${e.n} · ${e.t}</td><td>${['30/10','13/11','18/12','—','—','—'][i]}</td><td>${i<4?pill('ok','Sim'):pill('gray','Não')}</td></tr>`).join('')}</tbody></table><p class="small soft" style="margin-top:8px">Única tela de prazos e liberação. O Cronograma e o Fechamento deixam de repetir esta informação.</p></div>`;
+    else m+=`<div class="card"><p class="soft small">Aba "${x.a}": mesmo conteúdo de hoje, agora dentro de Planejar.</p></div>`;
+  }else{
+    m=`<h2>Materiais e manutenção</h2><p class="soft small">Fora do caminho do dia a dia.</p><div class="grid">
+    ${[['🖨 Cadernos','PI, Escrituração, Folha, RCT, AGB, AP, cabeçalhos, planos, descrições'],['📒 Guias e tabelas','Guia de lançamentos, Plano de contas, INSS/IRRF, manuais'],['✉ Modelos de mensagem','Orientações prontas'],['🧪 Laboratório 2027.1','Protótipo só do professor'],['⚠ Manutenção','Modo de teste, refazer nota do aluno']].map(c=>`<div class="card"><h3>${c[0]}</h3><p class="small soft">${c[1]}</p></div>`).join('')}</div>`;
+  }
+  return `<div class="app">${side}<div class="main">${m}</div></div>`;
+}
+
+// ---------- HOJE e MAPA ----------
+function hoje(){
+  if(papel==='aluno')return `<div class="cmp"><div class="card"><h3>Menu do aluno hoje (≈ 12 itens + 33 telas)</h3><ul><li>Comece aqui</li><li>Meu roteiro por etapas</li><li>Cronograma</li><li>Roteiro do Aluno</li><li>Manual do Aluno</li><li>Guia de lançamentos · Tabelas</li><li>6 etapas com 33 telas</li><li>Meu progresso</li><li>Notas e retornos</li><li>Minha nota (Etapa 1)</li><li>Suporte</li></ul></div>
+  <div class="card"><h3>Onde o aluno se perde</h3><ul><li><span class="x">✗</span> 4 telas dizem "o que fazer agora" (Comece aqui, Roteiro, Meu roteiro, Cronograma).</li><li><span class="x">✗</span> 3 telas dizem "como estou" (Meu progresso, Notas e retornos, Minha nota).</li><li><span class="x">✗</span> Na Etapa 1, 10 telas soltas, sem indicação clara de qual é a próxima.</li><li><span class="x">✗</span> Textos "bloqueada/fechada" confundem depois que prazos viraram referência.</li></ul></div></div>`;
+  return `<div class="cmp"><div class="card"><h3>Menu do professor hoje (≈ 35 itens + abas)</h3><ul><li>À vista: Painel da turma, Sala de aula, Fila, Suporte, Dashboard do ciclo</li><li>Planejar: Etapas/prazos/liberação, Turmas, Diretriz, Envios por lote</li><li>Avaliar e fechar: Alunos, Ver como o aluno, Fechamento, Notas e avaliação</li><li>Etapas: Etapa 1 (abas), CA, Rescisão, AGB, Atividade da folha</li><li>Materiais: 6 cadernos, cabeçalhos, planos, descrições, roteiro, guias, tabelas, modelos, ajuda, "como o menu funciona", roteiro de testes</li><li>Manutenção · Laboratório</li><li>+ a Mesa do professor (barra no topo) repete tudo</li></ul></div>
+  <div class="card"><h3>Onde o professor se perde</h3><ul><li><span class="x">✗</span> 5 telas de visão geral com números parecidos.</li><li><span class="x">✗</span> Corrigir passa por 3 caminhos (Fila, Avaliação, Dashboard).</li><li><span class="x">✗</span> Prazos aparecem em 3 lugares; "Fechamento" perdeu o sentido.</li><li><span class="x">✗</span> Etapas 1 a 6 têm formatos diferentes.</li><li><span class="x">✗</span> Dois menus (lateral e topo) para o mesmo conteúdo.</li><li><span class="x">✗</span> Cadernos misturados com o trabalho diário.</li></ul></div></div>`;
+}
+function mapa(){
+  const A=[['Comece aqui · Meu roteiro por etapas · Roteiro do Aluno · Cronograma','Início (próximo passo + as 6 etapas)'],['Etapa 1 a 6 (menu em Direção)','Minhas etapas'],['Meu progresso · Notas e retornos · Minha nota (Etapa 1)','Notas e retornos'],['Guia de lançamentos · Tabelas · Manual do Aluno · Suporte','Ajuda']];
+  const P=[['Sala de aula · Painel da turma · Hoje (como o menu funciona)','Hoje'],['Dashboard do ciclo · Histórico, Registro, Relatório do aluno · Ver como o aluno · Etapas 1 a 6 (acompanhamento)','Acompanhar'],['Fila de correção · Notas e avaliação · Suporte','Corrigir'],['Etapas, prazos e liberação · Cronograma · Turmas · Diretriz · Envios por lote · Fechamento (some: prazos são referência)','Planejar'],['Cadernos · Cabeçalhos · Planos · Descrições · Guias · Tabelas · Modelos · Ajuda · Roteiro de testes · Modo de teste · Refazer nota · Laboratório 2027.1','Materiais e manutenção']];
+  const L=papel==='aluno'?A:P;
+  return `<div class="card tw"><table><thead><tr><th>Telas de hoje</th><th>Passa a ser</th></tr></thead><tbody>${L.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('')}</tbody></table><p class="small soft" style="margin-top:8px">Nenhuma tela some e nenhum dado muda: o conteúdo é o mesmo, só muda onde se chega a ele. As chaves antigas continuam funcionando (botões e links atuais).</p></div>`;
+}
+
+function render(){
+  document.querySelectorAll('#papel button').forEach(b=>b.classList.toggle('on',b.dataset.p===papel));
+  document.querySelectorAll('#modo button').forEach(b=>b.classList.toggle('on',b.dataset.m===modo));
+  $('#corpo').innerHTML=(modo==='prop'?(papel==='aluno'?aluno():prof()):modo==='hoje'?hoje():mapa())+(modo==='prop'?'':'');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.p){papel=b.dataset.p;}
+  else if(b.dataset.m){modo=b.dataset.m;}
+  else if(b.dataset.a&&!b.dataset.go){const[k,v]=b.dataset.a.split('|');aba[k]=v;}
+  else if(b.dataset.go){if(b.dataset.e)aberta=b.dataset.e;if(b.dataset.a){const[k,v]=b.dataset.a.split('|');aba[k]=v;}tela[papel]=b.dataset.go;}
+  else if(b.dataset.t){tela[papel]=b.dataset.t;}
+  else if(b.dataset.e){aberta=b.dataset.e;}
+  else return;
+  render();
+});
+render();
+</script>
+
+</html>

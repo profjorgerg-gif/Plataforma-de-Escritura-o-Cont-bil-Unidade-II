@@ -240,7 +240,14 @@ export default function Laboratorio2027({ turma }) {
       </div>
       <h2 style={{ margin: "0 0 4px" }}>Laboratório 2027.1</h2>
       <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: "0 0 10px" }}>Só o professor entra aqui. A aba Professor gera e acompanha as notas; a aba Aluno mostra o que o aluno veria.</p>
-      <Abas tamanho="g" atual={modo} onMudar={setModo} itens={[{ k: "p", t: "Professor" }, { k: "a", t: "Aluno" }]} />
+      <Abas tamanho="g" atual={modo} onMudar={setModo} itens={[{ k: "p", t: "Professor" }, { k: "a", t: "Aluno" }, { k: "n", t: "Navegação (protótipos)" }]} />
+
+      {modo === "n" && (
+        <div>
+          <p style={{ color: "var(--ink-soft)", fontSize: 13.5, margin: "0 0 8px" }}>Modelo clicável da nova navegação do aluno e do professor, com dados de exemplo. Não altera o sistema atual.</p>
+          <iframe title="Protótipo de navegação" src={(import.meta.env.BASE_URL || "/") + "prototipos/navegacao.html"} style={{ width: "100%", height: "78vh", minHeight: 560, border: "1px solid var(--line)", background: "var(--card)" }} />
+        </div>
+      )}
 
       {modo === "p" && (
         <>
