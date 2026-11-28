@@ -111,6 +111,36 @@ const MENU_PROF=[['hoje','🏠 Hoje',3],['acompanhar','📈 Acompanhar'],['corri
 const ALUNOS=[['Aluno A',['fim','fim','and','nao','bloq','bloq']],['Aluno B',['fim','fim','aval','ajus','bloq','bloq']],['Aluno C',['fim','fim','fim','and','bloq','bloq']],['Aluno D',['fim','and','nao','bloq','bloq','bloq']],['Aluno E',['aval','nao','bloq','bloq','bloq','bloq']]];
 const COR={fim:['--ok-bg','--ok','✓'],aval:['--brand-bg','--brand','A'],and:['--gray-bg','--soft','…'],nao:['--bad-bg','--bad','!'],ajus:['--warn-bg','--warn','↺'],bloq:['--gray-bg','--soft','·']};
 function abas(k,lista){const a=aba[k]||lista[0][0];return {a,html:`<div class="tabs">${lista.map(([id,l])=>`<button class="tab ${a===id?'on':''}" data-a="${k}|${id}">${l}</button>`).join('')}</div>`}}
+
+// ---------- Acompanhar: Visão geral (vem do Dashboard do ciclo) ----------
+const vg={foco:null,so:false,ord:'nome',conf:false,msg:''};
+const DESC={fim:['ok','Concluída','Nada a fazer.'],aval:['brand','Aguarda você','Corrigir a entrega do aluno.'],and:['gray','Em andamento','O aluno está trabalhando; sem ação sua.'],nao:['bad','Não iniciada (prazo de referência passou)','Enviar uma orientação ao aluno.'],ajus:['warn','Aluno ajustando','Aguardar o novo envio.'],bloq:['gray','Bloqueada','Libere a etapa em Planejar quando a turma chegar aqui.']};
+function geral(){
+  const L=ALUNOS.map(([n,s],i)=>({n,s,i,at:s.some(c=>c==='aval'||c==='nao'||c==='ajus')}));
+  const cont=c=>L.reduce((a,l)=>a+l.s.filter(x=>x===c).length,0);
+  let rows=vg.so?L.filter(l=>l.at):L.slice();
+  if(vg.ord==='atencao')rows.sort((a,b)=>b.at-a.at);
+  const cart=[['fim','Concluídas'],['aval','Aguardam você'],['nao','Não iniciadas ⏰'],['ajus','Em ajuste']].map(([c,t])=>`<div class="card"><div class="num" style="color:var(${COR[c][1]})">${cont(c)}</div><div class="small">${t}</div></div>`).join('');
+  let h=`<div class="aviso">Turma sem período anterior cadastrado (Etapas 5–6 · AGB): o aluno não consegue fazer a análise horizontal. <button class="btn sec" data-go="planejar">Cadastrar agora</button></div>
+  <div class="grid">${cart}</div>
+  <div class="card"><div class="row" style="padding-top:0"><span class="seg"><button class="tab ${vg.so?'on':''}" data-vg="so">Só quem precisa de atenção</button><button class="tab ${vg.ord==='atencao'?'on':''}" data-vg="ord">Atenção primeiro</button></span><button class="btn" data-vg="ot">Orientar todos (etapas 1 a 6)</button></div>`;
+  if(vg.conf)h+=`<div class="aviso">Enviar a orientação de cada etapa a ${L.length} alunos? Alunos sem pendência recebem só uma mensagem de acompanhamento. <button class="btn" data-vg="ot-ok">Confirmar envio</button> <button class="btn sec" data-vg="ot-no">Cancelar</button></div>`;
+  if(vg.msg)h+=`<div class="aviso" style="background:var(--ok-bg);color:var(--ok)">${vg.msg}</div>`;
+  h+=`<div class="tw"><table><thead><tr><th>Aluno</th>${ETAPAS.map(e=>`<th title="${e.t}">E${e.n}</th>`).join('')}</tr></thead><tbody>${rows.map(l=>`<tr><td>${l.n}</td>${l.s.map((c,j)=>{const on=vg.foco&&vg.foco[0]===l.i&&vg.foco[1]===j;return `<td><button data-vg="cell:${l.i}:${j}" class="m" style="border:0;cursor:pointer;background:var(${COR[c][0]});color:var(${COR[c][1]});${on?'outline:2px solid var(--brand);':''}">${COR[c][2]}</button></td>`}).join('')}</tr>`).join('')}</tbody></table></div>
+  <p class="small soft" style="margin-top:8px">✓ concluída · A aguarda avaliação · … em andamento · ! não iniciada · ↺ ajustar · · bloqueada. Passe o mouse em E1…E6 para ver o nome da etapa. Clique numa célula.</p></div>`;
+  if(vg.foco){const [i,j]=vg.foco,c=ALUNOS[i][1][j],d=DESC[c],e=ETAPAS[j];
+    h+=`<div class="card hero"><h3>${ALUNOS[i][0]} · Etapa ${e.n} · ${e.t}</h3><p>${pill(d[0],d[1])} ${d[2]}</p>`;
+    if(c==='aval')h+=`<button class="btn" data-go="corrigir">Corrigir agora</button> <span class="small soft">leva direto a esta entrega, sem passar por outras telas</span>`;
+    else if(c==='nao')h+=`<button class="btn" data-vg="msg">Enviar orientação</button>`;
+    else if(c==='bloq')h+=`<button class="btn sec" data-go="planejar">Ir para Planejar</button>`;
+    h+=`</div>`;}
+  return h;
+}
+function doc1(){
+  const D=[['NF-e 1001 · Compra','fim','fim','fim','fim'],['NF-e 1002 · Venda','fim','fim','and','nao'],['NF-e 1003 · Compra','fim','aval','nao','nao'],['NF-e 1004 · Venda','and','nao','nao','nao']];
+  const f=c=>`<td><span class="m" style="background:var(${COR[c][0]});color:var(${COR[c][1]})">${COR[c][2]}</span></td>`;
+  return `<div class="card"><h3>Etapa 1 · Entrada × Saída por documento</h3><p class="small soft">Do Dashboard do ciclo atual: para cada documento liberado, as 4 fases da Etapa 1 (exemplo de um aluno).</p><div class="tw"><table><thead><tr><th>Documento</th><th>Digitação</th><th>Análise fiscal</th><th>Classificação</th><th>Lançamento</th></tr></thead><tbody>${D.map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(f).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+}
 function prof(){
   const t=tela.prof;
   let side=`<div class="side"><div class="id">Prof. Jorge · Turma 2026.2</div>`;
@@ -127,10 +157,10 @@ function prof(){
       ${[['Aluno B','Etapa 4 · Rescisão aguarda correção','Corrigir esta entrega'],['Aluno E','Etapa 1 · Nota aguarda avaliação','Corrigir esta entrega'],['Aluno D','Etapa 3 · não iniciou (prazo de referência passou)','Enviar orientação']].map(r=>`<div class="row"><span><b>${r[0]}</b> · ${r[1]}</span><button class="btn" data-go="corrigir">${r[2]}</button></div>`).join('')}</div>
       <p class="small soft">Reúne Sala de aula, Painel da turma e "Hoje" em uma única tela inicial.</p>`;
   }else if(t==='acompanhar'){
-    const x=abas('acompanhar',[['geral','Visão geral das 6 etapas'],['aluno','Por aluno'],['etapa','Por etapa']]);
+    const x=abas('acompanhar',[['geral','Visão geral das 6 etapas'],['doc1','Etapa 1 · Documentos'],['aluno','Por aluno'],['etapa','Por etapa']]);
     m=`<h2>Acompanhar</h2>${x.html}`;
-    if(x.a==='geral')m+=`<div class="card tw"><table><thead><tr><th>Aluno</th>${[1,2,3,4,5,6].map(n=>`<th>E${n}</th>`).join('')}</tr></thead><tbody>${ALUNOS.map(([n,s])=>`<tr><td>${n}</td>${s.map(c=>`<td><span class="m" style="background:var(${COR[c][0]});color:var(${COR[c][1]})">${COR[c][2]}</span></td>`).join('')}</tr>`).join('')}</tbody></table>
-      <p class="small soft" style="margin-top:8px">✓ concluída · A aguarda avaliação · … em andamento · ! não iniciada após a referência · ↺ ajustar · · bloqueada. Clicar na célula leva à correção exata.</p></div>`;
+    if(x.a==='geral')m+=geral();
+    else if(x.a==='doc1')m+=doc1();
     else if(x.a==='aluno')m+=`<div class="card"><h3>Histórico do aluno</h3><p class="small soft">Escolha um aluno: entregas, retornos, orientações enviadas e chamados num só lugar (hoje: Alunos › Histórico, Registro e Relatório).</p></div>`;
     else m+=`<div class="card"><h3>Uma etapa, todos os alunos</h3><p class="small soft">Hoje ficam em "Etapa 1", "Etapas 2–3", "Etapa 4" e "Etapas 5–6". Todas com o mesmo formato: Alunos · Gabarito · Material.</p></div>`;
   }else if(t==='corrigir'){
@@ -143,6 +173,10 @@ function prof(){
     const x=abas('planejar',[['etapas','Etapas e prazos'],['lib','Liberação'],['turmas','Turmas'],['crono','Cronograma'],['dir','Diretriz da semana']]);
     m=`<h2>Planejar</h2>${x.html}`;
     if(x.a==='etapas')m+=`<div class="card tw"><table><thead><tr><th>Etapa</th><th>Prazo de referência</th><th>Liberada</th></tr></thead><tbody>${ETAPAS.map((e,i)=>`<tr><td>${e.n} · ${e.t}</td><td>${['30/10','13/11','18/12','—','—','—'][i]}</td><td>${i<4?pill('ok','Sim'):pill('gray','Não')}</td></tr>`).join('')}</tbody></table><p class="small soft" style="margin-top:8px">Única tela de prazos e liberação. O Cronograma e o Fechamento deixam de repetir esta informação.</p></div>`;
+    else if(x.a==='turmas')m+=`<div class="card"><h3>Suas turmas</h3>${[['Turma 2026.2 · CI T201','24 alunos',1],['Turma 2026.2 · CI T202','22 alunos',0]].map(r=>`<div class="row"><span>${r[0]} <span class="soft small">${r[1]}</span> ${r[2]?pill('brand','selecionada'):''}</span><button class="btn sec">${r[2]?'Em uso':'Selecionar'}</button></div>`).join('')}<button class="btn" style="margin-top:8px">+ Nova turma</button></div>
+      <div class="card"><h3>Disciplinas desta turma</h3><div class="grid"><div><label class="small soft">CI</label><br><input value="T201" style="width:100%"></div><div><label class="small soft">CA</label><br><input value="T301" style="width:100%"></div><div><label class="small soft">AGB</label><br><input value="T401" style="width:100%"></div></div><button class="btn sec" style="margin-top:8px">Salvar nomes</button></div>
+      <div class="card"><h3>Alunos da turma</h3><div class="row" style="padding-top:0"><span class="soft small">Matrícula, nome e acesso</span><span><button class="btn sec">+ Adicionar aluno</button> <button class="btn sec">Importar lista</button></span></div><div class="tw"><table><thead><tr><th>Aluno</th><th>Matrícula</th><th></th></tr></thead><tbody>${['Aluno A','Aluno B','Aluno C'].map((n,i)=>`<tr><td>${n}</td><td>2026${100+i}</td><td><button class="btn sec">👁 Ver como o aluno</button> <button class="btn sec">Remover</button></td></tr>`).join('')}</tbody></table></div></div>
+      <p class="small soft">Mudanças: "Prazo e pontualidade" (prazo e penalidade da Etapa 1) sai de Turmas e vai para <b>Etapas e prazos</b>, a única fonte de prazos, com a penalidade como opção. "Manutenção do primeiro acesso" vai para <b>Materiais e manutenção</b>. "Ver como o aluno" passa a ser um botão na lista de alunos.</p>`;
     else m+=`<div class="card"><p class="soft small">Aba "${x.a}": mesmo conteúdo de hoje, agora dentro de Planejar.</p></div>`;
   }else{
     m=`<h2>Materiais e manutenção</h2><p class="soft small">Fora do caminho do dia a dia.</p><div class="grid">
@@ -160,7 +194,7 @@ function hoje(){
 }
 function mapa(){
   const A=[['Comece aqui · Meu roteiro por etapas · Roteiro do Aluno · Cronograma','Início (próximo passo + as 6 etapas)'],['Etapa 1 a 6 (menu em Direção)','Minhas etapas'],['Meu progresso · Notas e retornos · Minha nota (Etapa 1)','Notas e retornos'],['Guia de lançamentos · Tabelas · Manual do Aluno · Suporte','Ajuda']];
-  const P=[['Sala de aula · Painel da turma · Hoje (como o menu funciona)','Hoje'],['Dashboard do ciclo · Histórico, Registro, Relatório do aluno · Ver como o aluno · Etapas 1 a 6 (acompanhamento)','Acompanhar'],['Fila de correção · Notas e avaliação · Suporte','Corrigir'],['Etapas, prazos e liberação · Cronograma · Turmas · Diretriz · Envios por lote · Fechamento (some: prazos são referência)','Planejar'],['Cadernos · Cabeçalhos · Planos · Descrições · Guias · Tabelas · Modelos · Ajuda · Roteiro de testes · Modo de teste · Refazer nota · Laboratório 2027.1','Materiais e manutenção']];
+  const P=[['Sala de aula · Painel da turma · Hoje (como o menu funciona)','Hoje'],['Dashboard do ciclo · Histórico, Registro, Relatório do aluno · Ver como o aluno · Etapas 1 a 6 (acompanhamento)','Acompanhar'],['Fila de correção · Notas e avaliação · Suporte','Corrigir'],['Etapas, prazos e liberação · Cronograma · Turmas (sem prazo/penalidade: vão para Etapas e prazos) · Diretriz · Envios por lote · Fechamento (some: prazos são referência)','Planejar'],['Cadernos · Cabeçalhos · Planos · Descrições · Guias · Tabelas · Modelos · Ajuda · Roteiro de testes · Modo de teste · Refazer nota · Manutenção do primeiro acesso (hoje em Turmas) · Laboratório 2027.1','Materiais e manutenção']];
   const L=papel==='aluno'?A:P;
   return `<div class="card tw"><table><thead><tr><th>Telas de hoje</th><th>Passa a ser</th></tr></thead><tbody>${L.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('')}</tbody></table><p class="small soft" style="margin-top:8px">Nenhuma tela some e nenhum dado muda: o conteúdo é o mesmo, só muda onde se chega a ele. As chaves antigas continuam funcionando (botões e links atuais).</p></div>`;
 }
@@ -172,7 +206,13 @@ function render(){
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.p){papel=b.dataset.p;}
+  if(b.dataset.vg){const v=b.dataset.vg;
+    if(v==='so')vg.so=!vg.so;else if(v==='ord')vg.ord=vg.ord==='atencao'?'nome':'atencao';
+    else if(v==='ot'){vg.conf=true;vg.msg='';}else if(v==='ot-no')vg.conf=false;
+    else if(v==='ot-ok'){vg.conf=false;vg.msg='Orientações enviadas (exemplo): cada aluno recebe o que falta em cada etapa.';}
+    else if(v==='msg'){vg.msg='Orientação enviada ao aluno (exemplo).';}
+    else if(v.startsWith('cell:')){const[,i,j]=v.split(':');vg.foco=[+i,+j];vg.msg='';}}
+  else if(b.dataset.p){papel=b.dataset.p;}
   else if(b.dataset.m){modo=b.dataset.m;}
   else if(b.dataset.a&&!b.dataset.go){const[k,v]=b.dataset.a.split('|');aba[k]=v;}
   else if(b.dataset.go){if(b.dataset.e)aberta=b.dataset.e;if(b.dataset.a){const[k,v]=b.dataset.a.split('|');aba[k]=v;}tela[papel]=b.dataset.go;}
